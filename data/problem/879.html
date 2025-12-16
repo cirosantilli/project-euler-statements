@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#879 Touch-screen Password - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Touch-screen Password</h2><div id="problem_icons" class="noprint"><a href="minimal=879"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Saturday, 24th February 2024, 04:00 pm; Solved by 485;<br>Difficulty rating: 25%</span></span></div><div id="problem_info"><h3>Problem 879</h3></div>
+<div class="problem_content" role="problem">
+<p>A touch-screen device can be unlocked with a "password" consisting of a sequence of two or more distinct spots that the user selects from a rectangular grid of spots on the screen. The user enters their sequence by touching the first spot, then tracing a straight line segment to the next spot, and so on until the end of the sequence. The user's finger remains in contact with the screen throughout, and may only move in straight line segments from spot to spot.</p>
+
+<p>If the finger traces a straight line that passes over an intermediate spot, then that is treated as two line segments with the intermediate spot included in the password sequence. For example, on a $3\times 3$ grid labelled with digits $1$ to $9$ (shown below), tracing $1-9$ is interpreted as $1-5-9$.</p>
+
+<p>Once a spot has been selected it disappears from the screen. Thereafter, the spot may not be used as an endpoint of future line segments, and it is ignored by any future line segments which happen to pass through it. For example, tracing $1-9-3-7$ (which crosses the $5$ spot twice) will give the password $1-5-9-6-3-7$.</p>
+<img src="resources/images/0879_touchscreen_159637.png?1707555645" alt="1-5-9-6-3-7 example">
+
+<p>There are $389488$ different passwords that can be formed on a $3 \times 3$ grid.</p>
+
+<p>Find the number of different passwords that can be formed on a $4 \times 4$ grid.</p>
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

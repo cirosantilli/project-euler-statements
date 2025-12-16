@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#315 Digital Root Clocks - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Digital Root Clocks</h2><div id="problem_icons" class="noprint"><a href="minimal=315"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Sunday, 19th December 2010, 10:00 am; Solved by 3771;<br>Difficulty rating: 20%</span></span></div><div id="problem_info"><h3>Problem 315</h3></div>
+<div class="problem_content" role="problem">
+<p></p><div align="center"><img src="resources/images/0315_clocks.gif?1678992056" alt="0315_clocks.gif"></div>
+
+<p>Sam and Max are asked to transform two digital clocks into two "digital root" clocks.<br>
+A digital root clock is a digital clock that calculates digital roots step by step.</p>
+
+<p>When a clock is fed a number, it will show it and then it will start the calculation, showing all the intermediate values until it gets to the result.<br>
+For example, if the clock is fed the number 137, it will show: "<b>137</b>" → "<b>11</b>" → "<b>2</b>" and then it will go black, waiting for the next number.</p>
+
+<p>Every digital number consists of some light segments: three horizontal (top, middle, bottom) and four vertical (top-left, top-right, bottom-left, bottom-right).<br>
+Number "<b>1</b>" is made of vertical top-right and bottom-right, number "<b>4</b>" is made by middle horizontal and vertical top-left, top-right and bottom-right. Number "<b>8</b>" lights them all.</p>
+
+<p>The clocks consume energy only when segments are turned on/off.<br>
+To turn on a "<b>2</b>" will cost 5 transitions, while a "<b>7</b>" will cost only 4 transitions.</p>
+
+<p>Sam and Max built two different clocks.</p>
+
+<p>Sam's clock is fed e.g. number 137: the clock shows "<b>137</b>", then the panel is turned off, then the next number ("<b>11</b>") is turned on, then the panel is turned off again and finally the last number ("<b>2</b>") is turned on and, after some time, off.<br>
+For the example, with number 137, Sam's clock requires:<br></p><table><tr><td>"<b>137</b>"</td>
+<td>:</td>
+<td>(2 + 5 + 4) × 2 = 22 transitions ("<b>137</b>" on/off).</td>
+</tr><tr><td>"<b>11</b>"</td>
+<td>:</td>
+<td>(2 + 2) × 2 = 8 transitions ("<b>11</b>" on/off).</td>
+</tr><tr><td>"<b>2</b>"</td>
+<td>:</td>
+<td>(5) × 2 = 10 transitions ("<b>2</b>" on/off).</td>
+</tr></table>
+For a grand total of 40 transitions.
+
+<p>Max's clock works differently. Instead of turning off the whole panel, it is smart enough to turn off only those segments that won't be needed for the next number.<br>
+For number 137, Max's clock requires:<br></p><table><tr><td>"<b>137</b>"<br><br></td>
+<td>:<br><br></td>
+<td>2 + 5 + 4 = 11 transitions ("<b>137</b>" on)<br>
+7 transitions (to turn off the segments that are not needed for number "<b>11</b>").</td>
+</tr><tr><td>"<b>11</b>"<br><br><br></td>
+<td>:<br><br><br></td>
+<td>0 transitions (number "<b>11</b>" is already turned on correctly)<br>
+3 transitions (to turn off the first "<b>1</b>" and the bottom part of the second "<b>1</b>"; <br>
+the top part is common with number "<b>2</b>").</td>
+</tr><tr><td>"<b>2</b>"<br><br></td>
+<td>:<br><br></td>
+<td>4 transitions (to turn on the remaining segments in order to get a "<b>2</b>")<br>
+5 transitions (to turn off number "<b>2</b>").</td>
+</tr></table>
+For a grand total of 30 transitions.
+
+<p>Of course, Max's clock consumes less power than Sam's one.<br>
+The two clocks are fed all the prime numbers between A = 10<sup>7</sup> and B = 2×10<sup>7</sup>. <br>
+Find the difference between the total number of transitions needed by Sam's clock and that needed by Max's one.</p>
+
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#556 Squarefree Gaussian Integers - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Squarefree Gaussian Integers</h2><div id="problem_icons" class="noprint"><a href="minimal=556"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Sunday, 17th April 2016, 07:00 am; Solved by 298;<br>Difficulty rating: 85%</span></span></div><div id="problem_info"><h3>Problem 556</h3></div>
+<div class="problem_content" role="problem">
+<p>A <b>Gaussian integer</b> is a number $z = a + bi$ where $a$, $b$ are integers and $i^2 = -1$.<br>
+Gaussian integers are a subset of the complex numbers, and the integers are the subset of Gaussian integers for which $b = 0$.</p>
+
+<p>A Gaussian integer <strong>unit</strong> is one for which $a^2 + b^2 = 1$, i.e. one of $1, i, -1, -i$.<br>
+Let's define a <dfn>proper</dfn> Gaussian integer as one for which $a \gt 0$ and $b \ge 0$.</p>
+
+<p>A Gaussian integer $z_1 = a_1 + b_1 i$ is said to be divisible by $z_2 = a_2 + b_2 i$ if $z_3 = a_3 + b_3 i = z_1 / z_2$ is a Gaussian integer.<br>
+$\frac {z_1} {z_2} = \frac {a_1 + b_1 i} {a_2 + b_2 i} = \frac {(a_1 + b_1 i)(a_2 - b_2 i)} {(a_2 + b_2 i)(a_2 - b_2 i)} = \frac {a_1 a_2 + b_1 b_2} {a_2^2 + b_2^2} + \frac  {a_2 b_1 - a_1 b_2}  {a_2^2 + b_2^2}i = a_3 + b_3 i$<br>
+So, $z_1$ is divisible by $z_2$ if $\frac {a_1 a_2 + b_1 b_2} {a_2^2 + b_2^2}$ and $\frac  {a_2 b_1 - a_1 b_2}  {a_2^2 + b_2^2}$ are integers.<br>
+For example, $2$ is divisible by $1 + i$ because $2/(1 + i) = 1 - i$ is a Gaussian integer.</p>
+
+<p>A <strong>Gaussian prime</strong> is a Gaussian integer that is divisible only by a unit, itself or itself times a unit.<br>
+For example, $1 + 2i$ is a Gaussian prime, because it is only divisible by $1$, $i$, $-1$, $-i$, $1 + 2i$, $i(1 + 2i) = i - 2$, $-(1 + 2i) = -1 - 2i$ and $-i(1 + 2i) = 2 - i$.<br>
+$2$ is not a Gaussian prime as it is divisible by $1 + i$.</p>
+
+<p>A Gaussian integer can be uniquely factored as the product of a unit and proper Gaussian primes.<br>
+For example $2 = -i(1 + i)^2$ and $1 + 3i = (1 + i)(2 + i)$.<br>
+A Gaussian integer is said to be squarefree if its prime factorization does not contain repeated proper Gaussian primes.<br>
+So $2$ is not squarefree over the Gaussian integers, but $1 + 3i$ is.<br>
+Units and Gaussian primes are squarefree by definition.</p>
+
+<p>Let $f(n)$ be the count of proper squarefree Gaussian integers with $a^2 + b^2 \le n$.<br>
+For example $f(10) = 7$ because $1$, $1 + i$, $1 + 2i$, $1 + 3i = (1 + i)(2 + i)$, $2 + i$, $3$ and $3 + i = -i(1 + i)(1 + 2i)$ are squarefree, while $2 = -i(1 + i)^2$ and $2 + 2i = -i(1 + i)^3$ are not.<br>
+You are given $f(10^2) = 54$, $f(10^4) = 5218$ and $f(10^8) = 52126906$.</p>
+
+<p>Find $f(10^{14})$.</p>
+
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

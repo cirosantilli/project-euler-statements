@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#857 Beautiful Graphs - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Beautiful Graphs</h2><div id="problem_icons" class="noprint"><a href="minimal=857"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Sunday, 1st October 2023, 02:00 am; Solved by 193;<br>Difficulty rating: 60%</span></span></div><div id="problem_info"><h3>Problem 857</h3></div>
+<div class="problem_content" role="problem">
+<p>
+A graph is made up of vertices and coloured edges. 
+Between every two distinct vertices there must be exactly one of the following:</p>
+
+<ul>
+<li>A red directed edge one way, and a blue directed edge the other way</li>
+<li>A green undirected edge</li>
+<li>A brown undirected edge</li>
+</ul>
+
+Such a graph is called <i>beautiful</i> if 
+
+<ul>
+<li>A cycle of edges contains a red edge <b>if and only if</b> it also contains a blue edge</li>
+<li>No triangle of edges is made up of entirely green or entirely brown edges</li>
+</ul>
+
+<p>
+Below are four distinct examples of beautiful graphs on three vertices:
+</p>
+<img src="resources/images/0857_GoodGraphs.jpg?1692412187" alt="0857_GoodGraphs.jpg">
+
+<p>
+Below are four examples of graphs that are not beautiful:</p>
+<img src="resources/images/0857_BadGraphs.jpg?1692412205" alt="0857_BadGraphs.jpg">
+
+<p>
+Let $G(n)$ be the number of beautiful graphs on the labelled vertices: $1,2,\ldots,n$.
+You are given $G(3)=24$, $G(4)=186$ and $G(15)=12472315010483328$.</p>
+
+<p>
+Find $G(10^7)$. Give your answer modulo $10^9+7$.</p>
+
+
+
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

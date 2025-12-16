@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#376 Nontransitive Sets of Dice - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Nontransitive Sets of Dice</h2><div id="problem_icons" class="noprint"><a href="minimal=376"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Sunday, 18th March 2012, 01:00 am; Solved by 329;<br>Difficulty rating: 70%</span></span></div><div id="problem_info"><h3>Problem 376</h3></div>
+<div class="problem_content" role="problem">
+<p>
+Consider the following set of dice with nonstandard pips:
+</p>
+
+<p>
+Die $A$: $1$ $4$ $4$ $4$ $4$ $4$<br>
+Die $B$: $2$ $2$ $2$ $5$ $5$ $5$<br>
+Die $C$: $3$ $3$ $3$ $3$ $3$ $6$<br></p>
+
+<p>
+A game is played by two players picking a die in turn and rolling it. The player who rolls the highest value wins.
+</p>
+
+<p>
+If the first player picks die $A$ and the second player picks die $B$ we get<br>
+$P(\text{second player wins}) = 7/12 \gt 1/2$.</p>
+
+<p>
+If the first player picks die $B$ and the second player picks die $C$ we get<br>
+$P(\text{second player wins}) = 7/12 \gt 1/2$.</p>
+
+<p>
+If the first player picks die $C$ and the second player picks die $A$ we get<br>
+$P(\text{second player wins}) = 25/36 \gt 1/2$.</p>
+
+<p>
+So whatever die the first player picks, the second player can pick another die and have a larger than $50\%$ chance of winning.<br>
+A set of dice having this property is called a <strong>nontransitive set of dice</strong>.
+</p>
+
+<p>
+We wish to investigate how many sets of nontransitive dice exist. We will assume the following conditions:</p><ul><li>There are three six-sided dice with each side having between $1$ and $N$ pips, inclusive.</li>
+<li>Dice with the same set of pips are equal, regardless of which side on the die the pips are located.</li>
+<li>The same pip value may appear on multiple dice; if both players roll the same value neither player wins.</li>
+<li>The sets of dice $\{A,B,C\}$, $\{B,C,A\}$ and $\{C,A,B\}$ are the same set.</li>
+</ul><p>
+For $N = 7$ we find there are $9780$ such sets.<br>
+How many are there for $N = 30$?
+</p>
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#910 L-expressions II - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>L-expressions II</h2><div id="problem_icons" class="noprint"><a href="minimal=910"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Sunday, 29th September 2024, 05:00 am; Solved by 91;<br>Difficulty rating: 100% (Not yet finalised)</span></span></div><div id="problem_info"><h3>Problem 910</h3></div>
+<div class="problem_content" role="problem">
+<p>
+An <dfn>L-expression</dfn> is defined as any one of the following:</p>
+<ul>
+<li>a natural number;</li>
+<li>the symbol $A$;</li>
+<li>the symbol $Z$;</li>
+<li>the symbol $S$;</li>
+<li>a pair of L-expressions $u, v$, which is written as $u(v)$.</li>
+</ul>
+
+<p>
+An L-expression can be transformed according to the following rules:</p>
+<ul>
+<li>$A(x) \to x + 1$ for any natural number $x$;</li>
+<li>$Z(u)(v) \to v$ for any L-expressions $u, v$;</li>
+<li>$S(u)(v)(w) \to v(u(v)(w))$ for any L-expressions $u, v, w$.</li>
+</ul>
+<p>
+For example, after applying all possible rules, the L-expression $S(Z)(A)(0)$ is transformed to the number $1$:
+$$S(Z)(A)(0) \to A(Z(A)(0)) \to A(0) \to 1.$$
+Similarly, the L-expression $S(S)(S(S))(S(Z))(A)(0)$ is transformed to the number $6$ after applying all possible rules.</p>
+
+<p>
+Define the following L-expressions:</p>
+<ul>
+<li>$C_0 = Z$;</li>
+<li>$C_i = S(C_{i - 1})$ for $i \ge 1$;</li>
+<li>$D_i = C_i(S)(S)$.</li>
+</ul>
+
+<p>
+For natural numbers $a, b, c, d, e$, let $F(a, b, c, d, e)$ denote the result of the L-expression $D_a(D_b)(D_c)(C_d)(A)(e)$ after applying all possible rules.</p>
+
+<p>
+Find the last nine digits of $F(12, 345678, 9012345, 678, 90)$.</p>
+
+<p class="note"><b>Note:</b> it can be proved that the L-expression in question can only be transformed a finite number of times, and the final result does not depend on the order of the transformations.</p>
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

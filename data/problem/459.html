@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#459 Flipping Game - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Flipping Game</h2><div id="problem_icons" class="noprint"><a href="minimal=459"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Sunday, 16th February 2014, 10:00 am; Solved by 278;<br>Difficulty rating: 100%</span></span></div><div id="problem_info"><h3>Problem 459</h3></div>
+<div class="problem_content" role="problem">
+<p>The flipping game is a two player game played on an $N$ by $N$ square board.<br>
+Each square contains a disk with one side white and one side black.<br>
+The game starts with all disks showing their white side.</p>
+
+<p>A turn consists of flipping all disks in a rectangle with the following properties:
+</p><p></p><ul><li>the upper right corner of the rectangle contains a white disk</li>
+<li>the rectangle width is a perfect square ($1$, $4$, $9$, $16$, ...)</li>
+<li>the rectangle height is a <strong class="tooltip">triangular number<span class="tooltiptext">The triangular numbers are defined as $\frac 1 2 n(n + 1)$ for positive integer $n$.</span></strong> ($1$, $3$, $6$, $10$, ...)</li>
+</ul>
+<p class="center"><img src="resources/images/0459-flipping-game-0.png?1678992053" alt="0459-flipping-game-0.png"></p>
+
+<p>Players alternate turns. A player wins by turning the grid all black.</p>
+
+<p>Let $W(N)$ be the number of <strong class="tooltip">winning moves<span class="tooltiptext">The first move of a strategy that ensures a win no matter what the opponent plays.</span></strong> for the first player on an $N$ by $N$ board with all disks white, assuming perfect play.<br>
+$W(1) = 1$, $W(2) = 0$, $W(5) = 8$ and $W(10^2) = 31395$.</p>
+
+<p>For $N=5$, the first player's eight winning first moves are:</p>
+
+<p class="center"><img src="resources/images/0459-flipping-game-1.png?1678992053" class="dark_img" alt="0459-flipping-game-1.png"></p>
+
+<p>Find $W(10^6)$.</p>
+
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

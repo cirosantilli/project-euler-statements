@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#328 Lowest-cost Search - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Lowest-cost Search</h2><div id="problem_icons" class="noprint"><a href="minimal=328"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Saturday, 12th March 2011, 10:00 pm; Solved by 524;<br>Difficulty rating: 95%</span></span></div><div id="problem_info"><h3>Problem 328</h3></div>
+<div class="problem_content" role="problem">
+<p>We are trying to find a hidden number selected from the set of integers $\{1, 2, \dots, n\}$ by asking questions. 
+Each number (question) we ask, has a <u>cost equal to the number asked</u> and we get one of three possible answers:<br></p><ul><li> "Your guess is lower than the hidden number", or</li>
+<li> "Yes, that's it!", or</li>
+<li> "Your guess is higher than the hidden number".</li>
+</ul><p>Given the value of $n$, an <dfn>optimal strategy</dfn> minimizes the total cost (i.e. the sum of all the questions asked) <u>for the worst possible case</u>. E.g.</p>
+
+<p>If $n=3$, the best we can do is obviously to ask the number "<b>2</b>". The answer will immediately lead us to find the hidden number (at a total cost $= 2$).</p>
+
+<p>If $n=8$, we might decide to use a "binary search" type of strategy: Our first question would be "$\mathbf 4$" and if the hidden number is higher than $4$ we will need one or two additional questions.<br>
+Let our second question be "$\mathbf 6$". If the hidden number is still higher than $6$, we will need a third question in order to discriminate between $7$ and $8$.<br>
+Thus, our third question will be "$\mathbf 7$" and the total cost for this worst-case scenario will be $4+6+7={\color{red}\mathbf{17}}$.</p>
+
+<p>We can improve considerably the worst-case cost for $n=8$, by asking "$\mathbf 5$" as our first question.<br>
+If we are told that the hidden number is higher than $5$, our second question will be "$\mathbf 7$", then we'll know for certain what the hidden number is (for a total cost of $5+7={\color{blue}\mathbf{12}}$).<br>
+If we are told that the hidden number is lower than $5$, our second question will be "$\mathbf 3$" and if the hidden number is lower than $3$ our third question will be "$\mathbf 1$", giving a total cost of $5+3+1={\color{blue}\mathbf 9}$.<br>
+Since ${\color{blue}\mathbf{12}} \gt {\color{blue}\mathbf 9}$, the worst-case cost for this strategy is ${\color{red}\mathbf{12}}$. That's better than what we achieved previously with the "binary search" strategy; it is also better than or equal to any other strategy.<br>
+So, in fact, we have just described an optimal strategy for $n=8$.</p>
+
+<p>Let $C(n)$ be the worst-case cost achieved by an optimal strategy for $n$, as described above.<br>
+Thus $C(1) = 0$, $C(2) = 1$, $C(3) = 2$ and $C(8) = 12$.<br>
+Similarly, $C(100) = 400$ and $\sum \limits_{n = 1}^{100} C(n) = 17575$.</p>
+
+<p>Find $\sum \limits_{n = 1}^{200000} C(n)$.</p>
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

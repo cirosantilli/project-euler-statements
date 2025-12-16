@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#633 Square Prime Factors II - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Square Prime Factors II</h2><div id="problem_icons" class="noprint"><a href="minimal=633"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Saturday, 28th July 2018, 01:00 pm; Solved by 374;<br>Difficulty rating: 50%</span></span></div><div id="problem_info"><h3>Problem 633</h3></div>
+<div class="problem_content" role="problem">
+<p>For an integer $n$, we define the <dfn>square prime factors</dfn> of $n$ to be the primes whose square divides $n$. For example, the square prime factors of $1500=2^2 \times 3 \times 5^3$ are $2$ and $5$.</p>
+
+<p>Let $C_k(N)$ be the number of integers between $1$ and $N$ inclusive with exactly $k$ square prime factors. It can be shown that with growing $N$ the ratio $\frac{C_k(N)}{N}$ gets arbitrarily close to a constant $c_{k}^{\infty}$, as suggested by the table below.</p>
+
+$$\begin{array}{|c|c|c|c|c|c|}
+\hline
+&amp; k = 0 &amp; k = 1 &amp; k = 2 &amp; k = 3 &amp; k = 4 \\
+\hline
+C_k(10) &amp; 7 &amp; 3 &amp; 0 &amp; 0 &amp; 0 \\
+\hline
+C_k(10^2) &amp; 61 &amp; 36 &amp; 3 &amp; 0 &amp; 0 \\
+\hline
+C_k(10^3) &amp; 608 &amp; 343 &amp; 48 &amp; 1 &amp; 0 \\
+\hline
+C_k(10^4) &amp; 6083 &amp; 3363 &amp; 533 &amp; 21 &amp; 0 \\
+\hline
+C_k(10^5) &amp; 60794 &amp; 33562 &amp; 5345 &amp; 297 &amp; 2 \\
+\hline
+C_k(10^6) &amp; 607926 &amp; 335438 &amp; 53358 &amp; 3218 &amp; 60 \\
+\hline
+C_k(10^7) &amp; 6079291 &amp; 3353956 &amp; 533140 &amp; 32777 &amp; 834 \\
+\hline
+C_k(10^8) &amp; 60792694 &amp; 33539196 &amp; 5329747 &amp;  329028 &amp; 9257 \\
+\hline
+C_k(10^9) &amp; 607927124 &amp; 335389706 &amp; 53294365 &amp; 3291791 &amp; 95821 \\
+\hline
+c_k^{\infty} &amp; \frac{6}{\pi^2} &amp; 3.3539\times 10^{-1} &amp; 5.3293\times 10^{-2} &amp; 3.2921\times 10^{-3} &amp; 9.7046\times 10^{-5}\\
+\hline
+\end{array}$$
+Find $c_{7}^{\infty}$. Give the result in scientific notation rounded to $5$ significant digits, using a $e$ to separate mantissa and exponent. E.g. if the answer were $0.000123456789$, then the answer format would be $1.2346\mathrm e{-4}$.
+
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>

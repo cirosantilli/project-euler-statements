@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#182 RSA Encryption - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1761743692.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives" id="current">Archives</a></li>
+		<li><a href="recent">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>RSA Encryption</h2><div id="problem_icons" class="noprint"><a href="minimal=182"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Friday, 15th February 2008, 01:00 pm; Solved by 3025;<br>Difficulty rating: 60%</span></span></div><div id="problem_info"><h3>Problem 182</h3></div>
+<div class="problem_content" role="problem">
+<p>The RSA encryption is based on the following procedure:</p>
+<p>Generate two distinct primes $p$ and $q$.<br>Compute $n = pq$ and $\phi = (p - 1)(q - 1)$.<br>
+Find an integer $e$, $1 \lt e \lt \phi$, such that $\gcd(e, \phi) = 1$.</p>
+<p>A message in this system is a number in the interval $[0, n - 1]$.<br>
+A text to be encrypted is then somehow converted to messages (numbers in the interval $[0, n - 1]$).<br>
+To encrypt the text, for each message, $m$, $c = m^e \bmod n$ is calculated.</p>
+<p>To decrypt the text, the following procedure is needed: calculate $d$ such that $ed = 1 \bmod \phi$, then for each encrypted message, $c$, calculate $m = c^d \bmod n$.</p>
+<p>There exist values of $e$ and $m$ such that $m^e \bmod n = m$.<br>We call messages $m$ for which $m^e \bmod n = m$ unconcealed messages.</p>
+<p>An issue when choosing $e$ is that there should not be too many unconcealed messages.<br>For instance, let $p = 19$ and $q = 37$.<br>
+Then $n = 19 \cdot 37 = 703$ and $\phi = 18 \cdot 36 = 648$.<br>
+If we choose $e = 181$, then, although $\gcd(181,648) = 1$ it turns out that all possible messages $m$ ($0 \le m \le n - 1$) are unconcealed when calculating $m^e \bmod n$.<br>
+For any valid choice of $e$ there exist some unconcealed messages.<br>
+It's important that the number of unconcealed messages is at a minimum.</p>
+<p>Choose $p = 1009$ and $q = 3643$.<br>
+Find the sum of all values of $e$, $1 \lt e \lt \phi(1009,3643)$ and $\gcd(e, \phi) = 1$, so that the number of unconcealed messages for this value of $e$ is at a minimum.</p>
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1765564708.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>
