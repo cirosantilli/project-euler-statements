@@ -20,6 +20,7 @@ virtualenv -p python3 .venv
 pip install -r requirements.txt
 ./download.sh
 ./html2md.py
+./extract_metadata.py
 ```
 
 Folders:
@@ -28,6 +29,15 @@ Folders:
 * [data/problem](data/problem): HTML from `https://projecteuler.net/problem=X` e.g. https://projecteuler.net/problem=949
 * [data/documents](data/documents): files from under `https://projecteuler.net/resources/documents/` e.g. https://projecteuler.net/resources/documents/0042_words.txt at [data/documents/0042_words.txt](data/documents/0042_words.txt). These are required as input data to solve some of the problems.
 * [data/md](data/md): local conversion of the above HTML downloads to a nice Markdown format
+* [data/lean](data/lean): formal [Lean](https://lean-lang.org/) statements of the problems
+* [data/meta](data/meta): JSON problem metadata extracted from the HTML e.g.: [data/meta/1.json](data/meta/1.json) contains:
+
+  ```
+  {
+    "title": "Multiples of 3 or 5",
+    "date": "2001-10-05T18:00:00"
+  }
+  ```
 
 Licenses:
 

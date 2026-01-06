@@ -1,0 +1,2 @@
+import ProjectEulerStatements.P1
+import ProjectEulerStatements.P2
