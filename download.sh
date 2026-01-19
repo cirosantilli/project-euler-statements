@@ -10,5 +10,6 @@ while [ "$(curl -o /dev/null --silent --head --write-out '%{http_code}' "https:/
   echo "$i"
   wget -O "data/minimal/$i.html" "https://projecteuler.net/minimal=$i"
   wget -O "data/problem/$i.html" "https://projecteuler.net/problem=$i"
+  ./download_resources.py "data/minimal/$i.html"
   i="$((i + 1))"
 done

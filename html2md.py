@@ -42,8 +42,19 @@ for bname in sorted(os.listdir(problem_dir), key=lambda s: int(s.split(".")[0]))
             f = HTMLTitle()
             f.feed(problem_f.read())
             with open(path.join(md_dir, f"{bname_noext}.md"), "w") as md_f:
+                md_body = markdownify(minimal_f.read())
+                md_body = re.sub(
+                    r"\(resources/images/([^?\)]+)(?:\?[^\)]*)?\)",
+                    r"(../images/\1)",
+                    md_body,
+                )
+                md_body = re.sub(
+                    r"\(resources/documents/([^?\)]+)(?:\?[^\)]*)?\)",
+                    r"(../documents/\1)",
+                    md_body,
+                )
                 md_f.write(
                     f'# {re.sub(r' - Project Euler$', '', re.sub(r'^#\d+ ', '', f.title))}'
                     + "\n\n"
-                    + markdownify(minimal_f.read())
+                    + md_body
                 )
