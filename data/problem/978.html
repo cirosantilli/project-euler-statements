@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#978 Random Walk Skewness - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1768081836.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives">Archives</a></li>
+		<li><a href="recent" id="current">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Random Walk Skewness</h2><div id="problem_icons" class="noprint"><a href="minimal=978"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Sunday, 11th January 2026, 04:00 am; Solved by 231</span></span></div><div id="problem_info"><h3>Problem 978</h3></div>
+<div class="problem_content" role="problem">
+<p>
+In this problem we consider a <b>random walk</b> on the integers $\mathbb{Z}$, in which our position at time $t$ is denoted as $X_t$.
+</p>
+<p>
+At time $0$ we start at position $0$. That is, $X_0=0$.<br>
+At time $1$ we jump to position $1$. That is, $X_1=1$.<br>
+Thereafter, at time $t=2,3,\dots$ we make a jump of size $|X_{t-2}|$ in either the positive or negative direction, with probability $1/2$ each way. If $X_{t-2}=0$ we stay put at time $t$.
+</p>
+<p>
+At $t=5$ we find our position $X_5$ has the following distribution:
+$$
+X_5=\begin{cases}
+-1\quad&amp;\text{with probability }3/8\\
+1\quad&amp;\text{with probability }3/8\\
+3\quad&amp;\text{with probability }1/8\\
+5\quad&amp;\text{with probability }1/8\\
+\end{cases}
+$$
+The <b>standard deviation</b> $\sigma$ of a <b>random variable</b> $X$ with <b>mean</b> $\mu$ is defined as
+$$
+\sigma=\sqrt{\mathbb{E}[X^2]-\mu^2}
+$$
+Furthermore the <b>skewness</b> of $X$ is defined as
+$$
+\text{Skew}(X)=\mathbb{E}\biggl[\Bigl(\frac{X-\mu}{\sigma}\Bigr)^3\biggr]
+$$
+For $X_5$, which has mean $1$ and standard deviation $2$, we find $\text{Skew}(X_5)=0.75$. You are also given $\text{Skew}(X_{10})\approx2.50997097$.
+</p>
+<p>
+Find $\text{Skew}(X_{50})$. Give your answer rounded to eight digits after the decimal point.
+</p>
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1766083028.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>
