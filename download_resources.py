@@ -33,7 +33,9 @@ def local_path_for_resource(resource_url):
     resource_path = parsed.path
     if resource_path.startswith("/"):
         resource_path = resource_path[1:]
-    if resource_path.startswith("resources/documents/") and resource_path.endswith(".txt"):
+    if resource_path.startswith("resources/documents/") and resource_path.endswith(
+        ".txt"
+    ):
         filename = path.basename(resource_path)
         return path.join("data", "documents", filename)
     if resource_path.startswith("resources/images/"):
