@@ -13,6 +13,8 @@ def naive : Nat -> Nat
 def naive2 (max : Nat) : Nat :=
   ∑ x ∈ ((Finset.range max).filter (fun n => (3 ∣ n) ∨ (5 ∣ n))), x
 
+example : naive (10) = 23 := by native_decide
+
 theorem naive_eq_naive2 (max : Nat) : naive max = naive2 max := by
   induction max with
   | zero =>
