@@ -1,3 +1,10 @@
 import ProjectEulerStatements.P1
 import ProjectEulerStatements.P2
 import ProjectEulerStatements.P3
+import ProjectEulerStatements.P4
+import ProjectEulerStatements.P5
+import ProjectEulerStatements.P6
+import ProjectEulerStatements.P7
+import ProjectEulerStatements.P8
+import ProjectEulerStatements.P9
+import ProjectEulerStatements.P10
