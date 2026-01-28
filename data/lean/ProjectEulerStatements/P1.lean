@@ -1,12 +1,30 @@
-namespace ProjectEulerStatements.P1
+import Mathlib.Data.Finset.Range
+import Mathlib.Data.Set.Finite.Basic
+import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
---import Mathlib
---/-- The sum of all natural numbers `< max` that are multiples of `3` or `5`. -/
---def pe1def := fun (max : Nat) =>
---  ((Finset.range max).filter (fun n => (3 ∣ n) ∨ (5 ∣ n))).sum (fun n => n)
+namespace ProjectEulerStatements
+namespace P1
 
 def naive : Nat -> Nat
   | 0       => 0
   | n + 1   =>
       let s := naive n
-      if n % 3 = 0 ∨ n % 5 = 0 then s + n else s
+      if 3 ∣ n ∨ 5 ∣ n then s + n else s
+
+def naive2 (max : Nat) : Nat :=
+  ∑ x ∈ ((Finset.range max).filter (fun n => (3 ∣ n) ∨ (5 ∣ n))), x
+
+theorem naive_eq_naive2 (max : Nat) : naive max = naive2 max := by
+  induction max with
+  | zero =>
+      simp [naive, naive2]
+  | succ n ih =>
+      by_cases hp : (3 ∣ n ∨ 5 ∣ n)
+      · have hn : n ∉ (Finset.range n).filter (fun x => (3 ∣ x) ∨ (5 ∣ x)) := by
+          simp
+        simp [naive, naive2, Finset.range_add_one, Finset.filter_insert, ih, hp, hn,
+          Finset.sum_insert, add_comm]
+      · simp [naive, naive2, Finset.range_add_one, Finset.filter_insert, ih, hp]
+
+end P1
+end ProjectEulerStatements
