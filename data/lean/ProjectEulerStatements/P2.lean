@@ -1,3 +1,5 @@
+import Mathlib.Data.Nat.Fib.Basic
+
 namespace ProjectEulerStatements.P2
 
 def fib : Nat -> Nat
@@ -13,5 +15,28 @@ partial def naive (n : Nat) : Nat :=
     else
       total
   go 0 0
+
+theorem fib_eq_nat_fib_aux :
+    ∀ n, fib n = Nat.fib (n + 2) ∧ fib (n + 1) = Nat.fib (n + 3) := by
+  intro n
+  induction n with
+  | zero =>
+      constructor
+      · simp [fib]
+      · simp [fib, Nat.fib_add_two]
+  | succ n ih =>
+      constructor
+      · exact ih.2
+      · calc
+          fib (n + 2) = fib n + fib (n + 1) := by
+            simp [fib]
+          _ = Nat.fib (n + 2) + Nat.fib (n + 3) := by
+            simp [ih.1, ih.2]
+          _ = Nat.fib (n + 4) := by
+            simpa [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using
+              (Nat.fib_add_two (n := n + 2)).symm
+
+theorem fib_eq_nat_fib (n : Nat) : fib n = Nat.fib (n + 2) :=
+  (fib_eq_nat_fib_aux n).1
 
 end ProjectEulerStatements.P2
