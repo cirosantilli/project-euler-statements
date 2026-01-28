@@ -15,4 +15,3 @@ partial def naive (n : Nat) : Nat :=
   go 0 0
 
 end ProjectEulerStatements.P2
-open ProjectEulerStatements.P2

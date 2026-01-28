@@ -2,8 +2,7 @@ import Mathlib.Data.Finset.Range
 import Mathlib.Data.Set.Finite.Basic
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
-namespace ProjectEulerStatements
-namespace P1
+namespace ProjectEulerStatements.P1
 
 def naive : Nat -> Nat
   | 0       => 0
@@ -26,5 +25,4 @@ theorem naive_eq_naive2 (max : Nat) : naive max = naive2 max := by
           Finset.sum_insert, add_comm]
       · simp [naive, naive2, Finset.range_add_one, Finset.filter_insert, ih, hp]
 
-end P1
-end ProjectEulerStatements
+end ProjectEulerStatements.P1
