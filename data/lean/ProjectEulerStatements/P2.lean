@@ -4,6 +4,8 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 namespace ProjectEulerStatements.P2
 
+open scoped BigOperators
+
 def fib : Nat -> Nat
   | 0       => 1
   | 1       => 2
@@ -25,7 +27,9 @@ noncomputable def naive2 (n : Nat) : Nat := by
     refine (Set.finite_le_nat n).subset ?_
     intro x hx
     exact hx.2.1
-  exact (hfin.toFinset).sum (fun x => x)
+  exact ∑ x ∈ hfin.toFinset, x
+
+theorem naive_eq_naive2 (n : Nat) : naive n = naive2 n := sorry
 
 theorem fib_eq_nat_fib_aux :
     ∀ n, fib n = Nat.fib (n + 2) ∧ fib (n + 1) = Nat.fib (n + 3) := by
