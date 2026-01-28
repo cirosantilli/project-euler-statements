@@ -1,2 +1,3 @@
 import ProjectEulerStatements.P1
 import ProjectEulerStatements.P2
+import ProjectEulerStatements.P3
