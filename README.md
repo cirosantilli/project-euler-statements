@@ -39,15 +39,19 @@ Folders:
   }
   ```
 
-Initial Lean autoformalization prompt:
+## Lean
+
+Best Lean autoformalization prompt so far:
 
 ```
 Convert Project Euler 3 ../md/3.md statement into a formal lean statement in ProjectEulerStatements/P3.lean. Put all definitions of that lean file under namespace ProjectEulerStatements.P3. Produce the simplest naive function which matches the problem statement as close as possible and name it "naive". noncomputable funcitons are fine, but partial is not, if you have partial also produce a proof of termination. If you find two close approaches name the second one "naive2". Add lean "example" statements with native_decide as asserts for any test values given in the problem statement. Ensure that lake -R build works for that file.
 ```
 
-We have manually inspected the following statements to ensure that they match up with Project Euler statements: **all up to 3**.
+We have manually inspected the following statements to ensure that they match up with Project Euler statements: **all up to 3**. TODOs:
 
-Licenses:
+* 4: is kind of horrible
+
+## Licenses
 
 * [data/](data/): CC BY-NC-SA 4.0 as per Project Euler's license https://projecteuler.net/copyright
 * code: BSD 3-Clause

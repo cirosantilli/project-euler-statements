@@ -18,3 +18,13 @@ import ProjectEulerStatements.P17
 import ProjectEulerStatements.P18
 import ProjectEulerStatements.P19
 import ProjectEulerStatements.P20
+import ProjectEulerStatements.P21
+import ProjectEulerStatements.P22
+import ProjectEulerStatements.P23
+import ProjectEulerStatements.P24
+import ProjectEulerStatements.P25
+import ProjectEulerStatements.P26
+import ProjectEulerStatements.P27
+import ProjectEulerStatements.P28
+import ProjectEulerStatements.P29
+import ProjectEulerStatements.P30
