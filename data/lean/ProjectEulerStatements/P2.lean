@@ -1,4 +1,6 @@
 import Mathlib.Data.Nat.Fib.Basic
+import Mathlib.Data.Set.Finite.Basic
+import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 namespace ProjectEulerStatements.P2
 
@@ -15,6 +17,15 @@ partial def naive (n : Nat) : Nat :=
     else
       total
   go 0 0
+
+noncomputable def naive2 (n : Nat) : Nat := by
+  classical
+  let S : Set Nat := {x | (∃ i, fib i = x) ∧ x ≤ n ∧ x % 2 = 0}
+  have hfin : S.Finite := by
+    refine (Set.finite_le_nat n).subset ?_
+    intro x hx
+    exact hx.2.1
+  exact (hfin.toFinset).sum (fun x => x)
 
 theorem fib_eq_nat_fib_aux :
     ∀ n, fib n = Nat.fib (n + 2) ∧ fib (n + 1) = Nat.fib (n + 3) := by
