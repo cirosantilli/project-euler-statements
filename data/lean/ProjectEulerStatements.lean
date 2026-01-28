@@ -28,3 +28,13 @@ import ProjectEulerStatements.P27
 import ProjectEulerStatements.P28
 import ProjectEulerStatements.P29
 import ProjectEulerStatements.P30
+import ProjectEulerStatements.P31
+import ProjectEulerStatements.P32
+import ProjectEulerStatements.P33
+import ProjectEulerStatements.P34
+import ProjectEulerStatements.P35
+import ProjectEulerStatements.P36
+import ProjectEulerStatements.P37
+import ProjectEulerStatements.P38
+import ProjectEulerStatements.P39
+import ProjectEulerStatements.P40

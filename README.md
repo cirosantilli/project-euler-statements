@@ -49,7 +49,7 @@ Convert Project Euler 3 ../md/3.md statement into a formal lean statement in Pro
 
 We have manually inspected the following statements to ensure that they match up with Project Euler statements: **all up to 3**. TODOs:
 
-* 4: is kind of horrible
+* 4: is kind of horrible, possibly wrong?
 
 ## Licenses
 
