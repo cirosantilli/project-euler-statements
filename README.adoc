@@ -1,4 +1,14 @@
 = Project Euler Statements
+:docinfo:
+:idprefix:
+:idseparator: -
+:sectanchors:
+:sectlinks:
+:sectnumlevels: 6
+:sectnums:
+:toc: macro
+:toclevels: 6
+:toc-title:
 
 This repo contains link:https://projecteuler.net[Project Euler] problem statements, downloaded and converted to Markdown.
 
@@ -12,7 +22,9 @@ The main reasons for creating this repo are:
 
 Together with the solutions from https://github.com/lucky-bai/projecteuler-solutions this makes for a nice little mathematics dataset :-)
 
-Generate the data:
+toc::[]
+
+== Generate the data
 
 [source,python]
 ----
@@ -24,7 +36,7 @@ pip install -r requirements.txt
 ./extract_metadata.py
 ----
 
-Folders:
+== Folder structure
 
 * link:data/minimal[data/minimal]: HTML from `https://projecteuler.net/minimal=X` e.g. https://projecteuler.net/minimal=949
 * link:data/problem[data/problem]: HTML from `https://projecteuler.net/problem=X` e.g. https://projecteuler.net/problem=949
