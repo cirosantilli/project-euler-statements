@@ -58,3 +58,13 @@ import ProjectEulerStatements.P67
 import ProjectEulerStatements.P68
 import ProjectEulerStatements.P69
 import ProjectEulerStatements.P70
+import ProjectEulerStatements.P71
+import ProjectEulerStatements.P72
+import ProjectEulerStatements.P73
+import ProjectEulerStatements.P74
+import ProjectEulerStatements.P75
+import ProjectEulerStatements.P76
+import ProjectEulerStatements.P77
+import ProjectEulerStatements.P78
+import ProjectEulerStatements.P79
+import ProjectEulerStatements.P80
