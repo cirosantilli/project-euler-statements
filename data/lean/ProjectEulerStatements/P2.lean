@@ -58,6 +58,7 @@ theorem fib_eq_nat_fib (n : Nat) : fib n = Nat.fib (n + 2) :=
 
 -- MAIN
 
+/-- Sum of the even-valued Fibonacci numbers which do not exceed `n` -/
 def naive (n : Nat) : Nat :=
   let rec go (i total : Nat) : Nat :=
     let f := fib i

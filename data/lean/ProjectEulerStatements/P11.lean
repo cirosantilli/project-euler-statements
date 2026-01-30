@@ -38,6 +38,7 @@ def productsDiagLeftN (grid : List (List Nat)) (n : Nat) : List Nat :=
     (List.range (21 - n)).map (fun c => prodDiagLeftN grid r (c + (n - 1)) n))
     (List.range (21 - n))
 
+/- Find the great product of `n` adjacent numbers in the grid `grid`. -/
 def naive (grid : List (List Nat)) (n : Nat) : Nat :=
   listMax (productsRightN grid n ++ productsDownN grid n ++ productsDiagRightN grid n ++
     productsDiagLeftN grid n)

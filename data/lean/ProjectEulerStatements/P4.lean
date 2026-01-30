@@ -28,6 +28,7 @@ def palProductSet (digits : Nat) : Finset Nat :=
   (((Finset.Icc lo hi).product (Finset.Icc lo hi)).image (fun p => p.1 * p.2)).filter
     (fun n => isPalindrome n)
 
+/-- Largest palindrome made from the product of two numbers with `digits` decimal digits. -/
 def naive (digits : Nat) : Nat :=
   let s := palProductSet digits
   if h : s.Nonempty then s.max' h else 0
