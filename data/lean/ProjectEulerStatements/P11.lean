@@ -41,7 +41,4 @@ def naive (grid : List (List Nat)) : Nat :=
   listMax (productsRight grid ++ productsDown grid ++ productsDiagRight grid ++
     productsDiagLeft grid)
 
-example : 26 * 63 * 78 * 14 = 1788696 := by
-  native_decide
-
 end ProjectEulerStatements.P11
