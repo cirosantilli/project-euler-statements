@@ -69,16 +69,23 @@ Full inspection, we have read and understood the definition of `naive` and any `
 
 * 1-5
 * 14
+* link:data/lean/ProjectEulerStatements/P67.lean[]
 
 Notes within those:
 
 * link:data/lean/ProjectEulerStatements/P5.lean[]: `Finset.lcm` felt like cheating! TODO: add a `naive2` without mathlib.
 * link:data/lean/ProjectEulerStatements/P14.lean[]: requires the Collatz conjecture. I think I'll add as an axiom rather than getting Codex to prove it today ;-)
+* link:data/lean/ProjectEulerStatements/P67.lean[]: is the same as P18, so we encode it as such
 
 `naive` signature check only:
 
 * link:data/lean/ProjectEulerStatements/P11.lean[]: naive input format only
 * link:data/lean/ProjectEulerStatements/P12.lean[]: the ideal formulation would be `naive (n : Nat)` returning "the first triangle number to have over `n` divisors?". Codex swears that this result known, it's just a question of how easy it is to formulate. We might go for `axiom` if it turns out too hard.
+* link:data/lean/ProjectEulerStatements/P18.lean[]
+
+Notes within those:
+
+* link:data/lean/ProjectEulerStatements/P19.lean[]: is a bloody nightmare to encode as you need to think about the formal definition of a date! As such, it is also one of the most useful problems perhaps for practical programming usage.
 
 == Licenses
 
