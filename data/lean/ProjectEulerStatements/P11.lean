@@ -5,19 +5,17 @@ namespace ProjectEulerStatements.P11
 def gridVal (grid : List (List Nat)) (r c : Nat) : Nat :=
   (grid.getD r []).getD c 0
 
-def prodRight (grid : List (List Nat)) (r c : Nat) : Nat :=
-  gridVal grid r c * gridVal grid r (c + 1) * gridVal grid r (c + 2) * gridVal grid r (c + 3)
+def prodRightN (grid : List (List Nat)) (r c n : Nat) : Nat :=
+  (List.range n).foldl (fun acc i => acc * gridVal grid r (c + i)) 1
 
-def prodDown (grid : List (List Nat)) (r c : Nat) : Nat :=
-  gridVal grid r c * gridVal grid (r + 1) c * gridVal grid (r + 2) c * gridVal grid (r + 3) c
+def prodDownN (grid : List (List Nat)) (r c n : Nat) : Nat :=
+  (List.range n).foldl (fun acc i => acc * gridVal grid (r + i) c) 1
 
-def prodDiagRight (grid : List (List Nat)) (r c : Nat) : Nat :=
-  gridVal grid r c * gridVal grid (r + 1) (c + 1) *
-    gridVal grid (r + 2) (c + 2) * gridVal grid (r + 3) (c + 3)
+def prodDiagRightN (grid : List (List Nat)) (r c n : Nat) : Nat :=
+  (List.range n).foldl (fun acc i => acc * gridVal grid (r + i) (c + i)) 1
 
-def prodDiagLeft (grid : List (List Nat)) (r c : Nat) : Nat :=
-  gridVal grid r c * gridVal grid (r + 1) (c - 1) *
-    gridVal grid (r + 2) (c - 2) * gridVal grid (r + 3) (c - 3)
+def prodDiagLeftN (grid : List (List Nat)) (r c n : Nat) : Nat :=
+  (List.range n).foldl (fun acc i => acc * gridVal grid (r + i) (c - i)) 1
 
 def listMax (l : List Nat) : Nat :=
   l.foldl Nat.max 0
@@ -25,20 +23,23 @@ def listMax (l : List Nat) : Nat :=
 def concatMap {α β : Type} (f : α → List β) (l : List α) : List β :=
   l.foldr (fun x acc => f x ++ acc) []
 
-def productsRight (grid : List (List Nat)) : List Nat :=
-  concatMap (fun r => (List.range 17).map (fun c => prodRight grid r c)) (List.range 20)
+def productsRightN (grid : List (List Nat)) (n : Nat) : List Nat :=
+  concatMap (fun r => (List.range (21 - n)).map (fun c => prodRightN grid r c n)) (List.range 20)
 
-def productsDown (grid : List (List Nat)) : List Nat :=
-  concatMap (fun r => (List.range 20).map (fun c => prodDown grid r c)) (List.range 17)
+def productsDownN (grid : List (List Nat)) (n : Nat) : List Nat :=
+  concatMap (fun r => (List.range 20).map (fun c => prodDownN grid r c n)) (List.range (21 - n))
 
-def productsDiagRight (grid : List (List Nat)) : List Nat :=
-  concatMap (fun r => (List.range 17).map (fun c => prodDiagRight grid r c)) (List.range 17)
+def productsDiagRightN (grid : List (List Nat)) (n : Nat) : List Nat :=
+  concatMap (fun r => (List.range (21 - n)).map (fun c => prodDiagRightN grid r c n))
+    (List.range (21 - n))
 
-def productsDiagLeft (grid : List (List Nat)) : List Nat :=
-  concatMap (fun r => (List.range 17).map (fun c => prodDiagLeft grid r (c + 3))) (List.range 17)
+def productsDiagLeftN (grid : List (List Nat)) (n : Nat) : List Nat :=
+  concatMap (fun r =>
+    (List.range (21 - n)).map (fun c => prodDiagLeftN grid r (c + (n - 1)) n))
+    (List.range (21 - n))
 
-def naive (grid : List (List Nat)) : Nat :=
-  listMax (productsRight grid ++ productsDown grid ++ productsDiagRight grid ++
-    productsDiagLeft grid)
+def naive (grid : List (List Nat)) (n : Nat) : Nat :=
+  listMax (productsRightN grid n ++ productsDownN grid n ++ productsDiagRightN grid n ++
+    productsDiagLeftN grid n)
 
 end ProjectEulerStatements.P11
