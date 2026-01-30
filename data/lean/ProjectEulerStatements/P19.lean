@@ -1,4 +1,5 @@
 import Mathlib.Data.List.Basic
+import Mathlib.Tactic
 
 namespace ProjectEulerStatements.P19
 
@@ -21,6 +22,34 @@ def daysInMonth (y m : Nat) : Nat :=
   | 12 => 31
   | _ => 0
 
+structure Date where
+  year : Nat
+  month : Nat
+  day : Nat
+  month_pos : 0 < month
+  month_le : month ≤ 12
+  day_pos : 0 < day
+  day_le : day ≤ daysInMonth year month
+
+def mkDate (year month day : Nat)
+    (month_pos : 0 < month) (month_le : month ≤ 12)
+    (day_pos : 0 < day) (day_le : day ≤ daysInMonth year month) : Date :=
+  { year, month, day, month_pos, month_le, day_pos, day_le }
+
+def mkFirstOfMonth (year month : Nat)
+    (month_pos : 0 < month) (month_le : month ≤ 12) : Date :=
+  { year, month, day := 1,
+    month_pos, month_le,
+    day_pos := by decide,
+    day_le := by
+      have h1 : 1 ≤ month := Nat.succ_le_iff.mp month_pos
+      interval_cases month <;>
+        (simp [daysInMonth, isLeap] <;>
+          try
+            (by_cases h :
+                year % 4 = 0 ∧ (¬year % 100 = 0 ∨ year % 400 = 0) <;>
+              simp [h])) }
+
 def daysInYear (y : Nat) : Nat :=
   if isLeap y then 366 else 365
 
@@ -35,19 +64,28 @@ def dayOfWeek (y m d : Nat) : Nat :=
 
 -- 0 = Monday, 6 = Sunday
 
-def countSundays : Nat :=
-  (List.range (2000 - 1901 + 1)).foldl
+def dateToDays (d : Date) : Nat :=
+  daysBeforeYear d.year + daysBeforeMonth d.year d.month + (d.day - 1)
+
+def countSundaysBetween (startDate endDate : Date) : Nat :=
+  let startDays := dateToDays startDate
+  let endDays := dateToDays endDate
+  (List.range (endDate.year - startDate.year + 1)).foldl
     (fun acc i =>
-      let y := 1901 + i
+      let y := startDate.year + i
       acc + (List.range 12).foldl
         (fun acc2 j =>
           let m := j + 1
-          if dayOfWeek y m 1 = 6 then acc2 + 1 else acc2)
+          let days := daysBeforeYear y + daysBeforeMonth y m
+          if startDays ≤ days ∧ days ≤ endDays ∧ dayOfWeek y m 1 = 6 then
+            acc2 + 1
+          else
+            acc2)
         0)
     0
 
-def naive : Nat :=
-  countSundays
+def naive (startDate endDate : Date) : Nat :=
+  countSundaysBetween startDate endDate
 
 example : dayOfWeek 1900 1 1 = 0 := by
   native_decide
