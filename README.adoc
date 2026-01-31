@@ -85,10 +85,12 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P22.lean[]
 * link:data/lean/ProjectEulerStatements/P24.lean[]
 * link:data/lean/ProjectEulerStatements/P25.lean[]
+* link:data/lean/ProjectEulerStatements/P27.lean[]
 
 Notes within those:
 
 * link:data/lean/ProjectEulerStatements/P19.lean[]: is a bloody nightmare to encode as you need to think about the formal definition of a date! As such, it is also one of the most useful problems perhaps for practical programming usage.
+* link:data/lean/ProjectEulerStatements/P27.lean[]: this one requires proof that you can't have infinitely many consecutive primes of the form $n^2 + an + b$. Cute.
 
 == Licenses
 
