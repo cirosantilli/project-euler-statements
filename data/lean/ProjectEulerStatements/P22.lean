@@ -18,6 +18,7 @@ def enumFrom {α : Type} : Nat -> List α -> List (Nat × α)
   | _, [] => []
   | n, x :: xs => (n, x) :: enumFrom (n + 1) xs
 
+/-- "Alphabetical value" of a list of names. -/
 def naive (names : List String) : Nat :=
   let sorted := names.mergeSort (fun a b => decide (a ≤ b))
   (enumFrom 1 sorted).foldl (fun acc p => acc + nameScore p.1 p.2) 0

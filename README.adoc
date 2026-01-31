@@ -82,6 +82,8 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P11.lean[]: naive input format only
 * link:data/lean/ProjectEulerStatements/P12.lean[]: the ideal formulation would be `naive (n : Nat)` returning "the first triangle number to have over `n` divisors?". Codex swears that this result known, it's just a question of how easy it is to formulate. We might go for `axiom` if it turns out too hard.
 * link:data/lean/ProjectEulerStatements/P18.lean[]
+* link:data/lean/ProjectEulerStatements/P22.lean[]
+* link:data/lean/ProjectEulerStatements/P24.lean[]
 
 Notes within those:
 

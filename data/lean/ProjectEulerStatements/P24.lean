@@ -16,6 +16,7 @@ def nthPerm (l : List Nat) (idx : Nat) : List Nat :=
   | some p => p
   | none => []
 
+/-- `idx`'th lexicographical permutation of the elements `digits`. -/
 def naive (digits : List Nat) (idx : Nat) : List Nat :=
   nthPerm digits idx
 
