@@ -35,16 +35,8 @@ def countPrimeSums (n : Nat) : Nat :=
   termination_by n + ps.length
   decreasing_by
     all_goals
-      first
-      | (
-        have : n + tl.length < n + tl.length + 1 := Nat.lt_succ_self (n + tl.length)
-        simpa [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using this
-        )
-      | (
-        have hp0 : 0 < p := Nat.pos_of_ne_zero h0
-        have hsub : n - p < n := Nat.sub_lt_of_pos_le hp0 hp
-        exact Nat.add_lt_add_right hsub (p :: tl).length
-        )
+      simp
+      try omega
   go n ps
 
 def firstOver (limit target : Nat) : Nat :=
