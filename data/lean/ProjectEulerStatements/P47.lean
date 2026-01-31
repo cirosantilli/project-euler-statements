@@ -12,15 +12,10 @@ def hasNFactors (k n : Nat) : Bool :=
   decide (distinctPrimeFactors n = k)
 
 def firstRun (k run limit : Nat) : Nat :=
-  let rec go (i fuel : Nat) : Nat :=
-    match fuel with
-    | 0 => 0
-    | fuel + 1 =>
-        if (List.range run).all (fun j => hasNFactors k (i + j)) then
-          i
-        else
-          go (i + 1) fuel
-  go 2 limit
+  let candidates := (List.range (limit + 1)).map (fun n => n + 2)
+  match candidates.find? (fun i => (List.range run).all (fun j => hasNFactors k (i + j))) with
+  | some i => i
+  | none => 0
 
 def naive (k run limit : Nat) : Nat :=
   firstRun k run limit

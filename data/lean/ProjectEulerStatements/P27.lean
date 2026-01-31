@@ -2,7 +2,7 @@ import Mathlib.Data.List.Basic
 import Mathlib.Data.List.MinMax
 import Mathlib.Data.Int.Basic
 import Mathlib.Data.Nat.Prime.Basic
-import Mathlib.Algebra.Ring.Divisibility.Basic
+import Mathlib.Tactic
 
 namespace ProjectEulerStatements.P27
 
@@ -13,30 +13,55 @@ def quad (a b : Int) (n : Nat) : Int :=
 def isPrimeInt (z : Int) : Bool :=
   (decide (z > 1)) && decide (Nat.Prime z.toNat)
 
-def consecPrimeBound (a b : Int) : Nat :=
-  Int.natAbs b * (Int.natAbs a + 2)
+lemma quad_add (a b : Int) (n p : Nat) :
+    quad a b (n + p) =
+      quad a b n + (p : Int) * (2 * (n : Int) + (p : Int) + a) := by
+  dsimp [quad]
+  ring
+
+lemma quad_add_of_eq (a b : Int) (n p : Nat) (hp : quad a b n = (p : Int)) :
+    quad a b (n + p) = (p : Int) * (1 + 2 * (n : Int) + (p : Int) + a) := by
+  calc
+    quad a b (n + p)
+        = quad a b n + (p : Int) * (2 * (n : Int) + (p : Int) + a) := quad_add a b n p
+    _ = (p : Int) * (1 + 2 * (n : Int) + (p : Int) + a) := by
+          simp [hp]
+          ring
+
+lemma quad_add_dvd (a b : Int) (n p : Nat) (hp : quad a b n = (p : Int)) :
+    (p : Int) ∣ quad a b (n + p) := by
+  refine ⟨1 + 2 * (n : Int) + (p : Int) + a, ?_⟩
+  simp [quad_add_of_eq a b n p hp]
+
+def consecPrimeBound (b : Int) : Nat :=
+  Int.natAbs b + 1
 
 lemma quad_bound_dvd (a b : Int) :
-    (Int.ofNat (Int.natAbs b)) ∣ quad a b (consecPrimeBound a b) := by
-  set b' : Nat := Int.natAbs b
-  set k : Nat := Int.natAbs a + 2
-  have hb : (b' : Int) ∣ b := by
-    refine (Int.natCast_dvd (n := b) (m := b')).2 ?_
-    simp [b']
-  have hz : (b' : Int) ∣ (b' * k : Nat) := by
-    refine (Int.dvd_natCast (m := (b' : Int)) (n := b' * k)).2 ?_
-    simp [b']
-  have hz2 : (b' : Int) ∣ ((b' * k : Nat) : Int) * ((b' * k : Nat) : Int) := by
-    exact (dvd_mul_of_dvd_left (α := Int) hz _)
-  have haz : (b' : Int) ∣ a * ((b' * k : Nat) : Int) := by
-    have : (b' : Int) ∣ ((b' * k : Nat) : Int) * a := by
-      exact (dvd_mul_of_dvd_left (α := Int) hz _)
-    simpa [mul_comm] using this
-  dsimp [consecPrimeBound, quad, b', k]
-  exact dvd_add (α := Int) (dvd_add (α := Int) hz2 haz) hb
+    (Int.ofNat (Int.natAbs b)) ∣ quad a b (consecPrimeBound b - 1) := by
+  set p : Nat := Int.natAbs b
+  have hnp : consecPrimeBound b - 1 = p := by
+    simp [consecPrimeBound, p]
+  rw [hnp]
+  obtain hb | hb := Int.natAbs_eq b
+  · have hb' : b = (p : Int) := by simpa [p] using hb
+    have hp : quad a b 0 = (p : Int) := by
+      simp [quad, hb']
+    have hdiv := quad_add_dvd a b 0 p hp
+    have hdiv' : (p : Int) ∣ quad a b p := by
+      simpa [Nat.zero_add] using hdiv
+    exact hdiv'
+  · refine ⟨(p : Int) + a - 1, ?_⟩
+    have hb' : b = -(p : Int) := by simpa [p] using hb
+    calc
+      quad a b p = (p : Int) * (p : Int) + a * (p : Int) + b := by
+        dsimp [quad]
+      _ = (p : Int) * (p : Int) + a * (p : Int) + -(p : Int) := by
+        rw [hb']
+      _ = (p : Int) * ((p : Int) + a - 1) := by
+        ring
 
 def consecPrimeLen (a b : Int) : Nat :=
-  let bound := consecPrimeBound a b
+  let bound := consecPrimeBound b
   let rec go (n fuel : Nat) : Nat :=
     match fuel with
     | 0 => 0
@@ -47,6 +72,8 @@ def consecPrimeLen (a b : Int) : Nat :=
           0
   go 0 bound
 
+/-- Project a * b where `a` and `b` are the Naturals below `limitA` and `limitB`
+    such that $n^2 + an + b$ has the longest sequence of consecutive primest starting for n=0. -/
 def naive (limitA limitB : Nat) : Int :=
   let as := (List.range (2 * limitA + 1)).map (fun i => (i : Int) - limitA)
   let bs := (List.range (2 * limitB + 1)).map (fun i => (i : Int) - limitB)

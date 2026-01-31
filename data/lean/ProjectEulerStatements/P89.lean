@@ -1,4 +1,5 @@
 import Mathlib.Data.List.Basic
+import Mathlib.Tactic
 
 namespace ProjectEulerStatements.P89
 
@@ -36,15 +37,31 @@ def intToRomanAux (n : Nat) : List Char :=
       (5, ['V']),
       (4, ['I','V']),
       (1, ['I']) ]
-  let rec go (n : Nat) (tbl : List (Nat × List Char)) (fuel : Nat) : List Char :=
-    match fuel with
-    | 0 => []
-    | fuel + 1 =>
-        match tbl with
-        | [] => []
-        | (v, cs) :: tl =>
-            if n ≥ v then cs ++ go (n - v) tbl fuel else go n tl fuel
-  go n table (n + 1)
+  let rec go (n : Nat) (tbl : List (Nat × List Char)) : List Char :=
+    match tbl with
+    | [] => []
+    | (v, cs) :: tl =>
+        if h0 : v = 0 then
+          (by
+            have _ := h0
+            exact go n tl)
+        else if hge : n ≥ v then
+          (by
+            have _ := hge
+            exact cs ++ go (n - v) ((v, cs) :: tl))
+        else
+          go n tl
+  termination_by
+    n + match tbl with
+    | [] => 0
+    | _ :: tl => tl.length + 1
+  decreasing_by
+    · cases tl <;> simp
+    · have hv : 0 < v := Nat.pos_of_ne_zero h0
+      have hsub : n - v < n := Nat.sub_lt_of_pos_le hv hge
+      exact Nat.add_lt_add_right hsub (tl.length + 1)
+    · cases tl <;> simp
+  go n table
 
 def minimalRoman (s : String) : String :=
   let n := romanToInt s.data

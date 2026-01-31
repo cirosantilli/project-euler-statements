@@ -22,20 +22,22 @@ def removeNode (n : Char) (es : List (Char × Char)) : List (Char × Char) :=
 def incoming (n : Char) (es : List (Char × Char)) : Bool :=
   es.any (fun e => e.2 = n)
 
-def topo (ns : List Char) (es : List (Char × Char)) (fuel : Nat) : List Char :=
-  match fuel with
-  | 0 => []
-  | fuel + 1 =>
-      match ns.find? (fun n => !incoming n es) with
-      | none => []
-      | some n =>
-          let ns' := ns.erase n
-          let es' := removeNode n es
-          n :: topo ns' es' fuel
+def topo (ns : List Char) (es : List (Char × Char)) : List Char :=
+  let rec go (ns : List Char) (es : List (Char × Char)) (steps : Nat) : List Char :=
+    match steps with
+    | 0 => []
+    | steps + 1 =>
+        match ns.find? (fun n => !incoming n es) with
+        | none => []
+        | some n =>
+            let ns' := ns.erase n
+            let es' := removeNode n es
+            n :: go ns' es' steps
+  go ns es (ns.length + 1)
 
 def naive (attempts : List String) : List Char :=
   let ns := nodes attempts
   let es := edges attempts
-  topo ns es (ns.length + 1)
+  topo ns es
 
 end ProjectEulerStatements.P79

@@ -35,17 +35,20 @@ def relaxStep (m dist : List (List Nat)) : List (List Nat) :=
       let minNb := nb.foldl (fun acc p => Nat.min acc (getD2 dist p.1 p.2)) cur
       Nat.min cur (getD2 m r c + minNb)))
 
-def iterate (m dist : List (List Nat)) (fuel : Nat) : List (List Nat) :=
-  match fuel with
-  | 0 => dist
-  | fuel + 1 =>
-      let dist' := relaxStep m dist
-      iterate m dist' fuel
+def iterate (m dist : List (List Nat)) : List (List Nat) :=
+  let rec go (dist : List (List Nat)) (steps : Nat) : List (List Nat) :=
+    match steps with
+    | 0 => dist
+    | steps + 1 =>
+        let dist' := relaxStep m dist
+        go dist' steps
+  let (rows, cols) := dims m
+  go dist (rows * cols)
 
 def minPath (m : List (List Nat)) : Nat :=
-  let (rows, cols) := dims m
   let dist0 := initDist m
-  let dist := iterate m dist0 (rows * cols)
+  let dist := iterate m dist0
+  let (rows, cols) := dims m
   getD2 dist (rows - 1) (cols - 1)
 
 def smallMatrix : List (List Nat) :=

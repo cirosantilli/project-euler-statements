@@ -7,35 +7,36 @@ def isSquare (n : Nat) : Bool :=
   let r := Nat.sqrt n
   r * r = n
 
-def minimalX (d fuel : Nat) : Nat :=
+def minimalX (d : Nat) : Nat :=
   if isSquare d then 0 else
-  let rec go (y fuel : Nat) : Nat :=
-    match fuel with
+  let bound := d ^ 4 + 1
+  let rec go (y steps : Nat) : Nat :=
+    match steps with
     | 0 => 0
-    | fuel + 1 =>
+    | steps + 1 =>
         let x2 := d * y * y + 1
         let x := Nat.sqrt x2
-        if x * x = x2 then x else go (y + 1) fuel
-  go 1 fuel
+        if x * x = x2 then x else go (y + 1) steps
+  go 1 bound
 
-def bestD (limit fuel : Nat) : Nat :=
-  let rec go (d bestD bestX fuel : Nat) : Nat :=
-    match fuel with
+def bestD (limit : Nat) : Nat :=
+  let rec go (d bestD bestX steps : Nat) : Nat :=
+    match steps with
     | 0 => bestD
-    | fuel + 1 =>
+    | steps + 1 =>
         if d > limit then bestD
         else
-          let x := minimalX d fuel
-          if x > bestX then go (d + 1) d x fuel else go (d + 1) bestD bestX fuel
-  go 2 0 0 fuel
+          let x := minimalX d
+          if x > bestX then go (d + 1) d x steps else go (d + 1) bestD bestX steps
+  go 2 0 0 (limit + 1)
 
-def naive (limit fuel : Nat) : Nat :=
-  bestD limit fuel
+def naive (limit : Nat) : Nat :=
+  bestD limit
 
-example : minimalX 13 1000 = 649 := by
+example : minimalX 13 = 649 := by
   native_decide
 
-example : bestD 7 200 = 5 := by
+example : bestD 7 = 5 := by
   native_decide
 
 end ProjectEulerStatements.P66
