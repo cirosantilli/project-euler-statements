@@ -110,11 +110,11 @@ theorem naive_eq_naive2 (n : Nat) : naive n = naive2 n := by
                                                                                                                                                                                         -- Since $i \geq \text{Nat.find} (\exists i, \text{fib} i > n)$, we have $\text{fib} i \geq \text{fib} (\text{Nat.find} (\exists i, \text{fib} i > n)) > n$.
                                                                                                                                                                                         have h_fib_i_gt_n : fib i ≥ fib (Nat.find (show ∃ i, fib i > n from ⟨n + 2, by linarith [fib_ge_succ (n + 2)]⟩)) := by
                                                                                                                                                                                                                                     refine' monotone_nat_of_le_succ ( fun n => _ ) ( Nat.le_of_not_lt fun hi => _ );
-                                                                                                                                                                                                                                    · rcases n with ( _ | _ | n ) <;> simp +arith +decide [ *, Nat.fib_add_two ];
+                                                                                                                                                                                                                                    · rcases n with ( _ | _ | n ) <;> simp +arith +decide [ * ];
                                                                                                                                                                                                                                       exact Nat.le_add_left _ _;
                                                                                                                                                                                                                                     · exact absurd h ( Nat.sub_ne_zero_of_lt hi );
                                                                                                                                                                                         exact if_neg ( by linarith [ Nat.find_spec ( show ∃ i, fib i > n from ⟨ n + 2, by linarith [ fib_ge_succ ( n + 2 ) ] ⟩ ) ] ) |> fun h => h.trans ( by norm_num );
-                                                                                                                                                                                      · unfold naive.go; simp +decide [ Finset.sum_range_succ', h ] ;
+                                                                                                                                                                                      · unfold naive.go; simp +decide [ Finset.sum_range_succ' ] ;
                                                                                                                                                                                         split_ifs <;> simp_all +decide [ Nat.sub_succ, add_comm, add_left_comm, add_assoc ];
                                                                                                                                                                                         -- Since $j + (i + 1)$ is in the set $\{x \mid \text{fib } x > n\}$, the find of this set must be less than or equal to $j + (i + 1)$.
                                                                                                                                                                                         have h_find_le : ∀ x, fib x > n → Nat.find (show ∃ x, fib x > n from ⟨ _, ‹_› ⟩) ≤ x := by
@@ -139,8 +139,6 @@ theorem naive_eq_naive2 (n : Nat) : naive n = naive2 n := by
                                                                                                                         exact Nat.one_le_iff_ne_zero.mpr ( by linarith [ fib_ge_succ ‹_› ] );
                                                                                                                       exact h_fib_inj.injective.injOn;
   rw [ h_naive_def, h_naive2_def, Finset.sum_filter ]
-
-#check naive.go
 
 theorem fib_strictMono : StrictMono fib := by
   intro a b h
@@ -201,7 +199,7 @@ theorem naive_go_eq_sum (n i total : Nat) :
     have h_def : naive.go n i total = if fib i ≤ n then naive.go n (i + 1) (if fib i % 2 = 0 then total + fib i else total) else total := by
       -- By definition of `naive.go`, we have that `naive.go n i total` is equal to the if statement based on `fib i ≤ n` and the recursive call.
       rw [naive.go];
-    split_ifs at h_def <;> simp_all +decide [ Nat.sub_add_cancel hi.le ];
+    split_ifs at h_def <;> simp_all +decide;
     · convert ih ( limit n - ( i + 1 ) ) ( by omega ) ( i + 1 ) ( total + fib i ) rfl using 1;
       rw [ add_assoc, Finset.Ico_eq_cons_Ioo ( by linarith ), Finset.filter_cons ] ; aesop;
     · convert ih ( limit n - ( i + 1 ) ) _ ( i + 1 ) total _ using 1;
