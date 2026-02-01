@@ -87,6 +87,7 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P24.lean[]
 * link:data/lean/ProjectEulerStatements/P25.lean[]
 * link:data/lean/ProjectEulerStatements/P27.lean[]
+* link:data/lean/ProjectEulerStatements/P29.lean[]
 
 Notes within those:
 

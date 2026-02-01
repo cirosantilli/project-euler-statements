@@ -9,13 +9,12 @@ def powers (aMax bMax : Nat) : List Nat :=
       let b := j + 2
       a ^ b) ++ acc) []
 
-def distinctCount (aMax bMax : Nat) : Nat :=
+/-- The number of distincts numbers produced by
+    $a^b$ for $2 <= a <= aMax$ and $2 <= b <= bMax$. -/
+def naive (aMax bMax : Nat) : Nat :=
   (powers aMax bMax).eraseDups.length
 
-def naive (aMax bMax : Nat) : Nat :=
-  distinctCount aMax bMax
-
-example : distinctCount 5 5 = 15 := by
+example : naive 5 5 = 15 := by
   native_decide
 
 end ProjectEulerStatements.P29
