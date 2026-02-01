@@ -68,12 +68,13 @@ We have manually inspected the following statements to ensure that they match up
 Full inspection, we have read and understood the definition of `naive` and any `example` to a good degree. Not necessarily proof details but we believe Lean:
 
 * 1-5
-* 14
+* 13-14
 * link:data/lean/ProjectEulerStatements/P67.lean[]
 
 Notes within those:
 
 * link:data/lean/ProjectEulerStatements/P5.lean[]: `Finset.lcm` felt like cheating! TODO: add a `naive2` without mathlib.
+* link:data/lean/ProjectEulerStatements/P13.lean[]: this problem is hilariously brute-forceable by anything with arbitrary precision arithmetic like Python, or even pen and paper. It clearly has C-int limitations in mind. Lol.
 * link:data/lean/ProjectEulerStatements/P14.lean[]: requires the Collatz conjecture. I think I'll add as an axiom rather than getting Codex to prove it today ;-)
 * link:data/lean/ProjectEulerStatements/P67.lean[]: is the same as P18, so we encode it as such
 
