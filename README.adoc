@@ -88,6 +88,9 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P25.lean[]
 * link:data/lean/ProjectEulerStatements/P27.lean[]
 * link:data/lean/ProjectEulerStatements/P29.lean[]
+* link:data/lean/ProjectEulerStatements/P30.lean[]
+* link:data/lean/ProjectEulerStatements/P33.lean[]: going to try to generalize it to "N digits" rather than the fixed 2. If it turns out hard I backtrack.
+* link:data/lean/ProjectEulerStatements/P43.lean[]: going to leave this other ugly digits problem without input parameter
 
 Notes within those:
 
