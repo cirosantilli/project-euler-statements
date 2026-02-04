@@ -14,14 +14,33 @@ def digitsSorted (n : Nat) : List Nat :=
 def isPermutation (a b : Nat) : Bool :=
   digitsSorted a = digitsSorted b
 
-def findSeq (limit : Nat) : List (Nat × Nat × Nat) :=
-  (List.range limit).foldr (fun a acc =>
-    (List.range limit).foldr (fun b acc2 =>
-      let c := b + (b - a)
-      if decide (a < b ∧ c < limit) && isPrime a && isPrime b && isPrime c &&
-          isPermutation a b && isPermutation b c then
-        (a, b, c) :: acc2
-      else acc2) acc) []
+def seqFrom (a d len : Nat) : List Nat :=
+  (List.range len).map (fun i => a + i * d)
+
+def allPrime (l : List Nat) : Bool :=
+  l.all isPrime
+
+def allPerm (l : List Nat) : Bool :=
+  match l with
+  | [] => true
+  | x :: xs => xs.all (fun y => isPermutation x y)
+
+/-- Brute-force search for `seqlen`-long arithmetic sequences of `n`-digit primes
+whose members are pairwise digit permutations. -/
+def naive (n seqlen : Nat) : List (List Nat) :=
+  if _ : n = 0 ∨ seqlen < 2 then
+    []
+  else
+    let lower := 10 ^ (n - 1)
+    let upper := 10 ^ n
+    (List.range upper).foldr (fun a acc =>
+      (List.range upper).foldr (fun d acc2 =>
+        let last := a + (seqlen - 1) * d
+        let s := seqFrom a d seqlen
+        if decide (lower ≤ a ∧ d > 0 ∧ last < upper) &&
+            allPrime s && allPerm s then
+          s :: acc2
+        else acc2) acc) []
 
 def concatSeq (t : Nat × Nat × Nat) : Nat :=
   let a := t.1
@@ -30,9 +49,6 @@ def concatSeq (t : Nat × Nat × Nat) : Nat :=
   let lb := (Nat.digits 10 b).length
   let lc := (Nat.digits 10 c).length
   a * 10 ^ lb * 10 ^ lc + b * 10 ^ lc + c
-
-def naive (limit : Nat) : List (Nat × Nat × Nat) :=
-  findSeq limit
 
 example : isPrime 1487 = true := by
   native_decide
