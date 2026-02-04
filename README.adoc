@@ -60,7 +60,7 @@ This section is about the folder ink:data/lean/[] which contains link:https://le
 Best Lean autoformalization prompt so far:
 
 ----
-Convert Project Euler N described at ../md/<N>.md statement into a formal lean statement in ProjectEulerStatements/P<N>.lean. Put all definitions of that lean file under namespace ProjectEulerStatements.P<N>. Produce the simplest naive function which matches the problem statement as close as possible and name it "naive". Add a /-- -/ docstring above naive explaining what it does. noncomputable functions are fine, but partial is not, if you have partial also produce a proof of termination. If you find two close approaches name the second one "naive2" and prove equivalence if easy. Add lean "example" statements with native_decide as asserts for any test values given in the problem statement. Ensure that lake -R build works for that file. Don't cheat with fuel, try to make naive generic within reason, and state any formal hypothesis needed if you have an informal argument for it. We can prove them in a second pass.
+Convert Project Euler N described at ../md/<N>.md statement into a formal lean statement in ProjectEulerStatements/P<N>.lean. Put all definitions of that lean file under namespace ProjectEulerStatements.P<N>. Produce the simplest naive function which matches the problem statement as close as possible and name it "naive". Add a /-- -/ docstring above naive explaining what it does. noncomputable functions are fine, but partial is not, if you have partial also produce a proof of termination. If you find two close approaches name the second one "naive2" and prove equivalence if easy. Add lean "example" statements with native_decide as asserts for any test values given in the problem statement. Ensure that lake -R build works for that file. Don't cheat with fuel or arbitrary limits, try to make naive generic within reason, and state any formal hypothesis needed if you have an informal argument for it. We can prove them in a second pass. Do not use axiom unless you need a theorem that is a well known open problem in mathematics. If you can't determine if it's a well known open problem nor prove it, state it and leave it as sorry and justify in a docstring comment references to why you think that result is open.
 ----
 
 We have manually inspected the following statements to ensure that they match up with our interpretation of Project Euler statements.
@@ -91,7 +91,7 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P30.lean[]
 * link:data/lean/ProjectEulerStatements/P33.lean[]: going to try to generalize it to "N digits" rather than the fixed 2. If it turns out hard we can prove only for 2.
 * link:data/lean/ProjectEulerStatements/P43.lean[]: going to leave this other ugly digits problem without input parameter
-* link:data/lean/ProjectEulerStatements/P47.lean[]
+* link:data/lean/ProjectEulerStatements/P47.lean[]: TODO we need to prove that this always exists for every n. Currently uses some random limit. Might be an open result.
 * link:data/lean/ProjectEulerStatements/P49.lean[]: yet another ugly digits one. Generalized as much as possible, we'll see.
 
 Notes within those:
