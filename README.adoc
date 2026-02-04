@@ -91,6 +91,7 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P30.lean[]
 * link:data/lean/ProjectEulerStatements/P33.lean[]: going to try to generalize it to "N digits" rather than the fixed 2. If it turns out hard we can prove only for 2.
 * link:data/lean/ProjectEulerStatements/P43.lean[]: going to leave this other ugly digits problem without input parameter
+* link:data/lean/ProjectEulerStatements/P47.lean[]
 * link:data/lean/ProjectEulerStatements/P49.lean[]: yet another ugly digits one. Generalized as much as possible, we'll see.
 
 Notes within those:

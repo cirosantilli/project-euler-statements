@@ -8,17 +8,17 @@ def distinctPrimeFactors (n : Nat) : Nat :=
     (List.range (n + 1)).filter (fun p => p ≥ 2 ∧ n % p = 0 ∧ Nat.Prime p)
   factors.length
 
-def hasNFactors (k n : Nat) : Bool :=
-  decide (distinctPrimeFactors n = k)
+def hasNFactors (k m : Nat) : Bool :=
+  decide (distinctPrimeFactors m = k)
 
-def firstRun (k run limit : Nat) : Nat :=
-  let candidates := (List.range (limit + 1)).map (fun n => n + 2)
-  match candidates.find? (fun i => (List.range run).all (fun j => hasNFactors k (i + j))) with
+/-- Brute-force search for the first number in a run of `n` consecutive integers
+each with exactly `n` distinct prime factors. -/
+def naive (n : Nat) : Nat :=
+  let limit := 10 ^ (n + 3)
+  let candidates := (List.range (limit + 1)).map (fun m => m + 2)
+  match candidates.find? (fun i => (List.range n).all (fun j => hasNFactors n (i + j))) with
   | some i => i
   | none => 0
-
-def naive (k run limit : Nat) : Nat :=
-  firstRun k run limit
 
 example : distinctPrimeFactors 14 = 2 := by
   native_decide
