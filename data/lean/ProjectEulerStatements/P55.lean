@@ -33,9 +33,9 @@ def reachesPalindrome (n maxIters : Nat) : Bool :=
 def isLychrel (n maxIters : Nat) : Bool :=
   !(reachesPalindrome n maxIters)
 
-/-- Count possibly-Lychrel numbers under 50 iterations below `n`. -/
-def naive (n : Nat) : Nat :=
-  (List.range n).filter (fun x => isLychrel x 50) |>.length
+/-- Count possibly-Lychrel numbers under `maxIters` iterations below `n`. -/
+def naive (n maxIters : Nat) : Nat :=
+  (List.range n).filter (fun x => isLychrel x maxIters) |>.length
 
 example : palAt 47 1 = true := by
   native_decide
