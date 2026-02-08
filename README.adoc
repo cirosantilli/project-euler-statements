@@ -96,7 +96,7 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P51.lean[]
 * link:data/lean/ProjectEulerStatements/P52.lean[]
 * link:data/lean/ProjectEulerStatements/P54.lean[]
-* link:data/lean/ProjectEulerStatements/P55.lean[]
+* link:data/lean/ProjectEulerStatements/P55.lean[]: has an ugly limit of 50 embedded in the problem itself. Nasty but inevitable. Ugly problem.
 
 Notes within those:
 

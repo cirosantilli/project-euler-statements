@@ -16,26 +16,31 @@ def isPalindrome (n : Nat) : Bool :=
 def reverseAdd (n : Nat) : Nat :=
   n + reverseDigits n
 
-/-- Whether `n` becomes palindromic within `fuel` steps. -/
-def reachesPalindrome (n fuel : Nat) : Bool :=
-  match fuel with
-  | 0 => false
-  | fuel + 1 =>
-      let m := reverseAdd n
-      if isPalindrome m then true else reachesPalindrome m fuel
+/-- Iterate a function `k` times. -/
+def iterate (f : Nat → Nat) : Nat → Nat → Nat
+  | 0, n => n
+  | k + 1, n => iterate f k (f n)
 
-/-- A number is Lychrel (under the 50-iteration rule) if it does not reach a palindrome. -/
-def isLychrel (n : Nat) : Bool :=
-  !(reachesPalindrome n 50)
+/-- Palindrome check after `k` reverse-and-add steps. -/
+def palAt (n k : Nat) : Bool :=
+  isPalindrome (iterate reverseAdd k n)
 
-/-- Count Lychrel numbers below ten-thousand. -/
+/-- Whether `n` reaches a palindrome within `maxIters` steps. -/
+def reachesPalindrome (n maxIters : Nat) : Bool :=
+  (List.range maxIters).any (fun k => palAt n k)
+
+/-- A number is Lychrel (under a `maxIters` rule) if it does not reach a palindrome. -/
+def isLychrel (n maxIters : Nat) : Bool :=
+  !(reachesPalindrome n maxIters)
+
+/-- Count possibly-Lychrel numbers under 50 iterations below `n`. -/
 def naive (n : Nat) : Nat :=
-  (List.range n).filter isLychrel |>.length
+  (List.range n).filter (fun x => isLychrel x 50) |>.length
 
-example : reachesPalindrome 47 1 = true := by
+example : palAt 47 1 = true := by
   native_decide
 
-example : reachesPalindrome 349 3 = true := by
+example : palAt 349 3 = true := by
   native_decide
 
 end ProjectEulerStatements.P55
