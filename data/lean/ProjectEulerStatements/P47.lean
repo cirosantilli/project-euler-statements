@@ -18,8 +18,8 @@ Appears to be open problem:
 * https://www.reddit.com/r/math/comments/ea4azs/are_there_infinitely_many_consecutive_integers/
 * https://mathoverflow.net/questions/52417/consecutive-numbers-with-n-prime-factors
 -/
-theorem exists_consecutive_with_n_factors (n : Nat) :
-    ∃ i, (List.range n).all (fun j => numDistinctPrimeFactors (i + j) = n) := by sorry
+axiom exists_consecutive_with_n_factors (n : Nat) :
+    ∃ i, (List.range n).all (fun j => numDistinctPrimeFactors (i + j) = n)
 
 /-- Brute-force search for the first number in a run of `n` consecutive integers
 each with exactly `n` distinct prime factors. -/
