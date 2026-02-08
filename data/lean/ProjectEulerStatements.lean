@@ -48,6 +48,16 @@ import ProjectEulerStatements.P47
 import ProjectEulerStatements.P48
 import ProjectEulerStatements.P49
 import ProjectEulerStatements.P50
+import ProjectEulerStatements.P51
+import ProjectEulerStatements.P52
+import ProjectEulerStatements.P53
+import ProjectEulerStatements.P54
+import ProjectEulerStatements.P55
+import ProjectEulerStatements.P56
+import ProjectEulerStatements.P57
+import ProjectEulerStatements.P58
+import ProjectEulerStatements.P59
+import ProjectEulerStatements.P60
 import ProjectEulerStatements.P61
 import ProjectEulerStatements.P62
 import ProjectEulerStatements.P63
