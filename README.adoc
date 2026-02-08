@@ -93,6 +93,8 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P43.lean[]: going to leave this other ugly digits problem without input parameter
 * link:data/lean/ProjectEulerStatements/P47.lean[]: TODO we need to prove that this always exists for every n. Currently uses some random limit. Might be an open result.
 * link:data/lean/ProjectEulerStatements/P49.lean[]: yet another ugly digits one. Generalized as much as possible, we'll see.
+* link:data/lean/ProjectEulerStatements/P51.lean[]
+* link:data/lean/ProjectEulerStatements/P52.lean[]
 
 Notes within those:
 
