@@ -22,19 +22,19 @@ def diagTotal (k : Nat) : Nat :=
   let side := 2 * k + 1
   2 * side - 1
 
-/-- Whether prime ratio on diagonals is below 1/10 for side length `2k+1`. -/
-def ratioBelow (k : Nat) : Bool :=
+/-- Whether prime ratio on diagonals is below `num/den` for side length `2k+1`. -/
+def ratioBelow (k num den : Nat) : Bool :=
   let p := diagPrimeCount k
   let t := diagTotal k
-  10 * p < t
+  den * p < num * t
 
-/-- Existence of a layer where the ratio falls below 10%. -/
-theorem exists_ratio_below : ∃ k, ratioBelow k = true := by
+/-- Existence of a layer where the ratio falls below `num/den`. -/
+theorem exists_ratio_below (num den : Nat) : ∃ k, ratioBelow k num den = true := by
   sorry
 
-/-- Side length of the square spiral where the prime ratio first falls below 10%. -/
-def naive : Nat :=
-  let k := Nat.find exists_ratio_below
+/-- Side length of the square spiral where the prime ratio first falls below `num/den`. -/
+def naive (num den : Nat) : Nat :=
+  let k := Nat.find (exists_ratio_below num den)
   2 * k + 1
 
 example : diagPrimeCount 3 = 8 := by

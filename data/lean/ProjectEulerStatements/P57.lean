@@ -15,16 +15,12 @@ def convergent : Nat → Nat × Nat
       nextFrac t.1 t.2
 
 /-- Count how many of the first `k` expansions have more digits in numerator. -/
-def countMoreDigits (k : Nat) : Nat :=
+def naive (k : Nat) : Nat :=
   (List.range k).foldl (fun acc i =>
     let t := convergent i
     let ln := (Nat.digits 10 t.1).length
     let ld := (Nat.digits 10 t.2).length
     if ln > ld then acc + 1 else acc) 0
-
-/-- Number of expansions (out of 1000) with more numerator digits. -/
-def naive : Nat :=
-  countMoreDigits 1000
 
 example :
     let t := convergent 7
