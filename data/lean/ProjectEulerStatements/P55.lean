@@ -29,8 +29,8 @@ def isLychrel (n : Nat) : Bool :=
   !(reachesPalindrome n 50)
 
 /-- Count Lychrel numbers below ten-thousand. -/
-def naive : Nat :=
-  (List.range 10000).filter isLychrel |>.length
+def naive (n : Nat) : Nat :=
+  (List.range n).filter isLychrel |>.length
 
 example : reachesPalindrome 47 1 = true := by
   native_decide

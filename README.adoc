@@ -95,6 +95,8 @@ Notes within those:
 * link:data/lean/ProjectEulerStatements/P49.lean[]: yet another ugly digits one. Generalized as much as possible, we'll see.
 * link:data/lean/ProjectEulerStatements/P51.lean[]
 * link:data/lean/ProjectEulerStatements/P52.lean[]
+* link:data/lean/ProjectEulerStatements/P54.lean[]
+* link:data/lean/ProjectEulerStatements/P55.lean[]
 
 Notes within those:
 
