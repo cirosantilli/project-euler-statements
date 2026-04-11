@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Colin Hughes">
+<meta name="description" content="A website dedicated to the fascinating world of mathematics and programming">
+<meta name="keywords" content="programming,mathematics,problems,puzzles">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#984 Knights and Horses - Project Euler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+<link rel="manifest" href="/favicons/site.webmanifest">
+<link rel="mask-icon" href="/favicons/safari-pinned-tab.svg" color="#da532c">
+<link rel="shortcut icon" href="/favicons/favicon.ico">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/favicons/browserconfig.xml">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="themes/style_main.1775485799.css">
+<link rel="stylesheet" href="themes/style_default.1737760786.css">
+</head>
+
+<body>
+
+<div id="container">
+
+<header>
+   <div>
+      <img id="logo" src="themes/logo_default.png" alt="Project Euler">
+   </div>
+	<div id="info_panel">
+		&nbsp;&nbsp;&nbsp;<a href="search"><img src="images/icons/search_engine.png" alt="Search Problems" title="Search Problems" class="icon"></a>&nbsp;&nbsp;&nbsp;<a href="rss2_euler.xml"><img src="images/icons/news_feed.png" alt="RSS Feed" title="RSS Feed" class="icon"></a>
+	</div>
+</header>
+
+<nav>
+<input type="checkbox" id="nav_toggle" class="nav_toggle">
+<label for="nav_toggle" class="nav_toggle_label"><i id="nav_toggle_icon" class="fas fa-bars"></i></label>
+   <ul>
+		<li><a href="about">About</a></li>
+		<li><a href="archives">Archives</a></li>
+		<li><a href="recent" id="current">Recent</a></li>
+		<li><a href="news">News</a></li>
+		<li><a href="register">Register</a></li>
+		<li><a href="sign_in">Sign In</a></li>
+   </ul>
+</nav>
+<div id="content">
+
+<div class="center print"><img src="images/clipart/print_page_logo.png" alt="projecteuler.net"></div>
+<h2>Knights and Horses</h2><div id="problem_icons" class="noprint"><a href="minimal=984"><img src="images/icons/file_html.png" title="Show HTML problem content" class="icon"></a>&nbsp;<span class="tooltip"><img src="images/icons/info.png" class="icon"><span class="tooltiptext_right">Published on Saturday, 14th February 2026, 07:00 pm; Solved by 90</span></span></div><div id="problem_info"><h3>Problem 984</h3></div>
+<div class="problem_content" role="problem">
+<p>
+In Western chess, a knight is a piece that moves either two squares horizontally and one square vertically, or one square horizontally and two squares vertically, and is capable of jumping over any intervening pieces.</p>
+
+<p>
+Chinese chess has a similar piece called the horse, whose moves have an identical displacement as a knight's move; however, a horse, unlike a knight, is unable to jump over intervening pieces.</p>
+
+<p>
+More specifically, a horse's move consists of two steps: An orthogonal move of one square, followed by a diagonal move by one square in the same direction as the orthogonal move. If the orthogonal square is occupied by another piece, the horse is unable to move in that direction.
+<img src="resources/images/0984_KnightHorsesDiag1.jpg?1770170544" alt="0984_KnightHorsesDiag1.jpg">
+Specifically the horse in the centre of the above board can move to the squares $b_{11},b_{12},b_{21},b_{22},b_{31},b_{32},b_{41},b_{42}$ providing the squares $a_{1},a_{2},a_{3},a_{4}$ are unoccupied. For example, if $a_2$ was occupied then it could not move to $b_{21}$ or $b_{22}$.</p>
+
+<p>
+A set of squares on a chessboard is called <dfn>knight-connected</dfn> if a knight can travel between any two squares in the set using only legal moves without using any squares not in the set.
+A set of squares on a chessboard is called <dfn>horse-disjoint</dfn> if, when a horse is placed on every square in the set (and no other square), no horse can attack any other.
+<img src="resources/images/0984_KnightHorsesDiag2.jpg?1770170559" alt="0984_KnightHorsesDiag2.jpg">
+Let $f(N)$ be the number of knight-connected, horse-disjoint non-empty subsets of an $N\times N$ chessboard. For example, $f(3) = 9$, consisting of the nine singleton sets. You are also given that $f(5) = 903, f(100) = 8658918531876$, and $f(10000) \equiv 377956308 \bmod 10^9+7$.</p>
+
+<p>
+Find $f(10^{18})$. Give your answer modulo $10^9+7$.</p>
+
+</div><br>
+<br>
+</div> <!--end_content-->
+
+</div> <!--end_container-->
+
+<div id="footer" class="noprint">
+Project Euler: <a href="copyright">Copyright Information</a> | <a href="privacy">Privacy Policy</a>
+</div>
+
+<div id="modal_window">
+   <div id="modal_content" class="message_body">
+   <p>The page has been left unattended for too long and that link/button is no longer active. Please refresh the page.</p>
+   </div>
+</div>
+
+<script src="js/mathjax_config.1766083028.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-svg.js?config=newcm"></script><script type="application/json" id="page_expire">86400</script>
+<script src="js/general.1681854148.js"></script>
+
+</body>
+</html>
