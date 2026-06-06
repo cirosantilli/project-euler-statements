@@ -22,11 +22,6 @@ def NatGE2 := {n : Nat // 2 ≤ n}
 def primeFactorSet (n : Nat) : Finset Nat :=
   (Finset.range (n + 1)).filter (fun k => isPrimeFactor n k)
 
-/-- Returns the largest prime factor of `n`
-
-    Constraints: `n > 1` to ensure that it has at least
-    one prime factor for the most common definition of prime
-    factor which excludes 1. -/
 def naive (n : NatGE2) : Nat :=
   Nat.findGreatest (isPrimeFactor n.1) n.1
 

@@ -4,7 +4,7 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 namespace ProjectEulerStatements.P1
 
-/-- Sum of all the multiples of 3 or 5 or below `n`, recursive implementation. -/
+/-- Recursive implementation. -/
 def naive : Nat -> Nat
   | 0       => 0
   | n + 1   =>

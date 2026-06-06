@@ -1,24 +1,12 @@
-from functools import lru_cache
-
-
-@lru_cache(None)
-def fib(n: int) -> int:
-    if n == 0:
-        return 1
-    if n == 1:
-        return 2
-    return fib(n - 2) + fib(n - 1)
-
+#!/usr/bin/env python
 
 def naive(n: int) -> int:
-    i = 0
     total = 0
+    a = 1
+    b = 2
     while True:
-        f = fib(i)
-        if f <= n:
-            if f % 2 == 0:
-                total += f
-            i += 1
-        else:
+        if b > n:
             return total
-
+        if b % 2 == 0:
+            total += b
+        a, b = b, a + b

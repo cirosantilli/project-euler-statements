@@ -13,11 +13,5 @@ def naive(n: int) -> int:
     return x
 
 
-def primes_up_to(n: int) -> set[int]:
-    return {x for x in range(n + 1) if is_prime(x)}
-
-
 if __name__ == '__main__':
-    assert len(primes_up_to(13)) == 6
-    assert max(primes_up_to(13)) == 13
-
+    assert naive(6) == 13

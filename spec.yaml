@@ -1,0 +1,41 @@
+1:
+  args:
+    n: int
+  constraints:
+    - n > 1
+  return:
+    type: int
+    desc: Sum of all the multiples of 3 or 5 or below `n`.
+2:
+  args:
+    n: int
+  constraints:
+    - n > 1
+  return:
+    type: int
+    desc: Sum of the even-valued Fibonacci numbers which do not exceed `n`.
+3:
+  args:
+    n: int
+  constraints:
+    - n > 1
+  return:
+    type: int
+    desc: The largest prime factor of `n`. 0 if it doesn't have any.
+4:
+  args:
+    n: int
+  constraints:
+    - n > 0
+  comment: This problem could arguably be generalized to "made of two numbers between min and max".
+  return:
+    type: int
+    desc: The largest palindrome made of the product of two `n`-decimal-digit numbers.
+7:
+  args:
+    n: int
+  constraints:
+    - n > 1
+  return:
+    type: int
+    desc: The `n`'th prime number.
