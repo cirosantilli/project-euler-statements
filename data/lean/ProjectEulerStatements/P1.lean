@@ -4,13 +4,14 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 namespace ProjectEulerStatements.P1
 
-/-- Sum of all the multiples of 3 or 5 or below `n`. -/
+/-- Sum of all the multiples of 3 or 5 or below `n`, recursive implementation. -/
 def naive : Nat -> Nat
   | 0       => 0
   | n + 1   =>
       let s := naive n
       if 3 ∣ n ∨ 5 ∣ n then s + n else s
 
+/-- Alternative iterative implementation. -/
 def naive2 (max : Nat) : Nat :=
   ∑ x ∈ ((Finset.range max).filter (fun n => (3 ∣ n) ∨ (5 ∣ n))), x
 
