@@ -39,3 +39,14 @@
   return:
     type: int
     desc: The `n`'th prime number.
+8:
+  args:
+    digits: list[int]
+    k: int
+  constraints:
+    - len(digits) > 0
+    - all(0 <= digit <= 9 for digit in digits)
+    - k > 0
+  return:
+    type: int
+    desc: The largest product of k consecutive decimal digits in the input list.

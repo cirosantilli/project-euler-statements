@@ -25,8 +25,9 @@ def bigNumber : String :=
 def digits1000 : List Nat :=
   bigNumber.data.map (fun c => c.toNat - '0'.toNat)
 
-def listProduct (l : List Nat) : Nat :=
-  l.foldl (fun acc x => acc * x) 1
+def listProduct : List Nat -> Nat
+  | [] => 1
+  | x :: xs => x * listProduct xs
 
 def windowProducts (k : Nat) : List Nat -> List Nat
   | [] => []
@@ -36,13 +37,14 @@ def windowProducts (k : Nat) : List Nat -> List Nat
       else
         listProduct (l.take k) :: windowProducts k xs
 
-def listMax (l : List Nat) : Nat :=
-  l.foldl Nat.max 0
+def listMax : List Nat -> Nat
+  | [] => 0
+  | x :: xs => Nat.max x (listMax xs)
 
-def naive (k : Nat) : Nat :=
-  listMax (windowProducts k digits1000)
+def naive (digits : List Nat) (k : Nat) : Nat :=
+  listMax (windowProducts k digits)
 
-example : naive 4 = 5832 := by
+example : naive digits1000 4 = 5832 := by
   native_decide
 
 end ProjectEulerStatements.P8

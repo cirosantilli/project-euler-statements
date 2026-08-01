@@ -21,7 +21,7 @@ big_number = """
 71636269561882670428252483600823257530420752963450
 """.strip().replace('\n', '')
 
-digits1000 = [ord(c) - ord('0') for c in big_number]
+digits1000: list[int] = [ord(c) - ord('0') for c in big_number]
 
 
 def list_product(xs: list[int]) -> int:
@@ -32,6 +32,8 @@ def list_product(xs: list[int]) -> int:
 
 
 def window_products(k: int, xs: list[int]) -> list[int]:
+    if not xs:
+        return []
     if len(xs) < k:
         return []
     return [list_product(xs[:k])] + window_products(k, xs[1:])
@@ -44,6 +46,5 @@ def list_max(xs: list[int]) -> int:
     return m
 
 
-def naive(k: int) -> int:
-    return list_max(window_products(k, digits1000))
-
+def naive(digits: list[int], k: int) -> int:
+    return list_max(window_products(k, digits))
