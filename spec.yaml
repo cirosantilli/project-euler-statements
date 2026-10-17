@@ -50,3 +50,31 @@
   return:
     type: int
     desc: The largest product of k consecutive decimal digits in the input list.
+1014:
+  args:
+    v: int
+    k: int
+    t: int
+    nights: tuple[str, ...]
+    target: str
+  constraints:
+    - 1 <= t <= k <= v <= 26
+    - Members are the first v uppercase letters of the alphabet.
+    - Each night contains k distinct members and target contains t distinct members.
+    - The nights are blocks of an existing Steiner system S(t, k, v).
+    - Exactly one k-subset containing target has all its intersections with the known nights in the intersection spectrum forced by these parameters.
+  return:
+    type: str
+    desc: The unique compatible night containing target, with its members in alphabetic order.
+  comment: Both implementations use the forced intersection spectrum. The naive version enumerates all k-subsets; the optimized version enumerates only supersets of target. Inputs outside the uniqueness constraint raise ValueError.
+1015:
+  args:
+    n: int
+    modulus: int
+  constraints:
+    - n >= 0
+    - modulus >= 1
+  return:
+    type: int
+    desc: The number of blue/red rows of n pins for which the second player wins regardless of the starting colour, reduced modulo modulus. The empty row counts once.
+  comment: "Signature: solve(n: int, modulus: int = 10**9) -> int. The naive solve enumerates every row and the original game tree, preserving gaps. It is intended only for small n."
