@@ -2,6 +2,10 @@ from .common import digits_le
 
 
 def naive(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     lo = 0 if n == 0 else 10 ** (n - 1)
     hi = 10 ** n - 1
     max_ = 0

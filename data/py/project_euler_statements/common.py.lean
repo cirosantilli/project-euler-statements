@@ -157,8 +157,8 @@ private theorem loop_result (n base : Nat) (hb : 1 < base)
     (getN : env "n" = some (.scalar (.int n)))
     (getBase : env "base" = some (.scalar (.int base)))
     (getOut : env "out" = some (.ref prior.length)) :
-    HeapCalls.BlockReturns program env loop (prior ++ [acc]) (.ref prior.length)
-      (prior ++ [acc ++ encode (Nat.digits base n)]) := by
+    HeapCalls.BlockReturns program env loop (prior ++ [Mutable.Object.list (acc)]) (.ref prior.length)
+      (prior ++ [Mutable.Object.list (acc ++ encode (Nat.digits base n))]) := by
   by_cases zero : n = 0
   · subst n
     simp only [Nat.digits_zero, encode, List.map_nil, List.append_nil]
@@ -169,17 +169,17 @@ private theorem loop_result (n base : Nat) (hb : 1 < base)
     · simp [Mutable.truth, scalarTruth, zero]
     · apply HeapCalls.BlockReturns.discard
       · apply HeapCalls.Evaluates.append (HeapCalls.Evaluates.lookup getOut) (by simp)
-          (old := acc) (current := acc) (afterItem := prior ++ [acc])
+          (old := acc) (current := acc) (afterItem := prior ++ [Mutable.Object.list (acc)])
           (value := .scalar (.int ((n % base : Nat) : Int)))
         · apply HeapCalls.Evaluates.binary (HeapCalls.Evaluates.lookup getN) (HeapCalls.Evaluates.lookup getBase)
           simp [Mutable.binary, scalarBinary, show base ≠ 0 by omega, show 0 < base by omega]
         · simp
-      · have appendHeap : (prior ++ [acc]).set prior.length (acc ++ [.scalar (.int ((n % base : Nat) : Int))]) =
-            prior ++ [acc ++ [.scalar (.int ((n % base : Nat) : Int))]] := by simp
+      · have appendHeap : (prior ++ [Mutable.Object.list (acc)]).set prior.length (Mutable.Object.list (acc ++ [.scalar (.int ((n % base : Nat) : Int))])) =
+            prior ++ [Mutable.Object.list (acc ++ [.scalar (.int ((n % base : Nat) : Int))])] := by simp
         rw [appendHeap]
         apply HeapCalls.BlockReturns.augAssign getN (HeapCalls.Evaluates.lookup getBase)
           (value := .scalar (.int ((n / base : Nat) : Int)))
-          (afterOperation := prior ++ [acc ++ [.scalar (.int ((n % base : Nat) : Int))]])
+          (afterOperation := prior ++ [Mutable.Object.list (acc ++ [.scalar (.int ((n % base : Nat) : Int))])])
         · simp [HeapCalls.inplace, Mutable.binary, scalarBinary, show base ≠ 0 by omega, show 0 < base by omega]
         · have recurse := loop_result (n / base) base hb
             (HeapCalls.setLocal env "n" (.scalar (.int ((n / base : Nat) : Int)))) prior
@@ -198,7 +198,7 @@ end DigitsProof
 the same proof works for every integer base greater than one. -/
 theorem digits_le.result (n base : Nat) (hb : 1 < base) (heap : Mutable.Heap) :
     HeapCalls.ReturnsValue program "digits_le" [.scalar (.int n), .scalar (.int base)] heap
-      (.ref heap.length) (heap ++ [(Nat.digits base n).map (fun (digit : Nat) => .scalar (.int (digit : Int)))]) := by
+      (.ref heap.length) (heap ++ [Mutable.Object.list ((Nat.digits base n).map (fun (digit : Nat) => .scalar (.int (digit : Int))))]) := by
   apply HeapCalls.BlockReturns.function rfl rfl
   by_cases zero : n = 0
   · subst n
@@ -218,7 +218,7 @@ theorem digits_le.result (n base : Nat) (hb : 1 < base) (heap : Mutable.Heap) :
 /-- The ordinary one-argument call uses the source's default decimal base. -/
 theorem digits_le.decimal (n : Nat) (heap : Mutable.Heap) :
     HeapCalls.ReturnsValue program "digits_le" [.scalar (.int n)] heap (.ref heap.length)
-      (heap ++ [(Nat.digits 10 n).map (fun (digit : Nat) => .scalar (.int (digit : Int)))]) :=
+      (heap ++ [Mutable.Object.list ((Nat.digits 10 n).map (fun (digit : Nat) => .scalar (.int (digit : Int))))]) :=
   HeapCalls.ReturnsValue.with_defaults rfl rfl rfl (digits_le.result n 10 (by decide) heap)
 
 theorem digits_le.«Returns» (n base : Int)

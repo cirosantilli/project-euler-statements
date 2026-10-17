@@ -1,4 +1,8 @@
 def triplet_products(n: int) -> set[int]:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     out = set()
     for a in range(1, n + 1):
         for b in range(1, n + 1):
@@ -9,6 +13,10 @@ def triplet_products(n: int) -> set[int]:
 
 
 def naive(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     vals = triplet_products(n)
     return max(vals) if vals else 0
 

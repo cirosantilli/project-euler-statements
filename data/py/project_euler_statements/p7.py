@@ -2,6 +2,10 @@ from .common import is_prime
 
 
 def naive(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     if n == 0:
         return 0
     count = 0

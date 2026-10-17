@@ -25,6 +25,9 @@ digits1000: list[int] = [ord(c) - ord('0') for c in big_number]
 
 
 def list_product(xs: list[int]) -> int:
+    """
+    @formalsw: Returns
+    """
     p = 1
     for x in xs:
         p *= x
@@ -32,6 +35,9 @@ def list_product(xs: list[int]) -> int:
 
 
 def window_products(k: int, xs: list[int]) -> list[int]:
+    """
+    @formalsw: Returns
+    """
     if not xs:
         return []
     if len(xs) < k:
@@ -40,6 +46,9 @@ def window_products(k: int, xs: list[int]) -> list[int]:
 
 
 def list_max(xs: list[int]) -> int:
+    """
+    @formalsw: Returns
+    """
     m = 0
     for x in xs:
         m = max(m, x)
@@ -47,4 +56,7 @@ def list_max(xs: list[int]) -> int:
 
 
 def naive(digits: list[int], k: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return list_max(window_products(k, digits))

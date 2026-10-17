@@ -34,15 +34,35 @@
   return:
     type: int
     desc: The largest palindrome made of the product of two `n`-decimal-digit numbers.
-7:
+5:
+  comment: "Signature: solve(n: int) -> int."
   args:
     n: int
   constraints:
-    - n > 1
+    - n >= 0
+  return:
+    type: int
+    desc: The least common multiple of the integers from 1 through `n`, or 1 when `n` is zero.
+6:
+  comment: "Signature: solve(n: int) -> int."
+  args:
+    n: int
+  constraints:
+    - n >= 0
+  return:
+    type: int
+    desc: The square of the sum of the integers from 1 through `n`, minus the sum of their squares.
+7:
+  comment: "Signature: solve(n: int) -> int."
+  args:
+    n: int
+  constraints:
+    - n >= 1
   return:
     type: int
     desc: The `n`'th prime number.
 8:
+  comment: "Signature: solve(digits: list[int], k: int) -> int."
   args:
     digits: list[int]
     k: int
@@ -53,6 +73,25 @@
   return:
     type: int
     desc: The largest product of k consecutive decimal digits in the input list.
+9:
+  comment: "Signature: solve(total: int) -> int. The naive function returns zero when no triplet exists; the optimized solver raises ValueError in that case."
+  args:
+    total: int
+  constraints:
+    - total >= 0
+    - There exist positive integers a < b < c with a + b + c == total and a*a + b*b == c*c.
+  return:
+    type: int
+    desc: The largest product a*b*c of a Pythagorean triplet with the given total.
+10:
+  comment: "Signature: solve(limit: int) -> int."
+  args:
+    limit: int
+  constraints:
+    - limit >= 0
+  return:
+    type: int
+    desc: The sum of all primes strictly below limit.
 1014:
   args:
     v: int
