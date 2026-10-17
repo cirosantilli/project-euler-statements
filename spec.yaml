@@ -1,33 +1,36 @@
 1:
+  comment: "Signature: solve(n: int) -> int."
   args:
     n: int
   constraints:
     - n > 1
   return:
     type: int
-    desc: Sum of all the multiples of 3 or 5 or below `n`.
+    desc: Sum of all the multiples of 3 or 5 below `n`.
 2:
+  comment: "Signature: solve(limit: int) -> int."
   args:
-    n: int
+    limit: int
   constraints:
-    - n > 1
+    - limit > 1
   return:
     type: int
-    desc: Sum of the even-valued Fibonacci numbers which do not exceed `n`.
+    desc: Sum of the even-valued Fibonacci numbers which do not exceed `limit`.
 3:
+  comment: "Signature: solve(n: int) -> int."
   args:
     n: int
   constraints:
     - n > 1
   return:
     type: int
-    desc: The largest prime factor of `n`. 0 if it doesn't have any.
+    desc: The largest prime factor of `n`.
 4:
   args:
     n: int
   constraints:
     - n > 0
-  comment: This problem could arguably be generalized to "made of two numbers between min and max".
+  comment: "Signature: solve(n: int) -> int. The optimized largest_palindrome_product(lo, hi) helper also accepts an inclusive factor range."
   return:
     type: int
     desc: The largest palindrome made of the product of two `n`-decimal-digit numbers.

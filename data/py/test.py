@@ -7,17 +7,17 @@ from pathlib import Path
 
 
 def problem_number(path: Path) -> int:
-    return int(path.stem)
+    return int(path.stem[1:])
 
 
 def main() -> int:
     root = Path(__file__).resolve().parent
-    naive_dir = root / 'naive'
+    package_dir = root / 'project_euler_statements'
     files = sorted(
-        (p for p in naive_dir.glob('*.py') if p.stem.isdigit()),
+        (p for p in package_dir.glob('p*.py') if p.stem[1:].isdigit()),
         key=problem_number,
     )
-    exe = shutil.which('pypy') or shutil.which('pypy3')
+    exe = shutil.which('pypy3') or shutil.which('pypy')
     if exe is None:
         print('ERROR: neither pypy nor pypy3 was found on PATH')
         return 127
@@ -25,7 +25,7 @@ def main() -> int:
     for path in files:
         rel = path.relative_to(root)
         print(f'RUN {rel}')
-        proc = subprocess.run([exe, str(path.resolve())], cwd=naive_dir)
+        proc = subprocess.run([exe, '-m', f'project_euler_statements.{path.stem}'], cwd=root)
         if proc.returncode != 0:
             failed.append((path.name, proc.returncode))
     if failed:

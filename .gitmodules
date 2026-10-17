@@ -1,0 +1,3 @@
+[submodule "formalsw"]
+	path = formalsw
+	url = git@github.com:cirosantilli/cleanxy.git
