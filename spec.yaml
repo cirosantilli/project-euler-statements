@@ -500,6 +500,14 @@
   return:
     type: int
     desc: The nonsquare D with 2 <= D <= limit whose least x among integer solutions of x*x - D*y*y == 1 with x > 0 and y > 0 is greatest; the least D on ties, or zero if there are no candidates.
+67:
+  args:
+    triangle: list[list[int]]
+  constraints:
+    - Row i has i + 1 entries, counting from zero.
+  return:
+    type: int
+    desc: The greatest sum along a path from the top to the bottom, moving to either adjacent child at each row; zero for an empty triangle. Weights may be signed integers.
 74:
   args:
     limit: int
