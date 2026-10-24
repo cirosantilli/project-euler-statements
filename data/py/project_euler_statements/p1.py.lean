@@ -1,7 +1,8 @@
 import data.«project-euler-statements».«.formalsw».data.py.project_euler_statements.«p1.py.ast»
-import FormalSW
+import lang.py.FormalSW.Calls
 import ProjectEulerStatements.P1
-import Mathlib.Tactic
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.Convert
 
 namespace data.«project-euler-statements».data.py.project_euler_statements.«p1»
 open FormalSW.PyAst FormalSW.PyAst.Calls
@@ -15,7 +16,7 @@ private theorem divisible_test (name : String) (env : ScalarEnv) (n d : Nat) (hd
   · apply Evaluates.binary (Evaluates.lookup hm) Evaluates.constant
     simp [scalarBinary, hd.ne', hd]
   · exact Evaluates.constant
-  · simp [scalarCompare, evalCmpOp, Int.natCast_dvd_natCast]
+  · simp [scalarCompare, evalCmpOp, ← Int.dvd_iff_emod_eq_zero, Int.natCast_dvd_natCast]
 
 theorem naive.result (n : Nat) :
     ReturnsValue P1Ast.module "naive" [.int n]

@@ -5,7 +5,7 @@ import ProjectEulerStatements.Lib.DivisorEnumeration
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Data.Nat.Sqrt
 import Mathlib.Data.Nat.Digits.Defs
-import Mathlib.Tactic
+import Mathlib.Tactic.Convert
 
 namespace data.«project-euler-statements».data.py.project_euler_statements.common
 open FormalSW.PyAst FormalSW.PyAst.Calls
@@ -62,7 +62,7 @@ private theorem loop_result (n r p : Nat) (hp : 0 < p) (odd : p % 2 = 1)
             · exact Evaluates.binary (Evaluates.lookup hn) (Evaluates.lookup hep)
                 (by simp [scalarBinary, hp.ne', hp])
             · exact Evaluates.constant
-            · simp [scalarCompare, evalCmpOp, Int.natCast_dvd_natCast]
+            · simp [scalarCompare, evalCmpOp, ← Int.dvd_iff_emod_eq_zero, Int.natCast_dvd_natCast]
           by_cases hdvd : p ∣ n
           · have bad : ¬Trial n r p := fun h => ((trial_step n r p hle odd).mp h).1 hdvd
             simp only [bad, decide_false]
@@ -119,7 +119,7 @@ theorem is_prime.result (n : Nat) :
           apply Evaluates.compare (av := .int ↑(n % 2)) (bv := .int 0)
           · exact Evaluates.binary (Evaluates.lookup rfl) Evaluates.constant (by simp [scalarBinary])
           · exact Evaluates.constant
-          · simp [scalarCompare, evalCmpOp, Int.ofNat_dvd_natCast, Nat.dvd_iff_mod_eq_zero]
+          · simp [scalarCompare, evalCmpOp, ← Int.dvd_iff_emod_eq_zero, Int.ofNat_dvd_natCast, Nat.dvd_iff_mod_eq_zero]
         by_cases heven : n % 2 = 0
         · have bad : ¬Nat.Prime n := fun h => by have := h.eq_two_or_odd; omega
           simp only [bad, decide_false]
@@ -261,7 +261,7 @@ private theorem loop_result (heap : Mutable.Heap) (n position : Nat) (positive :
     have tested : HeapCalls.Evaluates program boundEnv test (heap ++ [.list (encode items)])
         (.scalar (.bool (decide (n % position = 0)))) (heap ++ [.list (encode items)]) :=
       HeapCalls.Evaluates.compare remainder HeapCalls.Evaluates.constant
-        (by simp [HeapCalls.compare, scalarCompare, evalCmpOp, Int.natCast_dvd_natCast, Nat.dvd_iff_mod_eq_zero])
+        (by simp [HeapCalls.compare, scalarCompare, evalCmpOp, ← Int.dvd_iff_emod_eq_zero, Int.natCast_dvd_natCast, Nat.dvd_iff_mod_eq_zero])
     let nextItems := if n % position = 0 then items ++ [position] else items
     have step : HeapCalls.BlockContinues program boundEnv (body heap.length)
         (heap ++ [.list (encode items)]) boundEnv (heap ++ [.list (encode nextItems)]) := by

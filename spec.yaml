@@ -170,6 +170,82 @@
   return:
     type: int
     desc: The number of Sundays falling on the first day of a month in the inclusive range of complete calendar years.
+22:
+  comment: "Signature: total_name_scores(names: list[str]) -> int."
+  args:
+    names: list[str]
+  constraints:
+    - Every character in each name is an uppercase ASCII letter A through Z. Empty names and an empty list are allowed.
+  return:
+    type: int
+    desc: The sum of each name's alphabetical value multiplied by its one-based position after sorting the names alphabetically.
+23:
+  comment: "Signature: non_abundant_sums(limit: int = 28123) -> int. The optimized solver's embedded checks require indices 24 and 28 to exist."
+  args:
+    limit: int
+  constraints:
+    - limit >= 28
+  return:
+    type: int
+    desc: The sum of the positive integers at most limit that cannot be written as the sum of two abundant numbers.
+24:
+  comment: "Signature: nth_lexicographic_permutation(digits: list[int], n: int) -> str. The reference naive_text formats naive's list result without changing its permutation ordering."
+  args:
+    digits: list[int]
+    n: int
+  constraints:
+    - The input integers are strictly increasing.
+    - 1 <= n <= factorial(len(digits))
+  return:
+    type: str
+    desc: The concatenated decimal representations of the integers in the one-based n-th lexicographic permutation. The empty input has one permutation, rendered as an empty string.
+25:
+  comment: "Signature: first_fib_index_with_digits(digits: int) -> int. The reference naive uses the parameter name n and also terminates at zero, returning index zero."
+  args:
+    digits: int
+  constraints:
+    - digits >= 1
+  return:
+    type: int
+    desc: The least index whose Fibonacci number has at least digits decimal digits, with F_0 = 0 and F_1 = 1.
+26:
+  comment: "Signature: solve(limit: int = 1000) -> int. The reference naive also terminates for every integer limit. At limit = 3 its inclusion of denominator zero gives a different zero-length tie winner, so the equivalence domain starts at 4."
+  args:
+    limit: int
+  constraints:
+    - limit >= 4
+  return:
+    type: int
+    desc: The smallest positive denominator below limit whose reciprocal has the longest recurring decimal cycle.
+27:
+  comment: "Signature: solve() -> int. The optimized solver uses the canonical bounds; naive_default() adapts the reference naive(limit_a: int, limit_b: int) with bounds 999 and 1000. The reference also terminates for negative bounds, returning zero for an empty search."
+  args: {}
+  return:
+    type: int
+    desc: The product a*b for the quadratic n*n + a*n + b with the longest initial run of prime values, where -999 <= a <= 999 and -1000 <= b <= 1000.
+28:
+  comment: "Signature: spiral_diagonals_sum(n: int) -> int. The reference naive also terminates for every integer input and returns zero for nonpositive sizes."
+  args:
+    n: int
+  constraints:
+    - n >= 1 and n % 2 == 1
+  return:
+    type: int
+    desc: The sum of both diagonals of the n-by-n number spiral, counting the central 1 once.
+29:
+  comment: "Signature: count_distinct_powers(max_a: int, max_b: int) -> int. The reference naive names the same positional bounds a_max and b_max. Both functions terminate for all integer bounds; a bound below 2 gives an empty search."
+  args:
+    max_a: int
+    max_b: int
+  return:
+    type: int
+    desc: The number of distinct a**b values for 2 <= a <= max_a and 2 <= b <= max_b.
+30:
+  comment: "Signature: solve() -> int. The optimized solver fixes the power at 5; naive_default() adapts the reference naive(p: int), whose termination claim requires p >= 0."
+  args: {}
+  return:
+    type: int
+    desc: The sum of integers greater than 1 that equal the sum of the fifth powers of their decimal digits.
 1014:
   args:
     v: int

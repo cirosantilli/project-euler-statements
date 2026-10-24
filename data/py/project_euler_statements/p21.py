@@ -11,6 +11,9 @@ def is_amicable(n: int) -> bool:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(n for n in range(1, limit) if is_amicable(n))
 
 

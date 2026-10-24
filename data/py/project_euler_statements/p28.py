@@ -8,6 +8,9 @@ def spiral_diag_sum(n: int) -> int:
 
 
 def naive(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return spiral_diag_sum(n)
 
 

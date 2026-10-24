@@ -10,6 +10,9 @@ def is_prime_int(z: int) -> bool:
 
 
 def consec_prime_len(a: int, b: int) -> int:
+    """
+    @formalsw: Returns
+    """
     bound = abs(b) + 1
     n = 0
     while n < bound and is_prime_int(quad(a, b, n)):
@@ -18,9 +21,19 @@ def consec_prime_len(a: int, b: int) -> int:
 
 
 def naive(limit_a: int, limit_b: int) -> int:
+    """
+    @formalsw: Returns
+    """
     pairs = [(a, b) for a in range(-limit_a, limit_a + 1) for b in range(-limit_b, limit_b + 1)]
     a, b = max(pairs, key=lambda p: consec_prime_len(p[0], p[1])) if pairs else (0, 0)
     return a * b
+
+
+def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
+    return naive(999, 1000)
 
 
 if __name__ == '__main__':

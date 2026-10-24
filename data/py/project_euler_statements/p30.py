@@ -10,5 +10,16 @@ def limit(p: int) -> int:
 
 
 def naive(p: int) -> int:
+    """
+    @formalsw: Requires(p >= 0)
+    @formalsw: Returns
+    """
     return sum(n for n in range(limit(p) + 1) if n != 1 and digit_power_sum(p, n) == n)
+
+
+def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
+    return naive(5)
 

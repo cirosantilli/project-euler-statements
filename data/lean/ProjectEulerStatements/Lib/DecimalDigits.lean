@@ -97,4 +97,10 @@ lemma foldl_add_eq_sum_aux (nums : List Nat) (acc : Nat) :
 lemma foldl_add_eq_sum (nums : List Nat) : nums.foldl (fun acc n => acc + n) 0 = nums.sum := by
   simpa using foldl_add_eq_sum_aux nums 0
 
+/-- The modeled decimal string and positional digit list have the same length away from zero. -/
+theorem int_string_length (n : Nat) (positive : 0 < n) :
+    (toString (n : Int)).toList.length = (Nat.digits 10 n).length := by
+  have same := congrArg List.length (toDigits_eq_digitChars n positive)
+  simpa [toString, Int.repr, Nat.repr] using same
+
 end ProjectEulerStatements.DecimalDigits

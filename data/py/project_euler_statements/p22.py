@@ -13,6 +13,9 @@ def name_score(pos: int, name: str) -> int:
 
 
 def naive(names: list[str]) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(name_score(i, name) for i, name in enumerate(sorted(names), 1))
 
 

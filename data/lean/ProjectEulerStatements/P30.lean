@@ -3,7 +3,7 @@ import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
 import Mathlib.Data.Set.Finite.Basic
 import Mathlib.Order.Interval.Finset.Nat
-import Mathlib.Tactic
+import Lean.Elab.Tactic.Omega
 
 namespace ProjectEulerStatements.P30
 

@@ -4,6 +4,10 @@ from .common import digits_le
 
 @lru_cache(None)
 def fib(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     if n == 0:
         return 0
     if n == 1:
@@ -16,6 +20,10 @@ def num_digits(n: int) -> int:
 
 
 def naive(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     i = 0
     while True:
         if n <= num_digits(fib(i)):

@@ -2,7 +2,7 @@ import Mathlib.Data.List.Basic
 import Mathlib.Data.List.MinMax
 import Mathlib.Data.Int.Basic
 import Mathlib.Data.Nat.Prime.Basic
-import Mathlib.Tactic
+import Mathlib.Tactic.Ring
 
 namespace ProjectEulerStatements.P27
 

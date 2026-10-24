@@ -8,7 +8,11 @@ namespace ProjectEulerStatements.P14
 def collatzStep (n : Nat) : Nat :=
   if n % 2 = 0 then n / 2 else 3 * n + 1
 
-/-- Collatz conjecture: every starting value eventually reaches 1. -/
+/-- Collatz conjecture: every positive starting value eventually reaches 1.
+This is an assumption, not a proved termination theorem. See Lagarias,
+"The 3x+1 Problem and Its Generalizations" (1985), and Tao,
+"Almost all orbits of the Collatz map attain almost bounded values"
+(arXiv:1909.03562), whose almost-everywhere conclusion is weaker. -/
 axiom collatzConjecture (n : Nat) (hn : 0 < n) : ∃ k, (collatzStep^[k]) n = 1
 
 def collatzMeasure (n : Nat) : Nat :=

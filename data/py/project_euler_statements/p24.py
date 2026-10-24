@@ -10,8 +10,20 @@ def lex_le(a: list[int], b: list[int]) -> bool:
 
 
 def naive(digits: list[int], idx: int) -> list[int]:
+    """
+    @formalsw: Returns
+    """
     ps = sorted((list(p) for p in permutations(digits)))
     return ps[idx - 1] if 0 <= idx - 1 < len(ps) else []
+
+
+def naive_text(digits: list[int], idx: int) -> str:
+    """
+    Render the reference permutation in the optimized solver's output format.
+
+    @formalsw: Returns
+    """
+    return "".join(str(digit) for digit in naive(digits, idx))
 
 
 if __name__ == '__main__':

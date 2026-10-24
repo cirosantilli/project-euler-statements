@@ -28,6 +28,9 @@ def cycle_len(d: int) -> int:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return max(range(limit), key=cycle_len) if limit > 0 else 0
 
 

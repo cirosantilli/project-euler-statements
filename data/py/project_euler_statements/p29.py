@@ -3,6 +3,9 @@ def powers(a_max: int, b_max: int) -> list[int]:
 
 
 def naive(a_max: int, b_max: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return len(set(powers(a_max, b_max)))
 
 

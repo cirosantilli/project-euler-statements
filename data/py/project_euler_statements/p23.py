@@ -14,6 +14,9 @@ def abundant_set(limit: int) -> set[int]:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Returns
+    """
     abundants = abundant_set(limit)
     can = set()
     for a in abundants:
