@@ -368,6 +368,19 @@
   return:
     type: int
     desc: The least odd composite integer that cannot be written as a prime plus twice a positive square.
+47:
+  comment: "Signature: solve(k: int, run_len: int, start_limit: int) -> int. naive_solver adapts the original diagonal reference naive(k). General termination is conditional on the existing exists_consecutive_with_n_factors axiom."
+  args:
+    k: int
+    run_len: int
+    start_limit: int
+  constraints:
+    - k >= 1
+    - run_len == k
+    - start_limit >= 1
+  return:
+    type: int
+    desc: The least integer starting a run of k consecutive integers each having exactly k distinct prime factors.
 1014:
   args:
     v: int
