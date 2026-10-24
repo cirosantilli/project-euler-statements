@@ -394,7 +394,7 @@
     - limit_mul >= 1
   return:
     type: int
-    desc: The least positive integer whose multiples from 2 through limit_mul have exactly the same decimal digit multiset as itself.
+    desc: The least positive integer whose multiples from 2 through limit_mul have exactly the same decimal digit multiset as itself. The search diverges for limit_mul >= 10.
 53:
   args:
     limit_n: int
@@ -479,7 +479,6 @@
   return:
     type: str
     desc: The unique compatible night containing target, with its members in alphabetic order.
-  comment: Both implementations use the forced intersection spectrum. The naive version enumerates all k-subsets; the optimized version enumerates only supersets of target. Inputs outside the uniqueness constraint raise ValueError.
 1015:
   args:
     n: int

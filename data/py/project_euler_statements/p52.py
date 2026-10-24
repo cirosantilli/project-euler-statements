@@ -22,12 +22,12 @@ def has_permuted_multiples(n: int, x: int) -> bool:
     @formalsw: Requires(x >= 0)
     @formalsw: Returns
     """
-    return n >= 2 and all(same_digits(x, (i + 2) * x) for i in range(n - 1))
+    return n >= 1 and all(same_digits(x, (i + 2) * x) for i in range(n - 1))
 
 
 def naive(n: int) -> int:
     """
-    @formalsw: Requires(n >= 1)
+    Search positive candidates until their first n multiples have the same digits.
     """
     x = 1
     while True:

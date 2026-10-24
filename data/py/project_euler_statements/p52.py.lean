@@ -2,6 +2,7 @@ import data.«project-euler-statements».«.formalsw».data.py.project_euler_sta
 import data.«project-euler-statements».data.py.project_euler_statements.«common.py»
 import lang.py.FormalSW.HeapCalls
 import ProjectEulerSolutions.Lib.PrimePermutations
+import lang.py.FormalSW.LoopProgress
 import ProjectEulerSolutions.Lib.PermutedMultiples
 import ProjectEulerSolutions.Lib.HeapCollection
 import ProjectEulerSolutions.Lib.HeapTruthCollection
@@ -120,7 +121,7 @@ private theorem checked (x i : Nat) (heap : Mutable.Heap) (env : HeapCalls.Env)
     · simp [Mutable.binary, scalarBinary, number]
   · simpa only [List.append_assoc] using returned
 
-private theorem all_result (limit x : Nat) (supported : 2 ≤ limit) (heap : Mutable.Heap) (env : HeapCalls.Env)
+private theorem all_result (limit x : Nat) (supported : 1 ≤ limit) (heap : Mutable.Heap) (env : HeapCalls.Env)
     (getN : env "n" = some (number limit)) (getX : env "x" = some (number x)) :
     ∃ extra, Evaluates program env
       (.consumeGenerator (.builtinCall .all []) element
@@ -150,10 +151,10 @@ theorem result (limit : Int) (x : Nat) (heap : Mutable.Heap) :
       (flag (ProjectEulerSolutions.PermutedMultiples.accepts limit x)) (heap ++ extra) := by
   let entry := functionEnv ((findFunctionIn program.body "has_permuted_multiples").getD ([], [])).1
     ((findFunctionIn program.body "has_permuted_multiples").getD ([], [])).2 [number limit, number x] []
-  have guard : Evaluates program entry (.compare (.name "n") [(.gtE, .constant (.int 2))])
-      heap (flag (decide (2 ≤ limit))) heap :=
+  have guard : Evaluates program entry (.compare (.name "n") [(.gtE, .constant (.int 1))])
+      heap (flag (decide (1 ≤ limit))) heap :=
     Evaluates.compare (Evaluates.lookup rfl) Evaluates.constant rfl
-  by_cases supported : 2 ≤ limit
+  by_cases supported : 1 ≤ limit
   · lift limit to Nat using (by omega : 0 ≤ limit)
     obtain ⟨extra, tested⟩ := all_result limit x (by omega) heap entry rfl rfl
     refine ⟨extra, ?_⟩
@@ -190,7 +191,7 @@ private def body : List Stmt :=
   [.ifThen (.call (.name "has_permuted_multiples") [.name "n", .name "x"]) [.return (.name "x")] [],
     .augAssign (.name "x") .add (.constant (.int 1))]
 
-private theorem loop (limit : Int) (supported : 2 ≤ limit ∧ limit ≤ 6) (first : Nat)
+private theorem loop (limit : Int) (supported : 1 ≤ limit ∧ limit ≤ 9) (first : Nat)
     (positive : 0 < first) (within : first ≤ answer limit) (heap : Mutable.Heap) (env : HeapCalls.Env)
     (getN : env "n" = some (number limit)) (getX : env "x" = some (number first)) :
     ∃ extra, BlockReturns program env [.whileDo (.constant (.bool true)) body []]
@@ -225,7 +226,7 @@ termination_by answer limit - first
 decreasing_by omega
 
 /-- The positive source enumeration terminates at its genuine least accepted value. -/
-theorem result (limit : Int) (supported : 2 ≤ limit ∧ limit ≤ 6) (heap : Mutable.Heap) :
+theorem result (limit : Int) (supported : 1 ≤ limit ∧ limit ≤ 9) (heap : Mutable.Heap) :
     ∃ extra, ReturnsValue program "naive" [number limit] heap (number (answer limit)) (heap ++ extra) := by
   let env := functionEnv ((findFunctionIn program.body "naive").getD ([], [])).1
     ((findFunctionIn program.body "naive").getD ([], [])).2 [number limit] []
@@ -236,19 +237,35 @@ theorem result (limit : Int) (supported : 2 ≤ limit ∧ limit ≤ 6) (heap : M
   apply BlockReturns.assign Evaluates.constant
   exact scanned
 
-theorem «Returns» (limit : Int)
-    (lower : Calls.Condition program (fun name => if name = "n" then some (.int limit) else none) P52Ast.requires_naive_0)
-    (upper : Calls.Condition program (fun name => if name = "n" then some (.int limit) else none) P52Ast.requires_naive_1) :
-    (HeapCalls.scalarFunction program "naive" [.int limit]).Returns := by
-  have minimum : 2 ≤ limit := by simpa [evalCmpOp] using Calls.Evaluates.condition_int_compare lower rfl
-  have maximum : limit ≤ 6 := by simpa [evalCmpOp] using Calls.Evaluates.condition_int_compare upper rfl
-  obtain ⟨extra, returned⟩ := result limit ⟨minimum, maximum⟩ []
-  exact returned.scalar_returns
 
-theorem «Supported» (limit : Int)
-    (lower : Calls.Condition program (fun name => if name = "n" then some (.int limit) else none) P52Ast.requires_naive_0)
-    (upper : Calls.Condition program (fun name => if name = "n" then some (.int limit) else none) P52Ast.requires_naive_1) :
-    (HeapCalls.scalarFunction program "naive" [.int limit]).Supported := («Returns» limit lower upper).supported
+/-- With no possible positive witness, the reference keeps advancing through supported iterations. -/
+theorem diverges (limit : Nat) (large : 10 ≤ limit) :
+    (HeapCalls.scalarFunction program "naive" [.int limit]).Diverges := by
+  let args := ((findFunctionIn program.body "naive").getD ([], [])).1
+  let sourceBody := ((findFunctionIn program.body "naive").getD ([], [])).2
+  let entry := functionEnv args sourceBody [number limit] []
+  let ready := setLocal entry "x" (number 1)
+  let invariant : HeapCalls.Env → Mutable.Heap → Prop := fun env _ =>
+    ∃ x : Nat, 0 < x ∧ env "n" = some (number limit) ∧ env "x" = some (number x)
+  apply scalar_while_diverges program "naive" [.int limit] args sourceBody
+    [.assign [.name "x"] (.constant (.int 1))] body [number limit] rfl rfl rfl rfl invariant ready []
+  · exact BlockContinues.assign Evaluates.constant
+  · exact ⟨1, by decide, by simp [ready, entry, setLocal]; rfl, by simp [ready, setLocal]⟩
+  · intro env heap current
+    obtain ⟨x, positive, getN, getX⟩ := current
+    obtain ⟨extra, returned⟩ := has_permuted_multiples.result limit x heap
+    have tested : Evaluates program env (.call (.name "has_permuted_multiples") [.name "n", .name "x"])
+        heap (flag false) (heap ++ extra) := by
+      simpa only [impossible_large limit x large positive] using
+        (Evaluates.call (.cons (Evaluates.lookup getN) (.cons (Evaluates.lookup getX) .nil)) returned)
+    let next := setLocal env "x" (number (x + 1 : Nat))
+    have skipped : BlockContinues program env [body[0]'(by decide)] heap env (heap ++ extra) :=
+      BlockContinues.branch tested rfl BlockContinues.nil
+    have incremented : BlockContinues program env [body[1]'(by decide)] (heap ++ extra) next (heap ++ extra) := by
+      apply BlockContinues.augAssign (left := number x) (right := number 1) getX Evaluates.constant
+      simp [inplace, Mutable.binary, scalarBinary, number]
+    exact ⟨next, heap ++ extra, skipped.append incremented,
+      x + 1, by omega, by simpa [next, setLocal] using getN, by simp [next, setLocal]⟩
+
 end naive
-
 end data.«project-euler-statements».data.py.project_euler_statements.p52
