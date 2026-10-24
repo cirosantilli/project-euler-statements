@@ -1,5 +1,5 @@
 import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic
+import Lean.Elab.Tactic.Omega
 
 /-! Exact multiplicative computation of binomial coefficients. -/
 namespace ProjectEulerStatements.Binomial
