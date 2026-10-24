@@ -10,6 +10,11 @@ def decrypt(cipher: bytes, key: list[int]) -> list[int]:
 
 
 def char_weight(value: int) -> int:
+    """
+    @formalsw: Requires(value >= 0)
+    @formalsw: Requires(value < 256)
+    @formalsw: Returns
+    """
     if 65 <= value <= 90:
         value += 32
     if value == 32:
