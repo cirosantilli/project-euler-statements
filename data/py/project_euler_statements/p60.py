@@ -27,6 +27,9 @@ def pair_ok(left: int, right: int) -> bool:
 
 
 def naive(limit: int = 10000) -> tuple[int, list[int]]:
+    """
+    @formalsw: Returns
+    """
     # Enumerate increasing five-prime sets, pruning only incompatible prefixes.
     # Neither 2 nor 5 can concatenate with another prime in both directions.
     primes = [p for p in range(3, limit + 1) if p != 5 and is_prime(p)]
