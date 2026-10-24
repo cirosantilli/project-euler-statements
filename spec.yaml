@@ -347,6 +347,15 @@
   return:
     type: int
     desc: The sum of 0-to-9 pandigital numbers whose consecutive three-digit substrings, starting with the second digit, are divisible by 2, 3, 5, 7, 11, 13, and 17.
+44:
+  comment: "Signature: solve(limit: int = 10_000) -> int. Only positive pentagonal indices are searched."
+  args:
+    limit: int
+  constraints:
+    - limit >= 0
+  return:
+    type: int
+    desc: The minimum of 10**30 and all differences P(k) - P(j) for 1 <= j < k <= limit whose sum and difference are both positive pentagonal numbers. Returns 10**30 if no qualifying pair improves that bound.
 1014:
   args:
     v: int

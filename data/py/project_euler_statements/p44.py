@@ -3,17 +3,23 @@ def pentagonal(n: int) -> int:
 
 
 def is_pentagonal(x: int) -> bool:
-    return any(pentagonal(n) == x for n in range(x + 1))
+    """
+    @formalsw: Returns
+    """
+    return any(pentagonal(n) == x for n in range(1, x + 1))
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Returns
+    """
     vals = []
-    for j in range(limit + 1):
-        for k in range(j):
+    for j in range(1, limit + 1):
+        for k in range(1, j):
             pj, pk = pentagonal(j), pentagonal(k)
             if is_pentagonal(pj + pk) and is_pentagonal(pj - pk):
                 vals.append(pj - pk)
-    acc = 0
+    acc = 10**30
     for v in vals:
         acc = min(acc, v)
     return acc
