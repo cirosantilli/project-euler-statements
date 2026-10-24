@@ -356,6 +356,12 @@
   return:
     type: int
     desc: The minimum of 10**30 and all differences P(k) - P(j) for 1 <= j < k <= limit whose sum and difference are both positive pentagonal numbers. Returns 10**30 if no qualifying pair improves that bound.
+45:
+  comment: "Signature: solve() -> int. The reference scans triangular indices 286 through 100286; the proof establishes that this window contains the first qualifying value."
+  args: {}
+  return:
+    type: int
+    desc: The least triangular number after T(285) that is also pentagonal and hexagonal.
 1014:
   args:
     v: int
