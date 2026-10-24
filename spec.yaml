@@ -381,6 +381,16 @@
   return:
     type: int
     desc: The least integer starting a run of k consecutive integers each having exactly k distinct prime factors.
+48:
+  comment: "Signature: solve(n: int, k: int = 10) -> str. naive_digits formats the repeated-multiplication series at the same width. Nonpositive n gives the empty sum; k = 0 returns the string 0."
+  args:
+    n: int
+    k: int
+  constraints:
+    - k >= 0
+  return:
+    type: str
+    desc: The sum of i**i for 1 <= i <= n, reduced modulo 10**k and left-padded with zeros to at least k decimal characters.
 1014:
   args:
     v: int
