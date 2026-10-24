@@ -14,10 +14,21 @@ def digit_at(n: int, limit: int) -> int:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Requires(limit >= 0)
+    @formalsw: Returns
+    """
     acc = 1
     for i in [1, 10, 100, 1000, 10000, 100000, 1000000]:
         acc *= digit_at(i, limit)
     return acc
+
+
+def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
+    return naive(1_000_000)
 
 
 if __name__ == '__main__':

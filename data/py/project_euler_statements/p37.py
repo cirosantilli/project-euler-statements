@@ -12,7 +12,18 @@ def is_truncatable_prime(n: int) -> bool:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Requires(limit >= 0)
+    @formalsw: Returns
+    """
     return sum(n for n in range(limit) if is_truncatable_prime(n))
+
+
+def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
+    return naive(1_000_000)
 
 
 if __name__ == '__main__':

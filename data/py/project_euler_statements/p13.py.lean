@@ -89,9 +89,11 @@ theorem naive.natural (heap : Mutable.Heap) (address : Nat) (nums : List Nat) (k
     HeapCalls.ReturnsValue program "naive" [.ref address, .scalar (.int k)] heap
       (.scalar (.int (ProjectEulerStatements.P13.naive nums k))) (finalHeap heap nums.sum k) := by
   have summed : (nums.map (fun (n : Nat) => (n : Int))).foldl Int.add 0 = (nums.sum : Int) := by
-    calc
-      _ = (nums.map (fun (n : Nat) => (n : Int))).sum := List.sum_eq_foldl.symm
-      _ = _ := by simp
+    have folded := List.foldl_map_hom (g := fun d : Nat => (d : Int))
+      (f := Nat.add) (f' := Int.add) (a := 0) (l := nums)
+      (by intro a b; exact (Nat.cast_add a b).symm)
+    exact folded.trans (congrArg (fun value : Nat => (value : Int))
+      (List.sum_eq_foldl_nat (xs := nums)).symm)
   have selected : selectedDigits nums.sum k =
       ((Nat.digits 10 nums.sum).reverse.take k).map (fun (n : Nat) => (n : Int)) := by
     rw [List.take_eq_take_min (l := (Nat.digits 10 nums.sum).reverse) (i := k)]

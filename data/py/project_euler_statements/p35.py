@@ -10,6 +10,10 @@ def is_circular_prime(n: int) -> bool:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Requires(limit >= 0)
+    @formalsw: Returns
+    """
     return sum(1 for n in range(limit) if is_circular_prime(n))
 
 

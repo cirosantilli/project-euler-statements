@@ -11,6 +11,10 @@ def is_double_palindrome(n: int) -> bool:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Requires(limit >= 0)
+    @formalsw: Returns
+    """
     return sum(n for n in range(limit) if is_double_palindrome(n))
 
 

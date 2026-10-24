@@ -1,4 +1,7 @@
-import Mathlib
+import Mathlib.Data.Nat.Fib.Basic
+import Mathlib.Order.Interval.Finset.Nat
+import Mathlib.Data.Set.Finite.Basic
+import Mathlib.Tactic
 
 namespace ProjectEulerStatements.P2
 
@@ -11,7 +14,6 @@ set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
 open scoped BigOperators
-open scoped Real
 open scoped Nat
 open scoped Classical
 open scoped Pointwise

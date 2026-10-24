@@ -9,6 +9,9 @@ def count_solutions(p: int) -> int:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return max(range(limit + 1), key=count_solutions) if limit >= 0 else 0
 
 

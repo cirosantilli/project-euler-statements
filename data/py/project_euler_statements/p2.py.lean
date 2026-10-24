@@ -1,5 +1,5 @@
 import data.«project-euler-statements».«.formalsw».data.py.project_euler_statements.«p2.py.ast»
-import FormalSW
+import lang.py.FormalSW.Calls
 import ProjectEulerStatements.P2
 
 namespace data.«project-euler-statements».data.py.project_euler_statements.«p2»

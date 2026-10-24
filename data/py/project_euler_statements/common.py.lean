@@ -7,6 +7,8 @@ import Mathlib.Data.Nat.Sqrt
 import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Tactic.Convert
 
+set_option Elab.async false
+
 namespace data.«project-euler-statements».data.py.project_euler_statements.common
 open FormalSW.PyAst FormalSW.PyAst.Calls
 private abbrev program := CommonAst.module
@@ -142,6 +144,112 @@ theorem is_prime.«Returns» (n : Int) : (Calls.function program "is_prime" [.in
   · exact (small_result n (by omega)).returns
 
 
+namespace HeapPrimeProof
+open HeapCalls
+private abbrev num (n : Int) : Mutable.Value := .scalar (.int n)
+private abbrev flag (b : Bool) : Mutable.Value := .scalar (.bool b)
+
+private def primeLoop : List Stmt :=
+  (executableBody ((findFunctionIn program.body "is_prime").getD ([], [])).2).drop 5
+
+private theorem prime_loop (n r p : Nat) (positive : 0 < p) (odd : p % 2 = 1)
+    (env : HeapCalls.Env) (getN : env "n" = some (num n)) (getR : env "r" = some (num r))
+    (getP : env "p" = some (num p)) (heap : Heap) :
+    HeapCalls.BlockReturns program env primeLoop heap (flag (decide (Trial n r p))) heap := by
+  induction measure : r + 1 - p using Nat.strong_induction_on generalizing p env with
+  | h size ih =>
+      by_cases inside : p ≤ r
+      · apply HeapCalls.BlockReturns.while_loop (middle := heap) (flag := true) (value := flag true)
+          (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup getP) (HeapCalls.Evaluates.lookup getR)
+            (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, inside])) rfl
+        have divides : HeapCalls.Evaluates program env
+            (.compare (.binOp (.name "n") .mod (.name "p")) [(.eq, .constant (.int 0))])
+            heap (flag (decide (p ∣ n))) heap := by
+          apply HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (av := num (n % p)) (bv := num 0)
+          · exact HeapCalls.Evaluates.binary (finalHeap := heap) (HeapCalls.Evaluates.lookup getN) (HeapCalls.Evaluates.lookup getP)
+              (by simp [Mutable.binary, num, scalarBinary, positive.ne', positive])
+          · exact HeapCalls.Evaluates.constant
+          · simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, ← Int.dvd_iff_emod_eq_zero, Int.natCast_dvd_natCast]
+        by_cases divisor : p ∣ n
+        · have bad : ¬ Trial n r p := fun h => ((trial_step n r p inside odd).mp h).1 divisor
+          simp only [bad, decide_false]
+          apply HeapCalls.BlockReturns.branch (middle := heap) (flag := true) (value := flag true) (by simpa [divisor] using divides) rfl
+          exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
+        · simp only [trial_step n r p inside odd, divisor, not_false_eq_true, true_and]
+          apply HeapCalls.BlockReturns.branch (middle := heap) (flag := false) (value := flag false) (by simpa [divisor] using divides) rfl
+          apply HeapCalls.BlockReturns.augAssign (value := num (p + 2)) (afterOperation := heap)
+            getP HeapCalls.Evaluates.constant
+          · simp [inplace, Mutable.binary, num, scalarBinary]
+          · apply ih (r + 1 - (p + 2)) (by omega) (p + 2) (by omega) (by omega)
+            all_goals simp [setLocal, getN, getR]
+      · have good : Trial n r p := by
+          intro q hq _
+          have := Finset.mem_Icc.mp hq
+          omega
+        simp only [good, decide_true]
+        apply HeapCalls.BlockReturns.while_loop (middle := heap) (flag := false) (value := flag false)
+          (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup getP) (HeapCalls.Evaluates.lookup getR)
+            (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, inside])) rfl
+        exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
+
+private theorem prime_small (n : Int) (small : n < 2) (heap : Heap) :
+    HeapCalls.ReturnsValue program "is_prime" [num n] heap (flag false) heap := by
+  apply HeapCalls.BlockReturns.function rfl rfl
+  apply HeapCalls.BlockReturns.branch (middle := heap) (flag := true) (value := flag true)
+    (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+      (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, small])) rfl
+  exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
+
+/-- The imported trial-division source is pure even when invoked from heap code. -/
+theorem result (n : Nat) (heap : Heap) :
+    HeapCalls.ReturnsValue program "is_prime" [num n] heap (flag (decide (Nat.Prime n))) heap := by
+  by_cases small : n < 2
+  · have bad : ¬ Nat.Prime n := fun prime => by have := prime.two_le; omega
+    simpa [bad] using prime_small n (by omega) heap
+  apply HeapCalls.BlockReturns.function rfl rfl
+  apply HeapCalls.BlockReturns.branch (middle := heap) (flag := false) (value := flag false)
+    (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+      (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp]; omega)) rfl
+  by_cases two : n = 2
+  · subst n
+    simp only [Nat.prime_two, decide_true]
+    apply HeapCalls.BlockReturns.branch (middle := heap) (flag := true) (value := flag true)
+      (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant rfl) rfl
+    exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
+  · apply HeapCalls.BlockReturns.branch (middle := heap) (flag := false) (value := flag false)
+      (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+        (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp]; omega)) rfl
+    have parity : HeapCalls.Evaluates program
+        (argumentEnv [{ name := "n", annotation := some (.name "int") }] [num n])
+        (.compare (.binOp (.name "n") .mod (.constant (.int 2))) [(.eq, .constant (.int 0))])
+        heap (flag (decide (n % 2 = 0))) heap := by
+      apply HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (av := num (n % 2)) (bv := num 0)
+      · exact HeapCalls.Evaluates.binary (finalHeap := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant (by simp [Mutable.binary, num, scalarBinary])
+      · exact HeapCalls.Evaluates.constant
+      · simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, ← Int.dvd_iff_emod_eq_zero, Int.ofNat_dvd_natCast, Nat.dvd_iff_mod_eq_zero]
+    by_cases even : n % 2 = 0
+    · have bad : ¬ Nat.Prime n := fun prime => by have := prime.eq_two_or_odd; omega
+      simp only [bad, decide_false]
+      apply HeapCalls.BlockReturns.branch (middle := heap) (flag := true) (value := flag true) (by simpa [even] using parity) rfl
+      exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
+    · apply HeapCalls.BlockReturns.branch (middle := heap) (flag := false) (value := flag false) (by simpa [even] using parity) rfl
+      apply HeapCalls.BlockReturns.assign (value := num (Math.isqrt n)) (middle := heap)
+      · apply HeapCalls.Evaluates.library_call (.cons (HeapCalls.Evaluates.lookup rfl) .nil) rfl
+        change scalarResult (some (Math.isqrtCall [.int n])) heap = _
+        simp [Math.isqrtCall, scalarResult, num, show ¬ (n : Int) < 0 by omega]
+      · apply HeapCalls.BlockReturns.assign HeapCalls.Evaluates.constant
+        simpa [trial_prime n (by omega) even] using
+          prime_loop n (Math.isqrt n) 3 (by decide) (by decide) _ rfl rfl rfl heap
+
+end HeapPrimeProof
+
+/-- Trial division leaves every existing heap object unchanged. -/
+theorem is_prime.heap_result (n : Nat) (heap : Mutable.Heap) :
+    HeapCalls.ReturnsValue program "is_prime" [.scalar (.int n)] heap
+      (.scalar (.bool (decide (Nat.Prime n)))) heap :=
+  HeapPrimeProof.result n heap
+
+
 namespace DigitsProof
 
 private def body : List Stmt :=
@@ -158,8 +266,8 @@ private theorem loop_result (n base : Nat) (hb : 1 < base)
     (env : Mutable.Env) (prior : Mutable.Heap) (acc : List Mutable.Value)
     (getN : env "n" = some (.scalar (.int n)))
     (getBase : env "base" = some (.scalar (.int base)))
-    (getOut : env "out" = some (.ref prior.length)) :
-    HeapCalls.BlockReturns program env loop (prior ++ [Mutable.Object.list (acc)]) (.ref prior.length)
+    (getOut : env "out" = some (.ref prior.length)) (globals : Mutable.Globals := []) :
+    HeapCalls.BlockReturns (globals := globals) program env loop (prior ++ [Mutable.Object.list (acc)]) (.ref prior.length)
       (prior ++ [Mutable.Object.list (acc ++ encode (Nat.digits base n))]) := by
   by_cases zero : n = 0
   · subst n
@@ -183,7 +291,7 @@ private theorem loop_result (n base : Nat) (hb : 1 < base)
           (value := .scalar (.int ((n / base : Nat) : Int)))
           (afterOperation := prior ++ [Mutable.Object.list (acc ++ [.scalar (.int ((n % base : Nat) : Int))])])
         · simp [HeapCalls.inplace, Mutable.binary, scalarBinary, show base ≠ 0 by omega, show 0 < base by omega]
-        · have recurse := loop_result (n / base) base hb
+        · have recurse := loop_result (globals := globals) (n / base) base hb
             (HeapCalls.setLocal env "n" (.scalar (.int ((n / base : Nat) : Int)))) prior
             (acc ++ [.scalar (.int ((n % base : Nat) : Int))])
             (by simp [HeapCalls.setLocal])
@@ -198,30 +306,35 @@ end DigitsProof
 
 /-- Decimal conversion preserves the caller's heap and returns a fresh list;
 the same proof works for every integer base greater than one. -/
-theorem digits_le.result (n base : Nat) (hb : 1 < base) (heap : Mutable.Heap) :
-    HeapCalls.ReturnsValue program "digits_le" [.scalar (.int n), .scalar (.int base)] heap
+theorem digits_le.result (n base : Nat) (hb : 1 < base) (heap : Mutable.Heap)
+    (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "digits_le" [.scalar (.int n), .scalar (.int base)] heap
       (.ref heap.length) (heap ++ [Mutable.Object.list ((Nat.digits base n).map (fun (digit : Nat) => .scalar (.int (digit : Int))))]) := by
   apply HeapCalls.BlockReturns.function rfl rfl
   by_cases zero : n = 0
   · subst n
     apply HeapCalls.BlockReturns.branch (middle := heap) (flag := true) (value := .scalar (.bool true))
-    · apply HeapCalls.Evaluates.compare (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+    · apply HeapCalls.Evaluates.compare
+        (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) HeapCalls.Evaluates.constant
       simp [HeapCalls.compare, scalarCompare, evalCmpOp]
     · simp [Mutable.truth, scalarTruth]
     · simpa only [Nat.digits_zero, List.map_nil] using
-        HeapCalls.BlockReturns.return_value (HeapCalls.Evaluates.list HeapCalls.Evaluates.Arguments.nil)
+        HeapCalls.BlockReturns.return_value (globals := globals)
+          (HeapCalls.Evaluates.list HeapCalls.Evaluates.Arguments.nil)
   · apply HeapCalls.BlockReturns.branch (middle := heap) (flag := false) (value := .scalar (.bool false))
-    · apply HeapCalls.Evaluates.compare (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+    · apply HeapCalls.Evaluates.compare
+        (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) HeapCalls.Evaluates.constant
       simp [HeapCalls.compare, scalarCompare, evalCmpOp, zero]
     · simp [Mutable.truth, scalarTruth]
     · apply HeapCalls.BlockReturns.assign (HeapCalls.Evaluates.list HeapCalls.Evaluates.Arguments.nil)
-      exact DigitsProof.loop_result n base hb _ heap [] rfl rfl rfl
+      exact DigitsProof.loop_result (globals := globals) n base hb _ heap []
+        (by cases globals <;> rfl) (by cases globals <;> rfl) rfl
 
 /-- The ordinary one-argument call uses the source's default decimal base. -/
-theorem digits_le.decimal (n : Nat) (heap : Mutable.Heap) :
-    HeapCalls.ReturnsValue program "digits_le" [.scalar (.int n)] heap (.ref heap.length)
+theorem digits_le.decimal (n : Nat) (heap : Mutable.Heap) (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "digits_le" [.scalar (.int n)] heap (.ref heap.length)
       (heap ++ [Mutable.Object.list ((Nat.digits 10 n).map (fun (digit : Nat) => .scalar (.int (digit : Int))))]) :=
-  HeapCalls.ReturnsValue.with_defaults rfl rfl rfl (digits_le.result n 10 (by decide) heap)
+  HeapCalls.ReturnsValue.with_defaults rfl rfl rfl (digits_le.result n 10 (by decide) heap globals)
 
 theorem digits_le.«Returns» (n base : Int)
     (hn : Calls.Condition program (fun key => if key = "n" then some (.int n) else none) CommonAst.requires_digits_le_0)
@@ -340,8 +453,9 @@ theorem divisors.«Supported» (n : Int) :
 
 
 /-- Reversing the computed digits allocates a second list and preserves the first. -/
-theorem digits_be.result (n base : Nat) (hb : 1 < base) (heap : Mutable.Heap) :
-    HeapCalls.ReturnsValue program "digits_be" [.scalar (.int n), .scalar (.int base)] heap
+theorem digits_be.result (n base : Nat) (hb : 1 < base) (heap : Mutable.Heap)
+    (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "digits_be" [.scalar (.int n), .scalar (.int base)] heap
       (.ref (heap.length + 1))
       (heap ++ [.list ((Nat.digits base n).map (fun (d : Nat) => .scalar (.int (d : Int)))),
         .list (((Nat.digits base n).map (fun (d : Nat) => .scalar (.int (d : Int)))).reverse)]) := by
@@ -350,11 +464,12 @@ theorem digits_be.result (n base : Nat) (hb : 1 < base) (heap : Mutable.Heap) :
   convert HeapCalls.Evaluates.reversed_list
     (items := (Nat.digits base n).map (fun (d : Nat) => .scalar (.int d)))
     (HeapCalls.Evaluates.call
-      (env := HeapCalls.argumentEnv ((findFunctionIn program.body "digits_be").getD ([], [])).1
-        [.scalar (.int n), .scalar (.int base)])
-      (.cons (HeapCalls.Evaluates.lookup (name := "n") rfl)
-        (.cons (HeapCalls.Evaluates.lookup (name := "base") rfl) .nil))
-      (digits_le.result n base hb heap)) (by simp) using 1 <;>
+      (env := HeapCalls.functionEnv ((findFunctionIn program.body "digits_be").getD ([], [])).1
+        ((findFunctionIn program.body "digits_be").getD ([], [])).2
+        [.scalar (.int n), .scalar (.int base)] globals)
+      (.cons (HeapCalls.Evaluates.lookup (name := "n") (by cases globals <;> rfl))
+        (.cons (HeapCalls.Evaluates.lookup (name := "base") (by cases globals <;> rfl)) .nil))
+      (digits_le.result n base hb heap globals)) (by simp) using 1 <;>
     simp [List.append_assoc]
 
 namespace OfDigitsProof
@@ -369,8 +484,8 @@ private theorem loop (items remaining : List Int) (heap : Mutable.Heap) (address
     (suffix : items.drop position = remaining) (env : HeapCalls.Env) (base total multiplier : Int)
     (getBase : env "base" = some (.scalar (.int base)))
     (getTotal : env "n" = some (.scalar (.int total)))
-    (getMultiplier : env "mul" = some (.scalar (.int multiplier))) :
-    HeapCalls.BlockReturns program env
+    (getMultiplier : env "mul" = some (.scalar (.int multiplier))) (globals : Mutable.Globals := []) :
+    HeapCalls.BlockReturns (globals := globals) program env
       [.sequenceStepLoop "d" (.ref address) position body [], .return (.name "n")]
       heap (.scalar (.int (total + multiplier * value base remaining))) heap := by
   have sequence : Mutable.sequence (.ref address) heap =
@@ -411,28 +526,31 @@ end OfDigitsProof
 
 /-- Positional evaluation terminates for any integer digits and base, including negative bases. -/
 theorem of_digits_le.result (items : List Int) (base : Int) (heap : Mutable.Heap) (address : Nat)
-    (found : heap[address]? = some (.list (items.map fun n => .scalar (.int n)))) :
-    HeapCalls.ReturnsValue program "of_digits_le" [.ref address, .scalar (.int base)] heap
+    (found : heap[address]? = some (.list (items.map fun n => .scalar (.int n))))
+    (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "of_digits_le" [.ref address, .scalar (.int base)] heap
       (.scalar (.int (ProjectEulerStatements.PositionalDigits.value base items))) heap := by
   apply HeapCalls.BlockReturns.function rfl rfl
   apply HeapCalls.BlockReturns.assign HeapCalls.Evaluates.constant
   apply HeapCalls.BlockReturns.assign HeapCalls.Evaluates.constant
   apply HeapCalls.BlockReturns.for_sequence (items := items.map fun n => .scalar (.int n))
-    (by intros; simp) (HeapCalls.Evaluates.lookup rfl)
+    (by intros; simp) (HeapCalls.Evaluates.lookup (by cases globals <;> rfl))
     (by simp [Mutable.sequence, found])
-  simpa using OfDigitsProof.loop items items heap address 0 found rfl _ base 0 1 rfl rfl rfl
+  simpa using OfDigitsProof.loop items items heap address 0 found rfl _ base 0 1
+    (by cases globals <;> rfl) rfl rfl globals
 
 /-- Big-endian evaluation reverses a fresh copy before running the same positional loop. -/
 theorem of_digits_be.result (items : List Int) (base : Int) (heap : Mutable.Heap) (address : Nat)
-    (found : heap[address]? = some (.list (items.map fun n => .scalar (.int n)))) :
-    HeapCalls.ReturnsValue program "of_digits_be" [.ref address, .scalar (.int base)] heap
+    (found : heap[address]? = some (.list (items.map fun n => .scalar (.int n))))
+    (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "of_digits_be" [.ref address, .scalar (.int base)] heap
       (.scalar (.int (ProjectEulerStatements.PositionalDigits.value base items.reverse)))
       (heap ++ [.list ((items.map fun n => .scalar (.int n)).reverse)]) := by
   apply HeapCalls.BlockReturns.function rfl rfl
   apply HeapCalls.BlockReturns.return_value
   apply HeapCalls.Evaluates.call
-    (.cons (HeapCalls.Evaluates.reversed_list (HeapCalls.Evaluates.lookup rfl) found)
-      (.cons (HeapCalls.Evaluates.lookup rfl) .nil))
-  exact of_digits_le.result items.reverse base _ heap.length (by simp)
+    (.cons (HeapCalls.Evaluates.reversed_list (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) found)
+      (.cons (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) .nil))
+  exact of_digits_le.result items.reverse base _ heap.length (by simp) globals
 
 end data.«project-euler-statements».data.py.project_euler_statements.common

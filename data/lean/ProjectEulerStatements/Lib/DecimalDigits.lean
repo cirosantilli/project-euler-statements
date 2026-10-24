@@ -1,7 +1,9 @@
 import Init.Data.Nat.ToString
 import Batteries.Data.String.Lemmas
 import Mathlib.Data.Nat.Digits.Defs
-import Mathlib.Tactic
+import Mathlib.Tactic.IntervalCases
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Ring
 
 /-! Decimal character lists, positional notation, and leading-digit prefixes. -/
 namespace ProjectEulerStatements.DecimalDigits

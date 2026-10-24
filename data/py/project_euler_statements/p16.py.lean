@@ -30,9 +30,11 @@ theorem digit_sum.result (n : Nat) (heap : Mutable.Heap) :
   have converted := (common.digits_le.decimal n heap).extend common_extension
   have total : ((Nat.digits 10 n).map (fun (d : Nat) => (d : Int))).foldl Int.add 0 =
       ((Nat.digits 10 n).sum : Int) := by
-    calc
-      _ = ((Nat.digits 10 n).map (fun (d : Nat) => (d : Int))).sum := List.sum_eq_foldl.symm
-      _ = _ := by simp
+    have folded := List.foldl_map_hom (g := fun d : Nat => (d : Int))
+      (f := Nat.add) (f' := Int.add) (a := 0) (l := (Nat.digits 10 n))
+      (by intro a b; exact (Nat.cast_add a b).symm)
+    exact folded.trans (congrArg (fun value : Nat => (value : Int))
+      (List.sum_eq_foldl_nat (xs := (Nat.digits 10 n))).symm)
   change HeapCalls.Evaluates program _ _ heap (.scalar (.int ((Nat.digits 10 n).sum : Int))) _
   rw [← total]
   apply HeapCalls.Evaluates.sum_integers (initial := 0)

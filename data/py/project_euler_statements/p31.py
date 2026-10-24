@@ -2,6 +2,11 @@ coins = [1, 2, 5, 10, 20, 50, 100, 200]
 
 
 def count_ways_bound(amt: int, cs: list[int]) -> int:
+    """
+    @formalsw: Requires(amt >= 0)
+    @formalsw: Requires(all(c > 0 for c in cs))
+    @formalsw: Returns
+    """
     if amt == 0:
         return 1
     if not cs:
@@ -13,6 +18,12 @@ def count_ways_bound(amt: int, cs: list[int]) -> int:
 
 
 def naive(amt: int) -> int:
+    """
+    Count combinations for the current positive-denomination global coin list.
+
+    @formalsw: Requires(amt >= 0 and all(c > 0 for c in coins))
+    @formalsw: Returns
+    """
     return count_ways_bound(amt, coins)
 
 

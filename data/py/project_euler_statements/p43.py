@@ -1,5 +1,5 @@
-from itertools import permutations
-from .common import digits_be, of_digits_be
+import itertools
+from .common import of_digits_be
 
 
 def sub_num(ds: list[int], i: int) -> int:
@@ -14,9 +14,13 @@ def has_property(ds: list[int]) -> bool:
 
 
 def naive() -> int:
-    return sum(of_digits_be(list(p)) for p in permutations(range(10)) if has_property(list(p)))
+    """
+    @formalsw: Returns
+    """
+    digits = [d for d in range(10)]
+    return sum(of_digits_be(list(p)) for p in itertools.permutations(digits) if has_property(list(p)))
 
 
 if __name__ == '__main__':
-    assert has_property(digits_be(1406357289))
+    assert has_property([int(c) for c in str(1406357289)])
 

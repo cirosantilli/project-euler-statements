@@ -93,7 +93,7 @@
     type: int
     desc: The sum of all primes strictly below limit.
 11:
-  comment: "Signature: max_adjacent_product(grid: list[list[int]], k: int = 4) -> int."
+  comment: "Signature: solve(grid: list[list[int]], k: int = 4) -> int."
   args:
     grid: list[list[int]]
     k: int
@@ -104,7 +104,7 @@
     type: int
     desc: The greatest product of k adjacent entries horizontally, vertically, or diagonally; zero if no segment fits, and one for zero-length segments.
 12:
-  comment: "Signature: first_triangular_with_over(k: int) -> int."
+  comment: "Signature: solve(k: int) -> int."
   args:
     k: int
   constraints:
@@ -152,7 +152,7 @@
     type: int
     desc: The total number of letters in the British English names of the integers from 1 through n, ignoring spaces and hyphens; zero for n = 0.
 18:
-  comment: "Signature: max_path_sum(triangle: list[list[int]]) -> int."
+  comment: "Signature: solve(triangle: list[list[int]]) -> int."
   args:
     triangle: list[list[int]]
   constraints:
@@ -161,7 +161,7 @@
     type: int
     desc: The greatest sum along a path from the top to the bottom, moving to either adjacent child at each row. Weights may be signed integers.
 19:
-  comment: "Signature: count_sundays_on_first(start_year: int, end_year: int) -> int. The reference's naive_years adapter selects 1 January through 31 December; naive itself accepts arbitrary date endpoints."
+  comment: "Signature: solve(start_year: int, end_year: int) -> int. The reference's naive_years adapter selects 1 January through 31 December; naive itself accepts arbitrary date endpoints."
   args:
     start_year: int
     end_year: int
@@ -171,7 +171,7 @@
     type: int
     desc: The number of Sundays falling on the first day of a month in the inclusive range of complete calendar years.
 22:
-  comment: "Signature: total_name_scores(names: list[str]) -> int."
+  comment: "Signature: solve(names: list[str]) -> int."
   args:
     names: list[str]
   constraints:
@@ -180,7 +180,7 @@
     type: int
     desc: The sum of each name's alphabetical value multiplied by its one-based position after sorting the names alphabetically.
 23:
-  comment: "Signature: non_abundant_sums(limit: int = 28123) -> int. The optimized solver's embedded checks require indices 24 and 28 to exist."
+  comment: "Signature: solve(limit: int = 28123) -> int. The optimized solver's embedded checks require indices 24 and 28 to exist."
   args:
     limit: int
   constraints:
@@ -189,7 +189,7 @@
     type: int
     desc: The sum of the positive integers at most limit that cannot be written as the sum of two abundant numbers.
 24:
-  comment: "Signature: nth_lexicographic_permutation(digits: list[int], n: int) -> str. The reference naive_text formats naive's list result without changing its permutation ordering."
+  comment: "Signature: solve(digits: list[int], n: int) -> str. The reference naive_text formats naive's list result without changing its permutation ordering."
   args:
     digits: list[int]
     n: int
@@ -200,7 +200,7 @@
     type: str
     desc: The concatenated decimal representations of the integers in the one-based n-th lexicographic permutation. The empty input has one permutation, rendered as an empty string.
 25:
-  comment: "Signature: first_fib_index_with_digits(digits: int) -> int. The reference naive uses the parameter name n and also terminates at zero, returning index zero."
+  comment: "Signature: solve(digits: int) -> int. The reference naive uses the parameter name n and also terminates at zero, returning index zero."
   args:
     digits: int
   constraints:
@@ -224,7 +224,7 @@
     type: int
     desc: The product a*b for the quadratic n*n + a*n + b with the longest initial run of prime values, where -999 <= a <= 999 and -1000 <= b <= 1000.
 28:
-  comment: "Signature: spiral_diagonals_sum(n: int) -> int. The reference naive also terminates for every integer input and returns zero for nonpositive sizes."
+  comment: "Signature: solve(n: int) -> int. The reference naive also terminates for every integer input and returns zero for nonpositive sizes."
   args:
     n: int
   constraints:
@@ -233,7 +233,7 @@
     type: int
     desc: The sum of both diagonals of the n-by-n number spiral, counting the central 1 once.
 29:
-  comment: "Signature: count_distinct_powers(max_a: int, max_b: int) -> int. The reference naive names the same positional bounds a_max and b_max. Both functions terminate for all integer bounds; a bound below 2 gives an empty search."
+  comment: "Signature: solve(max_a: int, max_b: int) -> int. The reference naive names the same positional bounds a_max and b_max. Both functions terminate for all integer bounds; a bound below 2 gives an empty search."
   args:
     max_a: int
     max_b: int
@@ -246,6 +246,107 @@
   return:
     type: int
     desc: The sum of integers greater than 1 that equal the sum of the fifth powers of their decimal digits.
+31:
+  comment: "Signature: solve(target: int, coins: list[int]) -> int. The reference count_ways_bound(amt: int, cs: list[int]) has the same positional inputs. Coin order is irrelevant; repeated entries are counted as distinct coin types. naive(amt: int) uses the module's coins list, which must contain positive values."
+  args:
+    target: int
+    coins: list[int]
+  constraints:
+    - target >= 0
+    - Every coin value is positive.
+  return:
+    type: int
+    desc: The number of combinations totaling target, with unlimited coins of each listed type.
+32:
+  comment: "Signature: solve() -> int. naive_default() adapts naive(max_a: int, max_b: int) with bounds 99 and 9999. The optimized solver requires its FULL_MASK global to retain the value 511."
+  args: {}
+  return:
+    type: int
+    desc: The sum of distinct products whose multiplicand, multiplier, and product together use each decimal digit 1 through 9 exactly once.
+33:
+  comment: "Signature: solve() -> int."
+  args: {}
+  return:
+    type: int
+    desc: The denominator of the product of the four nontrivial two-digit digit-cancelling fractions, reduced to lowest terms.
+34:
+  comment: "Signature: solve() -> int. naive_default() adapts naive(limit: int) with the inclusive bound 2540160, computed by the optimized solver as 7 * 9!."
+  args: {}
+  return:
+    type: int
+    desc: The sum of numbers other than 1 and 2 that equal the sum of their decimal digits' factorials, through the computed bound.
+35:
+  comment: "Signature: solve(limit: int) -> int."
+  args:
+    limit: int
+  constraints:
+    - limit >= 0
+  return:
+    type: int
+    desc: The number of circular primes strictly below limit, requiring every decimal digit rotation to be prime.
+36:
+  comment: "Signature: solve(limit: int = 1_000_000) -> int. The optimized generator covers palindromes of at most six decimal digits."
+  args:
+    limit: int
+  constraints:
+    - 0 <= limit <= 1_000_000
+  return:
+    type: int
+    desc: The sum of numbers strictly below limit whose decimal and binary digits are both palindromes.
+37:
+  comment: "Signature: solve() -> int. naive_default() adapts naive(limit: int) with the exclusive bound 1_000_000."
+  args: {}
+  return:
+    type: int
+    desc: The sum of primes below one million that remain prime after every proper decimal truncation from either end, excluding single-digit primes.
+38:
+  comment: "Signature: solve() -> int. naive_default() adapts naive(limit: int) with the inclusive bound 9999. The optimized solver requires TARGET_MASK to retain its initialized value 1022."
+  args: {}
+  return:
+    type: int
+    desc: The largest 1-to-9 pandigital concatenated product of a positive integer at most 9999 with (1, 2, ..., k), where k is greater than one.
+39:
+  comment: "Signature: solve(limit: int) -> int."
+  args:
+    limit: int
+  constraints:
+    - limit >= 0
+  return:
+    type: int
+    desc: The smallest perimeter from 0 through limit having the most integer right triangles with ordered sides a < b < c, or 0 if there are no such triangles.
+40:
+  comment: "Signature: solve() -> int. naive_default() adapts naive(limit: int) at 1_000_000, providing at least one million decimal digits."
+  args: {}
+  return:
+    type: int
+    desc: The product of digits at one-based positions 1, 10, 100, 1000, 10000, 100000, and 1000000 in the decimal concatenation of the positive integers.
+41:
+  comment: "Signature: solve(max_digits: int = 9) -> int. naive_bound(max_digits) adapts the exact-width naive(n) reference by searching all widths through max_digits."
+  args:
+    max_digits: int
+  constraints:
+    - max_digits >= 0
+    - max_digits <= 9
+  return:
+    type: int
+    desc: The largest prime whose decimal digits are a permutation of 1 through n for some n from 1 through max_digits, or zero if no such prime exists.
+42:
+  comment: "Signature: solve(words: list[str]) -> int."
+  args:
+    words: list[str]
+  constraints:
+    - Every word is nonempty and consists only of uppercase ASCII letters A through Z. An empty list is allowed.
+  return:
+    type: int
+    desc: The number of words whose letter values, with A = 1 through Z = 26, sum to a positive triangular number.
+43:
+  comment: "Signature: solve() -> int. The PRIMES global retains its initialized value."
+  args: {}
+  constraints:
+    - PRIMES == [2, 3, 5, 7, 11, 13, 17]
+  return:
+    type: int
+    desc: The sum of 0-to-9 pandigital numbers whose consecutive three-digit substrings, starting with the second digit, are divisible by 2, 3, 5, 7, 11, 13, and 17.
 1014:
   args:
     v: int

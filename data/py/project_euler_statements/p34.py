@@ -7,7 +7,18 @@ def digit_fact_sum(n: int) -> int:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Requires(limit >= 0)
+    @formalsw: Returns
+    """
     return sum(n for n in range(limit + 1) if n not in (1, 2) and digit_fact_sum(n) == n)
+
+
+def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
+    return naive(2540160)
 
 
 if __name__ == '__main__':

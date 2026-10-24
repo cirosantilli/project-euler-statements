@@ -7,6 +7,9 @@ def is_triangle(n: int) -> bool:
 
 
 def naive(words: list[str]) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(1 for w in words if is_triangle(word_value(w)))
 
 

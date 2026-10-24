@@ -22,6 +22,10 @@ def is_pandigital_1_to_9(n: int) -> bool:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Requires(limit >= 0)
+    @formalsw: Returns
+    """
     vals = []
     for n in range(limit + 1):
         for k in range(9):
@@ -30,6 +34,13 @@ def naive(limit: int) -> int:
                 if num_digits(v) == 9 and is_pandigital_1_to_9(v):
                     vals.append(v)
     return max(vals) if vals else 0
+
+
+def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
+    return naive(9999)
 
 
 if __name__ == '__main__':

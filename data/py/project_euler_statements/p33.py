@@ -25,6 +25,9 @@ def curious_fractions() -> list[tuple[int, int]]:
 
 
 def naive() -> int:
+    """
+    @formalsw: Returns
+    """
     pn, pd = 1, 1
     for n, d in curious_fractions():
         pn *= n
