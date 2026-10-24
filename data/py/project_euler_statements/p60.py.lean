@@ -240,18 +240,18 @@ theorem prime_call (n : Int) : Calls.ReturnsValue program "is_prime" [.int n] (.
       · exact Calls.BlockReturns.return_value Calls.Evaluates.constant
     simpa [prime, zero] using returned
 
-theorem prime_heap_call (n : Int) (heap : Mutable.Heap) :
-    HeapCalls.ReturnsValue program "is_prime" [.scalar (.int n)] heap
+theorem prime_heap_call (n : Int) (heap : Mutable.Heap) (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "is_prime" [.scalar (.int n)] heap
       (.scalar (.bool (prime n))) heap := by
   by_cases nonnegative : 0 ≤ n
   · simpa [prime, Int.toNat_of_nonneg nonnegative] using
-      (common.is_prime.heap_result n.toNat heap).extend common_heap_extension
+      (common.is_prime.heap_result n.toNat heap globals).extend common_heap_extension
   · have zero : n.toNat = 0 := by omega
-    have returned : HeapCalls.ReturnsValue program "is_prime" [.scalar (.int n)] heap
+    have returned : HeapCalls.ReturnsValue (globals := globals) program "is_prime" [.scalar (.int n)] heap
         (.scalar (.bool false)) heap := by
       apply HeapCalls.BlockReturns.function rfl rfl
       apply HeapCalls.BlockReturns.branch (flag := true) (value := .scalar (.bool true)) (middle := heap)
-      · exact HeapCalls.Evaluates.compare (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+      · exact HeapCalls.Evaluates.compare (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) HeapCalls.Evaluates.constant
           (by simp [HeapCalls.compare, scalarCompare, evalCmpOp]; omega)
       · rfl
       · exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
@@ -266,15 +266,15 @@ theorem concat.result (left right : Int) :
       (Calls.Evaluates.call (.cons (Calls.Evaluates.lookup rfl) .nil) (pow10_for.pure.result right)) rfl)
     (Calls.Evaluates.lookup rfl) rfl
 
-theorem concat.heap_result (left right : Int) (heap : Mutable.Heap) :
-    HeapCalls.ReturnsValue program "concat" [.scalar (.int left), .scalar (.int right)] heap
+theorem concat.heap_result (left right : Int) (heap : Mutable.Heap) (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "concat" [.scalar (.int left), .scalar (.int right)] heap
       (.scalar (.int (concatenated left right))) heap := by
   apply HeapCalls.BlockReturns.function rfl rfl
   apply HeapCalls.BlockReturns.return_value
   exact HeapCalls.Evaluates.binary
-    (HeapCalls.Evaluates.binary (HeapCalls.Evaluates.lookup rfl)
-      (HeapCalls.Evaluates.call (.cons (HeapCalls.Evaluates.lookup rfl) .nil) (pow10_for.heap.result right heap)) rfl)
-    (HeapCalls.Evaluates.lookup rfl) rfl
+    (HeapCalls.Evaluates.binary (HeapCalls.Evaluates.lookup (by cases globals <;> rfl))
+      (HeapCalls.Evaluates.call (.cons (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) .nil) (pow10_for.heap.result right heap globals)) rfl)
+    (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) rfl
 
 theorem concat.«Returns» (left right : Int) :
     (Calls.function program "concat" [.int left, .int right]).Returns :=
@@ -304,18 +304,18 @@ theorem pair_ok.result (left right : Int) :
         (.cons (Calls.Evaluates.lookup rfl) (.cons (Calls.Evaluates.lookup rfl) .nil))
         (concat.result right left)) .nil) (prime_call (concatenated right left))
 
-theorem pair_ok.heap_result (left right : Int) (heap : Mutable.Heap) :
-    HeapCalls.ReturnsValue program "pair_ok" [.scalar (.int left), .scalar (.int right)] heap
+theorem pair_ok.heap_result (left right : Int) (heap : Mutable.Heap) (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "pair_ok" [.scalar (.int left), .scalar (.int right)] heap
       (.scalar (.bool (compatible left right))) heap := by
   let env := HeapCalls.functionEnv ((findFunctionIn program.body "pair_ok").getD ([], [])).1
     ((findFunctionIn program.body "pair_ok").getD ([], [])).2
-    [.scalar (.int left), .scalar (.int right)] []
-  have forward : HeapCalls.Evaluates program env
+    [.scalar (.int left), .scalar (.int right)] globals
+  have forward : HeapCalls.Evaluates (globals := globals) program env
       (.call (.name "is_prime") [.call (.name "concat") [.name "left", .name "right"]]) heap
       (.scalar (.bool (prime (concatenated left right)))) heap :=
     HeapCalls.Evaluates.call (.cons (HeapCalls.Evaluates.call
-      (.cons (HeapCalls.Evaluates.lookup rfl) (.cons (HeapCalls.Evaluates.lookup rfl) .nil))
-      (concat.heap_result left right heap)) .nil) (prime_heap_call (concatenated left right) heap)
+      (.cons (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) (.cons (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) .nil))
+      (concat.heap_result left right heap globals)) .nil) (prime_heap_call (concatenated left right) heap globals)
   apply HeapCalls.BlockReturns.function rfl rfl
   apply HeapCalls.BlockReturns.return_value
   cases tested : prime (concatenated left right) with
@@ -327,8 +327,8 @@ theorem pair_ok.heap_result (left right : Int) (heap : Mutable.Heap) :
       apply HeapCalls.Evaluates.boolean_next (flag := true) (by simpa [tested] using forward) rfl rfl
       apply HeapCalls.Evaluates.boolean_last (flag := prime (concatenated right left))
       · exact HeapCalls.Evaluates.call (.cons (HeapCalls.Evaluates.call
-          (.cons (HeapCalls.Evaluates.lookup rfl) (.cons (HeapCalls.Evaluates.lookup rfl) .nil))
-          (concat.heap_result right left heap)) .nil) (prime_heap_call (concatenated right left) heap)
+          (.cons (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) (.cons (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) .nil))
+          (concat.heap_result right left heap globals)) .nil) (prime_heap_call (concatenated right left) heap globals)
       · cases prime (concatenated right left) <;> rfl
 
 theorem pair_ok.«Returns» (left right : Int) :
@@ -345,6 +345,7 @@ end data.«project-euler-statements».data.py.project_euler_statements.p60
 namespace data.«project-euler-statements».data.py.project_euler_statements.p60.naive
 open FormalSW.PyAst FormalSW.PyAst.HeapCalls
 open ProjectEulerSolutions
+variable {globals : Mutable.Globals}
 private abbrev program := P60Ast.module
 private abbrev number (value : Int) : Mutable.Value := .scalar (.int value)
 private abbrev flag (value : Bool) : Mutable.Value := .scalar (.bool value)
@@ -381,14 +382,19 @@ structure BestState (heap : Mutable.Heap) (env : HeapCalls.Env) (best : CliqueSe
   getSum : env "best_sum" = some (number best.bound)
   getSet : env "best_set" = some (.ref selectedAddress)
   found : heap[selectedAddress]? = some (.list (numbers best.chosen))
+  primesBeforeSelected : ∀ address, env "primes" = some (.ref address) → address < selectedAddress
 
 def BestState.bind {heap : Mutable.Heap} {env : HeapCalls.Env} {best : CliqueSearch.Best}
     (state : BestState heap env best) (name : String) (value : Mutable.Value)
-    (notSum : name ≠ "best_sum") (notSet : name ≠ "best_set") : BestState heap (setLocal env name value) best where
+    (notSum : name ≠ "best_sum") (notSet : name ≠ "best_set") (notPrimes : name ≠ "primes") : BestState heap (setLocal env name value) best where
   selectedAddress := state.selectedAddress
   getSum := by simpa [setLocal, Ne.symm notSum] using state.getSum
   getSet := by simpa [setLocal, Ne.symm notSet] using state.getSet
   found := state.found
+  primesBeforeSelected := by
+    intro address binding
+    apply state.primesBeforeSelected address
+    simpa [setLocal, Ne.symm notPrimes] using binding
 
 def leafTotal (a b c d e : Nat) : Int := (a : Int) + b + c + d + e
 theorem leafTotal_sum (a b c d e : Nat) : leafTotal a b c d e = ([a, b, c, d, e].sum : Int) := by
@@ -401,19 +407,19 @@ theorem leaf_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : CliqueSe
     (getE : env "e" = some (number e)) :
     ∃ afterEnv finalHeap,
       ∃ _after : BestState finalHeap afterEnv (CliqueSearch.improve [a, b, c, d, e] (leafTotal a b c d e) best),
-      BlockContinues program env leafCode heap afterEnv finalHeap ∧
+      BlockContinues (globals := globals) program env leafCode heap afterEnv finalHeap ∧
       (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["total", "best_sum", "best_set"] env afterEnv := by
   let total := leafTotal a b c d e
   let counted := setLocal env "total" (number total)
-  have totalEval : Evaluates program env totalExpression heap (number total) heap :=
+  have totalEval : Evaluates (globals := globals) program env totalExpression heap (number total) heap :=
     Evaluates.binary (Evaluates.binary (Evaluates.binary
       (Evaluates.binary (Evaluates.lookup getA) (Evaluates.lookup getB) rfl)
       (Evaluates.lookup getC) rfl) (Evaluates.lookup getD) rfl) (Evaluates.lookup getE) rfl
-  have countedState := state.bind "total" (number total) (by decide) (by decide)
+  have countedState := state.bind "total" (number total) (by decide) (by decide) (by decide)
   have getTotal : counted "total" = some (number total) := by simp [counted, setLocal]
-  have tested : Evaluates program counted improveTest heap (flag (decide (total < best.bound))) heap :=
+  have tested : Evaluates (globals := globals) program counted improveTest heap (flag (decide (total < best.bound))) heap :=
     Evaluates.compare (Evaluates.lookup getTotal) (Evaluates.lookup countedState.getSum) rfl
-  have countRun : BlockContinues program env [.assign [.name "total"] totalExpression] heap counted heap :=
+  have countRun : BlockContinues (globals := globals) program env [.assign [.name "total"] totalExpression] heap counted heap :=
     BlockContinues.assign totalEval
   by_cases improves : total < best.bound
   · have model : CliqueSearch.improve [a, b, c, d, e] (leafTotal a b c d e) best = ⟨total, [a, b, c, d, e]⟩ := by
@@ -427,14 +433,21 @@ theorem leaf_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : CliqueSe
       selectedAddress := heap.length
       getSum := by simp [selected, written, setLocal]
       getSet := by simp [selected, setLocal]
-      found := by simp [finalHeap] }
+      found := by simp [finalHeap]
+      primesBeforeSelected := by
+        intro address binding
+        have old : env "primes" = some (.ref address) := by
+          simpa [selected, written, counted, setLocal] using binding
+        have before := state.primesBeforeSelected address old
+        have inside := (List.getElem?_eq_some_iff.mp state.found).1
+        omega }
     refine ⟨selected, finalHeap, after, ?_, ⟨_, rfl⟩, ?_⟩
     · rw [leafCode_source]
       apply countRun.append
       apply BlockContinues.branch (by simpa only [improves, decide_true] using tested) rfl
-      have first : BlockContinues program counted [improveCode[0]'(by decide)] heap written heap :=
+      have first : BlockContinues (globals := globals) program counted [improveCode[0]'(by decide)] heap written heap :=
         BlockContinues.assign (Evaluates.lookup getTotal)
-      have second : BlockContinues program written [improveCode[1]'(by decide)] heap selected finalHeap := by
+      have second : BlockContinues (globals := globals) program written [improveCode[1]'(by decide)] heap selected finalHeap := by
         apply BlockContinues.assign
         exact Evaluates.list
           (.cons (Evaluates.lookup (by simpa [written, counted, setLocal] using getA))
@@ -461,19 +474,19 @@ def pairExpressions (names : List String) (target : String) : List Expr :=
 
 theorem pairs_evaluate (heap : Mutable.Heap) (env : HeapCalls.Env) (names : List String) (values : List Nat)
     (target : String) (value : Nat) (reads : Reads env names values) (getTarget : env target = some (number value)) :
-    List.Forall₂ (fun expression answer => Evaluates program env expression heap (flag answer) heap)
+    List.Forall₂ (fun expression answer => Evaluates (globals := globals) program env expression heap (flag answer) heap)
       (pairExpressions names target) (values.map (fun (p : Nat) => compatible p value)) := by
   induction reads with
   | nil => exact .nil
   | @cons name p names values found rest ih =>
     exact .cons (Evaluates.call (.cons (Evaluates.lookup found) (.cons (Evaluates.lookup getTarget) .nil))
-      (pair_ok.heap_result p value heap)) ih
+      (pair_ok.heap_result p value heap globals)) ih
 
 private theorem and_evaluates (heap : Mutable.Heap) (env : HeapCalls.Env) (first : Expr) (answer : Bool)
-    (head : Evaluates program env first heap (flag answer) heap)
+    (head : Evaluates (globals := globals) program env first heap (flag answer) heap)
     (expressions : List Expr) (answers : List Bool)
-    (rest : List.Forall₂ (fun expression answer => Evaluates program env expression heap (flag answer) heap) expressions answers) :
-    Evaluates program env (.boolOp .and (first :: expressions)) heap (flag ((answer :: answers).all id)) heap := by
+    (rest : List.Forall₂ (fun expression answer => Evaluates (globals := globals) program env expression heap (flag answer) heap) expressions answers) :
+    Evaluates (globals := globals) program env (.boolOp .and (first :: expressions)) heap (flag ((answer :: answers).all id)) heap := by
   induction rest generalizing first answer with
   | nil =>
     simpa using Evaluates.boolean_last (flag := answer) head (by cases answer <;> rfl)
@@ -496,14 +509,14 @@ theorem guard_evaluates (heap : Mutable.Heap) (env : HeapCalls.Env) (previous ta
     (earlier : List String) (values : List Nat) (left right : Nat)
     (getLeft : env previous = some (number left)) (getRight : env target = some (number right))
     (reads : Reads env earlier values) :
-    Evaluates program env (guardFor previous target earlier) heap
+    Evaluates (globals := globals) program env (guardFor previous target earlier) heap
       (flag (decide (left < right) && values.all (fun (p : Nat) => compatible p right))) heap := by
-  have comparison : Evaluates program env (.compare (.name previous) [(.lt, .name target)])
+  have comparison : Evaluates (globals := globals) program env (.compare (.name previous) [(.lt, .name target)])
       heap (flag (decide (left < right))) heap :=
     Evaluates.compare (Evaluates.lookup getLeft) (Evaluates.lookup getRight)
       (by simp [HeapCalls.compare, scalarCompare, evalCmpOp])
-  simpa only [List.all_cons, List.all_map, Function.comp_def, id_eq] using and_evaluates heap env _ _ comparison
-    (pairExpressions earlier target) _ (pairs_evaluate heap env earlier values target right reads getRight)
+  simpa only [List.all_cons, List.all_map, Function.comp_def, id_eq] using and_evaluates (globals := globals) heap env _ _ comparison
+    (pairExpressions earlier target) _ (pairs_evaluate (globals := globals) heap env earlier values target right reads getRight)
 
 structure Prefix4 (env : HeapCalls.Env) (a b c d : Nat) : Prop where
   getA : env "a" = some (number a)
@@ -541,7 +554,7 @@ theorem e_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
     (found : heap[primeAddress]? = some (.list (numbers primes))) :
     ∃ afterEnv finalHeap,
       ∃ _after : BestState finalHeap afterEnv (primes.foldl (updateE a b c d) best),
-      BlockContinues program env eLoopCode heap afterEnv finalHeap ∧ Prefix4 afterEnv a b c d ∧
+      BlockContinues (globals := globals) program env eLoopCode heap afterEnv finalHeap ∧ Prefix4 afterEnv a b c d ∧
       (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["e", "total", "best_sum", "best_set"] env afterEnv := by
   let invariant : Mutable.Heap → HeapCalls.Env → CliqueSearch.Best → Prop := fun heap env best =>
     ∃ _state : BestState heap env best, Prefix4 env a b c d
@@ -549,18 +562,18 @@ theorem e_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
       invariant heap (setLocal env "e" (number e)) best := by
     intro heap env best e safe _
     rcases safe with ⟨state, values⟩
-    exact ⟨state.bind "e" (number e) (by decide) (by decide), values.bind_e e⟩
+    exact ⟨state.bind "e" (number e) (by decide) (by decide) (by decide), values.bind_e e⟩
   have cell : ∀ heap env best e, invariant heap env best → e ∈ primes → env "e" = some (number e) →
-      ∃ afterEnv finalHeap, BlockContinues program env (loopBody 4) heap afterEnv finalHeap ∧
+      ∃ afterEnv finalHeap, BlockContinues (globals := globals) program env (loopBody 4) heap afterEnv finalHeap ∧
         invariant finalHeap afterEnv (updateE a b c d best e) ∧
         (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["e", "total", "best_sum", "best_set"] env afterEnv := by
     intro heap env best e safe _ getE
     rcases safe with ⟨state, values⟩
     have reads : Reads env ["a", "b", "c", "d"] [a, b, c, d] :=
       .cons values.getA (.cons values.getB (.cons values.getC (.cons values.getD .nil)))
-    have tested : Evaluates program env (guardFor "d" "e" ["a", "b", "c", "d"])
+    have tested : Evaluates (globals := globals) program env (guardFor "d" "e" ["a", "b", "c", "d"])
         heap (flag (acceptedE a b c d e)) heap :=
-      guard_evaluates heap env "d" "e" ["a", "b", "c", "d"] [a, b, c, d] d e values.getD getE reads
+      guard_evaluates (globals := globals) heap env "d" "e" ["a", "b", "c", "d"] [a, b, c, d] d e values.getD getE reads
     cases accepted : acceptedE a b c d e with
     | false =>
       refine ⟨env, heap, ?_, ?_, ⟨[], by simp⟩, HeapRangeFold.Frame.refl _ env⟩
@@ -568,7 +581,7 @@ theorem e_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
         exact BlockContinues.branch (flag := false) (by simpa only [accepted] using tested) rfl .nil
       · exact ⟨by simpa only [updateE, accepted, Bool.false_eq_true, if_false] using state, values⟩
     | true =>
-      obtain ⟨afterEnv, finalHeap, after, executed, extra, frame⟩ := leaf_result heap env best state a b c d e
+      obtain ⟨afterEnv, finalHeap, after, executed, extra, frame⟩ := leaf_result (globals := globals) heap env best state a b c d e
         values.getA values.getB values.getC values.getD getE
       refine ⟨afterEnv, finalHeap, ?_, ?_, extra, ?_⟩
       · rw [loopBody_e_source]
@@ -577,7 +590,7 @@ theorem e_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
       · intro name outside
         exact frame name (fun inside => outside (List.mem_cons_of_mem "e" inside))
   obtain ⟨afterEnv, finalHeap, executed, ⟨after, finalValues⟩, extra, frame⟩ :=
-    HeapSequenceFold.for_list program "e" (loopBody 4) rfl ["e", "total", "best_sum", "best_set"] (by simp)
+    HeapSequenceFold.for_list (globals := globals) program "e" (loopBody 4) rfl ["e", "total", "best_sum", "best_set"] (by simp)
       (fun (e : Nat) => number e) (updateE a b c d) invariant primeAddress primes bindInvariant cell heap env best
       ⟨state, values⟩ (.name "primes") (by intros; simp) (Evaluates.lookup getPrimes) found
   exact ⟨afterEnv, finalHeap, after, by simpa only [eLoopCode_source] using executed, finalValues, extra, frame⟩
@@ -627,7 +640,7 @@ theorem d_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
     (primeAddress : Nat) (primes : List Nat) (input : PrimeState heap env primeAddress primes) :
     ∃ afterEnv finalHeap,
       ∃ _after : BestState finalHeap afterEnv (primes.foldl (updateD primes a b c) best),
-      BlockContinues program env dLoopCode heap afterEnv finalHeap ∧ Prefix3 afterEnv a b c ∧
+      BlockContinues (globals := globals) program env dLoopCode heap afterEnv finalHeap ∧ Prefix3 afterEnv a b c ∧
       (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["d", "e", "total", "best_sum", "best_set"] env afterEnv := by
   let invariant : Mutable.Heap → HeapCalls.Env → CliqueSearch.Best → Prop := fun heap env best =>
     ∃ _state : BestState heap env best, Prefix3 env a b c ∧ PrimeState heap env primeAddress primes
@@ -635,26 +648,26 @@ theorem d_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
       invariant heap (setLocal env "d" (number d)) best := by
     intro heap env best d safe _
     rcases safe with ⟨state, values, input⟩
-    exact ⟨state.bind "d" (number d) (by decide) (by decide), values.bind_d d, input.bind "d" (number d) (by decide)⟩
+    exact ⟨state.bind "d" (number d) (by decide) (by decide) (by decide), values.bind_d d, input.bind "d" (number d) (by decide)⟩
   have test : ∀ heap env best d, invariant heap env best → d ∈ primes → env "d" = some (number d) →
-      Evaluates program env (guardFor "c" "d" ["a", "b", "c"]) heap (flag (acceptedD a b c d)) heap := by
+      Evaluates (globals := globals) program env (guardFor "c" "d" ["a", "b", "c"]) heap (flag (acceptedD a b c d)) heap := by
     intro heap env best d safe _ getD
     rcases safe with ⟨state, values, input⟩
-    exact guard_evaluates heap env "c" "d" ["a", "b", "c"] [a, b, c] c d values.getC getD
+    exact guard_evaluates (globals := globals) heap env "c" "d" ["a", "b", "c"] [a, b, c] c d values.getC getD
       (.cons values.getA (.cons values.getB (.cons values.getC (.nil))))
   have cell : ∀ heap env best d, invariant heap env best → d ∈ primes → env "d" = some (number d) →
-      ∃ afterEnv finalHeap, BlockContinues program env eLoopCode heap afterEnv finalHeap ∧
+      ∃ afterEnv finalHeap, BlockContinues (globals := globals) program env eLoopCode heap afterEnv finalHeap ∧
         invariant finalHeap afterEnv (primes.foldl (updateE a b c d) best) ∧
         (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["d", "e", "total", "best_sum", "best_set"] env afterEnv := by
     intro heap env best d safe _ getD
     rcases safe with ⟨state, values, input⟩
     obtain ⟨afterEnv, finalHeap, after, executed, finalValues, extra, frame⟩ :=
-      e_loop_result heap env best state a b c d ⟨values.getA, values.getB, values.getC, getD⟩ primeAddress primes input.getPrimes input.found
+      e_loop_result (globals := globals) heap env best state a b c d ⟨values.getA, values.getB, values.getC, getD⟩ primeAddress primes input.getPrimes input.found
     refine ⟨afterEnv, finalHeap, executed, ⟨after, ⟨finalValues.getA, finalValues.getB, finalValues.getC⟩, input.after ["e", "total", "best_sum", "best_set"] extra frame (by simp)⟩, extra, ?_⟩
     intro name outside
     exact frame name (fun inside => outside (List.mem_cons_of_mem "d" inside))
   obtain ⟨afterEnv, finalHeap, executed, ⟨after, finalValues, _⟩, extra, frame⟩ :=
-    HeapSequenceFold.for_guarded_list program "d" (guardFor "c" "d" ["a", "b", "c"]) eLoopCode rfl
+    HeapSequenceFold.for_guarded_list (globals := globals) program "d" (guardFor "c" "d" ["a", "b", "c"]) eLoopCode rfl
       ["d", "e", "total", "best_sum", "best_set"] (by simp) (fun (d : Nat) => number d) (acceptedD a b c)
       (fun best d => primes.foldl (updateE a b c d) best)
       invariant primeAddress primes bindInvariant test cell heap env best ⟨state, values, input⟩
@@ -686,7 +699,7 @@ theorem c_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
     (primeAddress : Nat) (primes : List Nat) (input : PrimeState heap env primeAddress primes) :
     ∃ afterEnv finalHeap,
       ∃ _after : BestState finalHeap afterEnv (primes.foldl (updateC primes a b) best),
-      BlockContinues program env cLoopCode heap afterEnv finalHeap ∧ Prefix2 afterEnv a b ∧
+      BlockContinues (globals := globals) program env cLoopCode heap afterEnv finalHeap ∧ Prefix2 afterEnv a b ∧
       (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["c", "d", "e", "total", "best_sum", "best_set"] env afterEnv := by
   let invariant : Mutable.Heap → HeapCalls.Env → CliqueSearch.Best → Prop := fun heap env best =>
     ∃ _state : BestState heap env best, Prefix2 env a b ∧ PrimeState heap env primeAddress primes
@@ -694,26 +707,26 @@ theorem c_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
       invariant heap (setLocal env "c" (number c)) best := by
     intro heap env best c safe _
     rcases safe with ⟨state, values, input⟩
-    exact ⟨state.bind "c" (number c) (by decide) (by decide), values.bind_c c, input.bind "c" (number c) (by decide)⟩
+    exact ⟨state.bind "c" (number c) (by decide) (by decide) (by decide), values.bind_c c, input.bind "c" (number c) (by decide)⟩
   have test : ∀ heap env best c, invariant heap env best → c ∈ primes → env "c" = some (number c) →
-      Evaluates program env (guardFor "b" "c" ["a", "b"]) heap (flag (acceptedC a b c)) heap := by
+      Evaluates (globals := globals) program env (guardFor "b" "c" ["a", "b"]) heap (flag (acceptedC a b c)) heap := by
     intro heap env best c safe _ getC
     rcases safe with ⟨state, values, input⟩
-    exact guard_evaluates heap env "b" "c" ["a", "b"] [a, b] b c values.getB getC
+    exact guard_evaluates (globals := globals) heap env "b" "c" ["a", "b"] [a, b] b c values.getB getC
       (.cons values.getA (.cons values.getB (.nil)))
   have cell : ∀ heap env best c, invariant heap env best → c ∈ primes → env "c" = some (number c) →
-      ∃ afterEnv finalHeap, BlockContinues program env dLoopCode heap afterEnv finalHeap ∧
+      ∃ afterEnv finalHeap, BlockContinues (globals := globals) program env dLoopCode heap afterEnv finalHeap ∧
         invariant finalHeap afterEnv (primes.foldl (updateD primes a b c) best) ∧
         (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["c", "d", "e", "total", "best_sum", "best_set"] env afterEnv := by
     intro heap env best c safe _ getC
     rcases safe with ⟨state, values, input⟩
     obtain ⟨afterEnv, finalHeap, after, executed, finalValues, extra, frame⟩ :=
-      d_loop_result heap env best state a b c ⟨values.getA, values.getB, getC⟩ primeAddress primes input
+      d_loop_result (globals := globals) heap env best state a b c ⟨values.getA, values.getB, getC⟩ primeAddress primes input
     refine ⟨afterEnv, finalHeap, executed, ⟨after, ⟨finalValues.getA, finalValues.getB⟩, input.after ["d", "e", "total", "best_sum", "best_set"] extra frame (by simp)⟩, extra, ?_⟩
     intro name outside
     exact frame name (fun inside => outside (List.mem_cons_of_mem "c" inside))
   obtain ⟨afterEnv, finalHeap, executed, ⟨after, finalValues, _⟩, extra, frame⟩ :=
-    HeapSequenceFold.for_guarded_list program "c" (guardFor "b" "c" ["a", "b"]) dLoopCode rfl
+    HeapSequenceFold.for_guarded_list (globals := globals) program "c" (guardFor "b" "c" ["a", "b"]) dLoopCode rfl
       ["c", "d", "e", "total", "best_sum", "best_set"] (by simp) (fun (c : Nat) => number c) (acceptedC a b)
       (fun best c => primes.foldl (updateD primes a b c) best)
       invariant primeAddress primes bindInvariant test cell heap env best ⟨state, values, input⟩
@@ -744,7 +757,7 @@ theorem b_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
     (primeAddress : Nat) (primes : List Nat) (input : PrimeState heap env primeAddress primes) :
     ∃ afterEnv finalHeap,
       ∃ _after : BestState finalHeap afterEnv (primes.foldl (updateB primes a) best),
-      BlockContinues program env bLoopCode heap afterEnv finalHeap ∧ Prefix1 afterEnv a ∧
+      BlockContinues (globals := globals) program env bLoopCode heap afterEnv finalHeap ∧ Prefix1 afterEnv a ∧
       (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["b", "c", "d", "e", "total", "best_sum", "best_set"] env afterEnv := by
   let invariant : Mutable.Heap → HeapCalls.Env → CliqueSearch.Best → Prop := fun heap env best =>
     ∃ _state : BestState heap env best, Prefix1 env a ∧ PrimeState heap env primeAddress primes
@@ -752,26 +765,26 @@ theorem b_loop_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : Clique
       invariant heap (setLocal env "b" (number b)) best := by
     intro heap env best b safe _
     rcases safe with ⟨state, values, input⟩
-    exact ⟨state.bind "b" (number b) (by decide) (by decide), values.bind_b b, input.bind "b" (number b) (by decide)⟩
+    exact ⟨state.bind "b" (number b) (by decide) (by decide) (by decide), values.bind_b b, input.bind "b" (number b) (by decide)⟩
   have test : ∀ heap env best b, invariant heap env best → b ∈ primes → env "b" = some (number b) →
-      Evaluates program env (guardFor "a" "b" ["a"]) heap (flag (acceptedB a b)) heap := by
+      Evaluates (globals := globals) program env (guardFor "a" "b" ["a"]) heap (flag (acceptedB a b)) heap := by
     intro heap env best b safe _ getB
     rcases safe with ⟨state, values, input⟩
-    exact guard_evaluates heap env "a" "b" ["a"] [a] a b values.getA getB
+    exact guard_evaluates (globals := globals) heap env "a" "b" ["a"] [a] a b values.getA getB
       (.cons values.getA (.nil))
   have cell : ∀ heap env best b, invariant heap env best → b ∈ primes → env "b" = some (number b) →
-      ∃ afterEnv finalHeap, BlockContinues program env cLoopCode heap afterEnv finalHeap ∧
+      ∃ afterEnv finalHeap, BlockContinues (globals := globals) program env cLoopCode heap afterEnv finalHeap ∧
         invariant finalHeap afterEnv (primes.foldl (updateC primes a b) best) ∧
         (∃ extra, finalHeap = heap ++ extra) ∧ HeapRangeFold.Frame ["b", "c", "d", "e", "total", "best_sum", "best_set"] env afterEnv := by
     intro heap env best b safe _ getB
     rcases safe with ⟨state, values, input⟩
     obtain ⟨afterEnv, finalHeap, after, executed, finalValues, extra, frame⟩ :=
-      c_loop_result heap env best state a b ⟨values.getA, getB⟩ primeAddress primes input
+      c_loop_result (globals := globals) heap env best state a b ⟨values.getA, getB⟩ primeAddress primes input
     refine ⟨afterEnv, finalHeap, executed, ⟨after, ⟨finalValues.getA⟩, input.after ["c", "d", "e", "total", "best_sum", "best_set"] extra frame (by simp)⟩, extra, ?_⟩
     intro name outside
     exact frame name (fun inside => outside (List.mem_cons_of_mem "b" inside))
   obtain ⟨afterEnv, finalHeap, executed, ⟨after, finalValues, _⟩, extra, frame⟩ :=
-    HeapSequenceFold.for_guarded_list program "b" (guardFor "a" "b" ["a"]) cLoopCode rfl
+    HeapSequenceFold.for_guarded_list (globals := globals) program "b" (guardFor "a" "b" ["a"]) cLoopCode rfl
       ["b", "c", "d", "e", "total", "best_sum", "best_set"] (by simp) (fun (b : Nat) => number b) (acceptedB a)
       (fun best b => primes.foldl (updateC primes a b) best)
       invariant primeAddress primes bindInvariant test cell heap env best ⟨state, values, input⟩
@@ -790,7 +803,7 @@ theorem enumeration_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : C
     (input : PrimeState heap env primeAddress primes) :
     ∃ afterEnv finalHeap,
       ∃ _after : BestState finalHeap afterEnv (enumerationModel primes best),
-      BlockContinues program env aLoopCode heap afterEnv finalHeap ∧ PrimeState finalHeap afterEnv primeAddress primes ∧
+      BlockContinues (globals := globals) program env aLoopCode heap afterEnv finalHeap ∧ PrimeState finalHeap afterEnv primeAddress primes ∧
       (∃ extra, finalHeap = heap ++ extra) ∧
       HeapRangeFold.Frame ["a", "b", "c", "d", "e", "total", "best_sum", "best_set"] env afterEnv := by
   let invariant : Mutable.Heap → HeapCalls.Env → CliqueSearch.Best → Prop := fun heap env best =>
@@ -799,22 +812,22 @@ theorem enumeration_result (heap : Mutable.Heap) (env : HeapCalls.Env) (best : C
       invariant heap (setLocal env "a" (number a)) best := by
     intro heap env best a safe _
     rcases safe with ⟨state, input⟩
-    exact ⟨state.bind "a" (number a) (by decide) (by decide), input.bind "a" (number a) (by decide)⟩
+    exact ⟨state.bind "a" (number a) (by decide) (by decide) (by decide), input.bind "a" (number a) (by decide)⟩
   have cell : ∀ heap env best a, invariant heap env best → a ∈ primes → env "a" = some (number a) →
-      ∃ afterEnv finalHeap, BlockContinues program env bLoopCode heap afterEnv finalHeap ∧
+      ∃ afterEnv finalHeap, BlockContinues (globals := globals) program env bLoopCode heap afterEnv finalHeap ∧
         invariant finalHeap afterEnv (primes.foldl (updateB primes a) best) ∧
         (∃ extra, finalHeap = heap ++ extra) ∧
         HeapRangeFold.Frame ["a", "b", "c", "d", "e", "total", "best_sum", "best_set"] env afterEnv := by
     intro heap env best a safe _ getA
     rcases safe with ⟨state, input⟩
-    obtain ⟨afterEnv, finalHeap, after, executed, _, extra, frame⟩ := b_loop_result heap env best state a ⟨getA⟩
+    obtain ⟨afterEnv, finalHeap, after, executed, _, extra, frame⟩ := b_loop_result (globals := globals) heap env best state a ⟨getA⟩
       primeAddress primes input
     refine ⟨afterEnv, finalHeap, executed,
       ⟨after, input.after ["b", "c", "d", "e", "total", "best_sum", "best_set"] extra frame (by simp)⟩, extra, ?_⟩
     intro name outside
     exact frame name (fun inside => outside (List.mem_cons_of_mem "a" inside))
   obtain ⟨afterEnv, finalHeap, executed, ⟨after, finalInput⟩, extra, frame⟩ :=
-    HeapSequenceFold.for_list program "a" bLoopCode rfl ["a", "b", "c", "d", "e", "total", "best_sum", "best_set"]
+    HeapSequenceFold.for_list (globals := globals) program "a" bLoopCode rfl ["a", "b", "c", "d", "e", "total", "best_sum", "best_set"]
       (by simp) (fun (a : Nat) => number a) (fun best a => primes.foldl (updateB primes a) best)
       invariant primeAddress primes bindInvariant cell heap env best ⟨state, input⟩
       (.name "primes") (by intros; simp) (Evaluates.lookup input.getPrimes) input.found
@@ -829,8 +842,8 @@ def primeExpression : Expr := .listComp (.name "p")
 def primeBody (address : Nat) : List Stmt := [.ifThen primeFilter [.comprehensionAppend address (.name "p")] []]
 
 theorem prime_filter_evaluates (heap : Mutable.Heap) (env : HeapCalls.Env) (p : Nat)
-    (getP : env "p" = some (number p)) : Evaluates program env primeFilter heap (flag (keepPrime p)) heap := by
-  have compared : Evaluates program env (.compare (.name "p") [(.notEq, .constant (.int 5))])
+    (getP : env "p" = some (number p)) : Evaluates (globals := globals) program env primeFilter heap (flag (keepPrime p)) heap := by
+  have compared : Evaluates (globals := globals) program env (.compare (.name "p") [(.notEq, .constant (.int 5))])
       heap (flag (decide (p ≠ 5))) heap :=
     Evaluates.compare (Evaluates.lookup getP) Evaluates.constant (by simp [HeapCalls.compare, scalarCompare, evalCmpOp]; omega)
   by_cases five : p = 5
@@ -841,11 +854,11 @@ theorem prime_filter_evaluates (heap : Mutable.Heap) (env : HeapCalls.Env) (p : 
     simp only [keepPrime, positive, Bool.true_and]
     apply Evaluates.boolean_next (flag := true) (by simpa only [positive] using compared) rfl rfl
     exact Evaluates.boolean_last (flag := prime p)
-      (Evaluates.call (.cons (Evaluates.lookup getP) .nil) (prime_heap_call p heap)) (by cases prime (p : Int) <;> rfl)
+      (Evaluates.call (.cons (Evaluates.lookup getP) .nil) (prime_heap_call p heap globals)) (by cases prime (p : Int) <;> rfl)
 
 private theorem prime_filter_loop (base : Mutable.Heap) (first count stop : Nat) (endAt : first + count = stop)
     (before : List Nat) (env : HeapCalls.Env) :
-    ∃ afterEnv, BlockContinues program env [.rangeStepLoop "p" first stop 1 (primeBody base.length) []]
+    ∃ afterEnv, BlockContinues (globals := globals) program env [.rangeStepLoop "p" first stop 1 (primeBody base.length) []]
       (HeapCollection.working base (numbers before) []) afterEnv
       (HeapCollection.working base (numbers (before ++ (List.range' first count).filter keepPrime)) []) := by
   induction count generalizing first before env with
@@ -856,10 +869,10 @@ private theorem prime_filter_loop (base : Mutable.Heap) (first count stop : Nat)
   | succ count ih =>
     let bound := setLocal env "p" (number first)
     have getP : bound "p" = some (number first) := by simp [bound, setLocal]
-    have tested := prime_filter_evaluates (HeapCollection.working base (numbers before) []) bound first getP
+    have tested := prime_filter_evaluates (globals := globals) (HeapCollection.working base (numbers before) []) bound first getP
     cases accepted : keepPrime first with
     | false =>
-      have skipped : BlockContinues program bound (primeBody base.length)
+      have skipped : BlockContinues (globals := globals) program bound (primeBody base.length)
           (HeapCollection.working base (numbers before) []) bound (HeapCollection.working base (numbers before) []) :=
         BlockContinues.branch (flag := false) (by simpa only [accepted] using tested) rfl .nil
       obtain ⟨afterEnv, continued⟩ := ih (first+1) (by omega) before bound
@@ -868,12 +881,12 @@ private theorem prime_filter_loop (base : Mutable.Heap) (first count stop : Nat)
       simpa [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, primeBody,
         List.range'_succ, List.filter_cons, accepted] using skipped.append continued
     | true =>
-      have emitted : BlockContinues program bound (primeBody base.length)
+      have emitted : BlockContinues (globals := globals) program bound (primeBody base.length)
           (HeapCollection.working base (numbers before) []) bound
           (HeapCollection.working base (numbers (before ++ [first])) []) := by
         apply BlockContinues.branch (flag := true) (by simpa only [accepted] using tested) rfl
         simpa only [numbers, List.map_append, List.map_cons, List.map_nil, List.append_nil] using
-          (HeapCollection.emit (program := program) base (numbers before) [] [] (number first)
+          (HeapCollection.emit (globals := globals) (program := program) base (numbers before) [] [] (number first)
             (by simpa only [List.append_nil] using
               (Evaluates.lookup (module := program) (heap := HeapCollection.working base (numbers before) []) getP)))
       obtain ⟨afterEnv, continued⟩ := ih (first+1) (by omega) (before ++ [first]) bound
@@ -884,11 +897,11 @@ private theorem prime_filter_loop (base : Mutable.Heap) (first count stop : Nat)
 
 theorem primes_evaluate (heap : Mutable.Heap) (env : HeapCalls.Env) (limit : Int)
     (getLimit : env "limit" = some (number limit)) :
-    Evaluates program env primeExpression heap (.ref heap.length) (heap ++ [.list (numbers (vertices limit))]) := by
+    Evaluates (globals := globals) program env primeExpression heap (.ref heap.length) (heap ++ [.list (numbers (vertices limit))]) := by
   let generators : List (String × Expr × List Expr) := [("p", .call (.name "range")
     [.constant (.int 3), .binOp (.name "limit") .add (.constant (.int 1))], [primeFilter])]
   let masked := comprehensionEnv env generators
-  have arguments : Evaluates.Arguments program env
+  have arguments : Evaluates.Arguments (globals := globals) program env
       [.constant (.int 3), .binOp (.name "limit") .add (.constant (.int 1))]
       heap [number 3, number (limit+1)] heap :=
     .cons Evaluates.constant (.cons (Evaluates.binary (Evaluates.lookup getLimit) Evaluates.constant rfl) .nil)
@@ -899,7 +912,7 @@ theorem primes_evaluate (heap : Mutable.Heap) (env : HeapCalls.Env) (limit : Int
     rw [empty]
     apply Evaluates.list_comp_range (finalEnv := masked) arguments rfl
     exact BlockContinues.range_done (by simp [Calls.rangeContinues]; omega) .nil
-  · obtain ⟨afterEnv, executed⟩ := prime_filter_loop heap 3 (limit-2).toNat (3+(limit-2).toNat) rfl [] masked
+  · obtain ⟨afterEnv, executed⟩ := prime_filter_loop (globals := globals) heap 3 (limit-2).toNat (3+(limit-2).toNat) rfl [] masked
     have castBound : ((3+(limit-2).toNat : Nat) : Int) = limit+1 := by omega
     rw [castBound] at executed
     apply Evaluates.list_comp_range (finalEnv := afterEnv) arguments rfl
@@ -920,16 +933,16 @@ def setupEnv (env : HeapCalls.Env) (heap : Mutable.Heap) : HeapCalls.Env :=
 
 theorem setup_result (heap : Mutable.Heap) (env : HeapCalls.Env) (limit : Int)
     (getLimit : env "limit" = some (number limit)) :
-    BlockContinues program env setupCode heap (setupEnv env heap) (setupHeap heap limit) := by
+    BlockContinues (globals := globals) program env setupCode heap (setupEnv env heap) (setupHeap heap limit) := by
   let primed := setLocal env "primes" (.ref heap.length)
   let bounded := setLocal primed "best_sum" (number sentinel)
-  have first : BlockContinues program env [setupCode[0]'(by decide)] heap primed
+  have first : BlockContinues (globals := globals) program env [setupCode[0]'(by decide)] heap primed
       (heap ++ [.list (numbers (vertices limit))]) :=
-    BlockContinues.assign (primes_evaluate heap env limit getLimit)
-  have second : BlockContinues program primed [setupCode[1]'(by decide)]
+    BlockContinues.assign (primes_evaluate (globals := globals) heap env limit getLimit)
+  have second : BlockContinues (globals := globals) program primed [setupCode[1]'(by decide)]
       (heap ++ [.list (numbers (vertices limit))]) bounded (heap ++ [.list (numbers (vertices limit))]) :=
     BlockContinues.assign (Evaluates.binary Evaluates.constant Evaluates.constant rfl)
-  have third : BlockContinues program bounded [setupCode[2]'(by decide)]
+  have third : BlockContinues (globals := globals) program bounded [setupCode[2]'(by decide)]
       (heap ++ [.list (numbers (vertices limit))]) (setupEnv env heap) (setupHeap heap limit) := by
     apply BlockContinues.annAssign
     convert (Evaluates.list (module := program) (env := bounded)
@@ -943,6 +956,10 @@ def initialState (heap : Mutable.Heap) (env : HeapCalls.Env) (limit : Int) :
   getSum := by simp [setupEnv, setLocal]
   getSet := by simp [setupEnv, setLocal]
   found := by simp [setupHeap, numbers]
+  primesBeforeSelected := by
+    intro address binding
+    have same : heap.length = address := by simpa [setupEnv, setLocal] using binding
+    omega
 
 def initialPrimes (heap : Mutable.Heap) (env : HeapCalls.Env) (limit : Int) :
     PrimeState (setupHeap heap limit) (setupEnv env heap) heap.length (vertices limit) where
@@ -955,23 +972,23 @@ def answerModel (limit : Int) : CliqueSearch.Best := enumerationModel (vertices 
 
 /-- The complete exhaustive reference source, including signed range bounds,
 trial-division filtering, all five nested loops, and the final result tuple. -/
-theorem result (limit : Int) (caller : Mutable.Heap) :
+theorem result (limit : Int) (caller : Mutable.Heap) (globals : Mutable.Globals := []) :
     ∃ finalHeap selectedAddress,
-      ReturnsValue program "naive" [number limit] caller (.ref finalHeap.length)
+      ReturnsValue (globals := globals) program "naive" [number limit] caller (.ref finalHeap.length)
         (finalHeap ++ [.tuple [number (answerModel limit).bound, .ref selectedAddress]]) ∧
       finalHeap[selectedAddress]? = some (.list (numbers (answerModel limit).chosen)) ∧
-      (∃ extra, finalHeap = caller ++ extra) := by
+      (∃ extra, finalHeap = caller ++ extra) ∧ caller.length ≤ selectedAddress := by
   let params := ((findFunctionIn program.body "naive").getD ([], [])).1
   let sourceBody := ((findFunctionIn program.body "naive").getD ([], [])).2
-  let env := functionEnv params sourceBody [number limit] []
-  have getLimit : env "limit" = some (number limit) := rfl
-  have initialized := setup_result caller env limit getLimit
-  obtain ⟨afterEnv, finalHeap, after, enumerated, _, extra, _⟩ := enumeration_result (setupHeap caller limit)
+  let env := functionEnv params sourceBody [number limit] globals
+  have getLimit : env "limit" = some (number limit) := by cases globals <;> rfl
+  have initialized := setup_result (globals := globals) caller env limit getLimit
+  obtain ⟨afterEnv, finalHeap, after, enumerated, finalPrimes, extra, _⟩ := enumeration_result (globals := globals) (setupHeap caller limit)
     (setupEnv env caller) ⟨sentinel, []⟩ (initialState caller env limit) caller.length (vertices limit)
     (initialPrimes caller env limit)
-  refine ⟨finalHeap, after.selectedAddress, ?_, after.found, ?_⟩
+  refine ⟨finalHeap, after.selectedAddress, ?_, after.found, ?_, ?_⟩
   · apply BlockReturns.function rfl rfl
-    change BlockReturns program env code caller (.ref finalHeap.length)
+    change BlockReturns (globals := globals) program env code caller (.ref finalHeap.length)
       (finalHeap ++ [.tuple [number (answerModel limit).bound, .ref after.selectedAddress]])
     rw [code_source]
     exact (initialized.append enumerated).returns (BlockReturns.return_value
@@ -979,8 +996,10 @@ theorem result (limit : Int) (caller : Mutable.Heap) :
   · obtain ⟨extra, same⟩ := extra
     exact ⟨[.list (numbers (vertices limit)), .list []] ++ extra, by rw [same, setupHeap, List.append_assoc]⟩
 
+  · exact Nat.le_of_lt (after.primesBeforeSelected caller.length finalPrimes.getPrimes)
+
 theorem «Returns» (limit : Int) : (HeapCalls.call program "naive" [number limit] []).Returns := by
-  obtain ⟨_, _, returned, _, _⟩ := result limit []
+  obtain ⟨_, _, returned, _, _, _⟩ := result limit []
   exact returned.returns
 
 theorem «Supported» (limit : Int) : (HeapCalls.call program "naive" [number limit] []).Supported :=
