@@ -15,6 +15,10 @@ name = "mathlib"
 scope = "leanprover-community"
 rev = "v4.30.0"
 
+[[require]]
+name = "formalsw"
+path = "../../formalsw"
+
 [[lean_lib]]
 name = "ProjectEulerStatements"
 globs = ["ProjectEulerStatements", "ProjectEulerStatements.Lib.+"]
