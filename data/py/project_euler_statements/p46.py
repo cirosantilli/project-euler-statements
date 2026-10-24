@@ -6,14 +6,27 @@ def is_odd_composite(n: int) -> bool:
 
 
 def can_be_written(n: int) -> bool:
+    """
+    @formalsw: Returns
+    """
     return any(is_prime(p) and any(p + 2 * k ** 2 == n for k in range(n)) for p in range(n))
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Returns
+    """
     for n in range(limit):
         if is_odd_composite(n) and not can_be_written(n):
             return n
     return 0
+
+
+def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
+    return naive(10_000)
 
 
 if __name__ == '__main__':

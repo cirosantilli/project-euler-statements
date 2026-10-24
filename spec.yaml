@@ -362,6 +362,12 @@
   return:
     type: int
     desc: The least triangular number after T(285) that is also pentagonal and hexagonal.
+46:
+  comment: "Signature: solve() -> int. The reference scans integers below 10_000; the proof establishes that the first counterexample lies inside this window."
+  args: {}
+  return:
+    type: int
+    desc: The least odd composite integer that cannot be written as a prime plus twice a positive square.
 1014:
   args:
     v: int
