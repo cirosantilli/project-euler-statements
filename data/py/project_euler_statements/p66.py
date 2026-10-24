@@ -19,7 +19,13 @@ def minimal_x(d: int) -> int:
 
 
 def naive(limit: int) -> int:
-    best_d = best_x = 0
+    """
+    Maximize the least positive Pell solution, keeping the least discriminant on ties.
+
+    @formalsw: Returns
+    """
+    best_d = 0
+    best_x = 0
     for d in range(2, limit + 1):
         x = minimal_x(d)
         if x > best_x:

@@ -1,5 +1,4 @@
-import Mathlib.Data.List.Basic
-import Mathlib.Data.Nat.Sqrt
+import ProjectEulerStatements.Lib.PellSearch
 
 namespace ProjectEulerStatements.P66
 
@@ -8,35 +7,19 @@ def isSquare (n : Nat) : Bool :=
   r * r = n
 
 def minimalX (d : Nat) : Nat :=
-  if isSquare d then 0 else
-  let bound := d ^ 4 + 1
-  let rec go (y steps : Nat) : Nat :=
-    match steps with
-    | 0 => 0
-    | steps + 1 =>
-        let x2 := d * y * y + 1
-        let x := Nat.sqrt x2
-        if x * x = x2 then x else go (y + 1) steps
-  go 1 bound
+  PellMinimum.minimum d
 
 def bestD (limit : Nat) : Nat :=
-  let rec go (d bestD bestX steps : Nat) : Nat :=
-    match steps with
-    | 0 => bestD
-    | steps + 1 =>
-        if d > limit then bestD
-        else
-          let x := minimalX d
-          if x > bestX then go (d + 1) d x steps else go (d + 1) bestD bestX steps
-  go 2 0 0 (limit + 1)
+  PellSearch.answer limit
 
 def naive (limit : Nat) : Nat :=
   bestD limit
 
-example : minimalX 13 = 649 := by
-  native_decide
+theorem minimalX_positive (d : Nat) (nonsquare : Nat.sqrt d * Nat.sqrt d ≠ d) :
+    1 < minimalX d := PellMinimum.minimum_positive d nonsquare
 
-example : bestD 7 = 5 := by
-  native_decide
+theorem minimalX_le (d x y : Nat) (nonsquare : Nat.sqrt d * Nat.sqrt d ≠ d)
+    (positive : 1 ≤ y) (solution : x * x = d * y * y + 1) : minimalX d ≤ x :=
+  PellMinimum.minimum_le d x y nonsquare positive solution
 
 end ProjectEulerStatements.P66
