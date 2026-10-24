@@ -6,7 +6,7 @@ open FormalSW.PyAst HeapCalls ProjectEulerStatements MagicRingTextCalls MagicRin
 set_option Elab.async false
 
 private abbrev naiveCode : List Stmt :=
-  ((findFunctionIn program.body "naive").getD ([], [])).2
+  executableBody ((findFunctionIn program.body "naive").getD ([], [])).2
 abbrev permutationBody : List Stmt :=
   match (naiveCode[2]? : Option Stmt) with
   | some (Stmt.forIn _ _ instructions _) => instructions

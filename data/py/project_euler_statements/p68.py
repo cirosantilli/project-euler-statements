@@ -11,6 +11,9 @@ def ring_string(outer: list[int], inner: tuple[int, ...], start: int) -> str:
 
 
 def naive(n: int = 5, digits: int = 16) -> str:
+    """
+    @formalsw: Returns
+    """
     if n < 3 or digits < 3 * n:
         return ""
     best = ""
