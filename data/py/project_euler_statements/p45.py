@@ -27,8 +27,12 @@ def is_hex(x: int) -> bool:
 def naive(after: int = 40755) -> int:
     """
     Merge the three increasing polygonal sequences until the next common value.
+
+    @formalsw: Returns
     """
-    i = j = k = 1
+    i = 1
+    j = 1
+    k = 1
     while True:
         t, p, h = tri(i), pent(j), hex(k)
         if t == p == h and t > after:
