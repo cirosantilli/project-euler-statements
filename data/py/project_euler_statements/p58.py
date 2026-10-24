@@ -4,6 +4,10 @@ from .common import is_prime
 
 @lru_cache(None)
 def diag_prime_count(k: int) -> int:
+    """
+    @formalsw: Requires(k >= 0)
+    @formalsw: Returns
+    """
     if k == 0:
         return 0
     side = 2 * k + 1
@@ -32,6 +36,13 @@ def naive(num: int, den: int) -> int:
         if ratio_below(k, num, den):
             return 2 * k + 1
         k += 1
+
+
+def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
+    return naive(1, 10)
 
 
 if __name__ == '__main__':
