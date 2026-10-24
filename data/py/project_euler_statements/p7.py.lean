@@ -10,7 +10,7 @@ open FormalSW.PyAst FormalSW.PyAst.Calls
 private abbrev program := P7Ast.module
 
 private theorem common_extension : Extends program CommonAst.module := by
-  change Extends ⟨program.body.take 2 ++ CommonAst.module.body⟩ CommonAst.module
+  change Extends { body := program.body.take 2 ++ CommonAst.module.body } CommonAst.module
   apply Extends.prepend
   · intro name member
     change name ∈ ["naive"] at member

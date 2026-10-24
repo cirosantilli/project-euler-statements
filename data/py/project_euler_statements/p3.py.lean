@@ -89,7 +89,7 @@ theorem naive.result_in (program : Module)
   · exact scan_result program prime n n _ rfl
 
 private theorem common_extension : Extends P3Ast.module CommonAst.module := by
-  change Extends ⟨P3Ast.module.body.take 2 ++ CommonAst.module.body⟩ CommonAst.module
+  change Extends { body := P3Ast.module.body.take 2 ++ CommonAst.module.body } CommonAst.module
   apply Extends.prepend
   · intro name member
     change name ∈ ["naive"] at member

@@ -2,6 +2,9 @@ Triangle = list[list[int]]
 
 
 def max_row(row: list[int], below: list[int]) -> list[int]:
+    """
+    @formalsw: Returns
+    """
     if not row or len(below) < 2:
         return []
     return [x + max(y, z) for x, y, z in zip(row, below, below[1:])]
@@ -10,7 +13,10 @@ def max_row(row: list[int], below: list[int]) -> list[int]:
 small_triangle_t = [[3], [7, 4], [2, 4, 6], [8, 5, 9, 3]]
 
 
-def naive(tri: Triangle) -> int:
+def naive(tri: list[list[int]]) -> int:
+    """
+    @formalsw: Returns
+    """
     rows = list(reversed(tri))
     if not rows:
         return 0

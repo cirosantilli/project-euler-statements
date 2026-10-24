@@ -2,6 +2,9 @@ from dataclasses import dataclass
 
 
 def is_leap(y: int) -> bool:
+    """
+    @formalsw: Returns
+    """
     return y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)
 
 
@@ -33,6 +36,9 @@ def day_of_week(y: int, m: int, d: int) -> int:
 
 
 def date_to_days(d: Date) -> int:
+    """
+    @formalsw: Returns
+    """
     return days_before_year(d.year) + days_before_month(d.year, d.month) + (d.day - 1)
 
 
@@ -49,7 +55,18 @@ def count_sundays_between(start_date: Date, end_date: Date) -> int:
 
 
 def naive(start_date: Date, end_date: Date) -> int:
+    """
+    @formalsw: Returns
+    """
     return count_sundays_between(start_date, end_date)
+
+
+def naive_years(start_year: int, end_year: int) -> int:
+    """
+    Count first-of-month Sundays from January through December, inclusive.
+    @formalsw: Returns
+    """
+    return naive(Date(start_year, 1, 1), Date(end_year, 12, 31))
 
 
 if __name__ == '__main__':

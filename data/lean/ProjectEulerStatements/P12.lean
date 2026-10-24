@@ -1,8 +1,11 @@
+import ProjectEulerStatements.Lib.DivisorEnumeration
 import Mathlib.Data.List.Basic
 import Mathlib.Data.Finset.Interval
 import Mathlib.Order.Interval.Finset.Nat
 import Mathlib.NumberTheory.Divisors
 import Mathlib.Tactic
+
+/-! The least triangular number exceeding a requested divisor count. -/
 
 namespace ProjectEulerStatements.P12
 
@@ -82,6 +85,45 @@ decreasing_by
 def naive (k : Nat) : Nat :=
   let m := Nat.find (exists_triangle_divisorCount_gt k)
   naiveGo k m 0 (Nat.find_spec (exists_triangle_divisorCount_gt k)) (Nat.zero_le _)
+
+/-- The mathematical divisor count agrees with the reference's bounded list. -/
+theorem divisorCount_eq_enumeration_length (n : Nat) :
+    divisorCount n = (DivisorEnumeration.values n).length := by
+  simpa only [divisorCount, divisors] using (DivisorEnumeration.length_eq_card_divisors n).symm
+
+/-- The search returns the least qualifying index, independently of the witness
+used only to justify termination. -/
+theorem naiveGo_eq_first (k m n : Nat) (hm : divisorCount (triangle m) > k) (hn : n ≤ m)
+    (before : n ≤ Nat.find (exists_triangle_divisorCount_gt k)) :
+    naiveGo k m n hm hn = firstTriangleOver k := by
+  rw [naiveGo]
+  split
+  · rename_i qualifies
+    have least := Nat.find_min' (exists_triangle_divisorCount_gt k) qualifies
+    have same : n = Nat.find (exists_triangle_divisorCount_gt k) := by omega
+    simp only [same, firstTriangleOver]
+  · rename_i notYet
+    have smaller : n < Nat.find (exists_triangle_divisorCount_gt k) := by
+      have witness := Nat.find_spec (exists_triangle_divisorCount_gt k)
+      by_contra tooLate
+      have same : n = Nat.find (exists_triangle_divisorCount_gt k) := by omega
+      exact notYet (same ▸ witness)
+    exact naiveGo_eq_first k m (n + 1) hm _ (by omega)
+termination_by m - n
+decreasing_by
+  have failed : ¬ divisorCount (triangle n) > k := by assumption
+  have notLast : n ≠ m := by intro equal; subst n; exact failed hm
+  omega
+
+theorem naive_eq_firstTriangleOver (k : Nat) : naive k = firstTriangleOver k :=
+  naiveGo_eq_first k _ 0 _ _ (Nat.zero_le _)
+
+theorem firstIndex_positive (k : Nat) : 0 < Nat.find (exists_triangle_divisorCount_gt k) := by
+  have qualifies := Nat.find_spec (exists_triangle_divisorCount_gt k)
+  by_contra zero
+  have same : Nat.find (exists_triangle_divisorCount_gt k) = 0 := by omega
+  rw [same] at qualifies
+  simp [triangle, divisorCount, divisors] at qualifies
 
 example : naive 5 = 28 := by
   native_decide

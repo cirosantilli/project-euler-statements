@@ -92,6 +92,84 @@
   return:
     type: int
     desc: The sum of all primes strictly below limit.
+11:
+  comment: "Signature: max_adjacent_product(grid: list[list[int]], k: int = 4) -> int."
+  args:
+    grid: list[list[int]]
+    k: int
+  constraints:
+    - k >= 0
+    - The grid has 20 rows of 20 nonnegative integers each.
+  return:
+    type: int
+    desc: The greatest product of k adjacent entries horizontally, vertically, or diagonally; zero if no segment fits, and one for zero-length segments.
+12:
+  comment: "Signature: first_triangular_with_over(k: int) -> int."
+  args:
+    k: int
+  constraints:
+    - k >= 0
+  return:
+    type: int
+    desc: The least positive triangular number with more than k positive divisors.
+13:
+  comment: "Signature: solve(nums: list[int], k: int) -> int. The adapter uses the original string-based algorithm."
+  args:
+    nums: list[int]
+    k: int
+  constraints:
+    - sum(nums) >= 0
+    - k >= 0
+  return:
+    type: int
+    desc: The integer represented by the first k decimal digits of the sum, or zero for an empty prefix. If k exceeds the digit count, return the whole sum.
+15:
+  comment: "Signature: solve(n: int) -> int. The lattice_paths(grid_n, grid_m) helper also accepts rectangular grids."
+  args:
+    n: int
+  constraints:
+    - n >= 0
+  return:
+    type: int
+    desc: The number of paths through an n by n grid using only right and down steps; one for the zero grid.
+16:
+  comment: "Signature: solve(n: int = 1000) -> int."
+  args:
+    n: int
+  constraints:
+    - n >= 0
+  return:
+    type: int
+    desc: The sum of the decimal digits of 2**n.
+17:
+  comment: "Signature: solve(n: int = 1000) -> int. The optimized solver uses the module's ONES, TEENS, and TENS spelling tables."
+  args:
+    n: int
+  constraints:
+    - 0 <= n <= 1000
+    - ONES, TEENS, and TENS contain their declared English spellings, as specified by the Python Requires predicates.
+  return:
+    type: int
+    desc: The total number of letters in the British English names of the integers from 1 through n, ignoring spaces and hyphens; zero for n = 0.
+18:
+  comment: "Signature: max_path_sum(triangle: list[list[int]]) -> int."
+  args:
+    triangle: list[list[int]]
+  constraints:
+    - The triangle is nonempty, and row i has i + 1 entries, counting from zero.
+  return:
+    type: int
+    desc: The greatest sum along a path from the top to the bottom, moving to either adjacent child at each row. Weights may be signed integers.
+19:
+  comment: "Signature: count_sundays_on_first(start_year: int, end_year: int) -> int. The reference's naive_years adapter selects 1 January through 31 December; naive itself accepts arbitrary date endpoints."
+  args:
+    start_year: int
+    end_year: int
+  constraints:
+    - 1900 <= start_year <= end_year
+  return:
+    type: int
+    desc: The number of Sundays falling on the first day of a month in the inclusive range of complete calendar years.
 1014:
   args:
     v: int

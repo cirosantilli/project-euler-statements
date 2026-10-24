@@ -6,6 +6,10 @@ def digit_sum(n: int) -> int:
 
 
 def naive(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     return digit_sum(2 ** n)
 
 

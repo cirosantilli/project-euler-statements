@@ -1,12 +1,21 @@
 def small_word_len(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return {0:0,1:3,2:3,3:5,4:4,5:4,6:3,7:5,8:5,9:4,10:3,11:6,12:6,13:8,14:8,15:7,16:7,17:9,18:8,19:8}.get(n, 0)
 
 
 def tens_word_len(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return {2:6,3:6,4:5,5:5,6:5,7:7,8:6,9:6}.get(n, 0)
 
 
 def word_len(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     if n == 0:
         return 0
     if n < 20:
@@ -22,6 +31,9 @@ def word_len(n: int) -> int:
 
 
 def naive(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(word_len(i) for i in range(n + 1))
 
 

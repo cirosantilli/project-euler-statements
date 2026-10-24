@@ -6,8 +6,9 @@ import ProjectEulerStatements.P4
 namespace data.«project-euler-statements».data.py.project_euler_statements.p4
 open FormalSW.PyAst
 
-private theorem common_extension : Calls.Extends P4Ast.module CommonAst.module := by
-  change Calls.Extends ⟨P4Ast.module.body.take 2 ++ CommonAst.module.body⟩ CommonAst.module
+private theorem common_extension : HeapCalls.Extends P4Ast.module CommonAst.module := by
+  apply HeapCalls.Extends.of_classless (classless := rfl)
+  change Calls.Extends { body := P4Ast.module.body.take 2 ++ CommonAst.module.body } CommonAst.module
   apply Calls.Extends.prepend
   · intro name member
     change name ∈ ["naive"] at member

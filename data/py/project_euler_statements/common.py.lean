@@ -1,5 +1,7 @@
 import data.«project-euler-statements».«.formalsw».data.py.project_euler_statements.«common.py.ast»
 import FormalSW
+import ProjectEulerStatements.Lib.PositionalDigits
+import ProjectEulerStatements.Lib.DivisorEnumeration
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Data.Nat.Sqrt
 import Mathlib.Data.Nat.Digits.Defs
@@ -235,5 +237,202 @@ theorem digits_le.«Supported» (n base : Int)
     (hb : Calls.Condition program (fun key => if key = "base" then some (.int base) else none) CommonAst.requires_digits_le_1) :
     (HeapCalls.call program "digits_le" [.scalar (.int n), .scalar (.int base)] []).Supported :=
   (digits_le.«Returns» n base hn hb).supported
+
+namespace DivisorsProof
+
+private abbrev encode (items : List Nat) : List Mutable.Value :=
+  items.map (fun (value : Nat) => .scalar (.int (value : Int)))
+private abbrev test : Expr := .compare (.binOp (.name "n") .mod (.name "d")) [(.eq, .constant (.int 0))]
+private abbrev body (address : Nat) : List Stmt :=
+  [.ifThen test [.comprehensionAppend address (.name "d")] []]
+
+private theorem loop_result (heap : Mutable.Heap) (n position : Nat) (positive : 0 < position)
+    (items : List Nat) (env : HeapCalls.Env) (getN : env "n" = some (.scalar (.int n))) :
+    ∃ finalEnv, HeapCalls.BlockContinues program env [.rangeStepLoop "d" position (n + 1) 1 (body heap.length) []]
+      (heap ++ [.list (encode items)]) finalEnv
+      (heap ++ [.list (encode (items ++ ProjectEulerStatements.DivisorEnumeration.remaining n position))]) := by
+  by_cases active : position < n + 1
+  · let boundEnv := HeapCalls.setLocal env "d" (.scalar (.int position))
+    have savedN : boundEnv "n" = some (.scalar (.int n)) := by simpa [boundEnv, HeapCalls.setLocal] using getN
+    have remainder : HeapCalls.Evaluates program boundEnv (.binOp (.name "n") .mod (.name "d"))
+        (heap ++ [.list (encode items)]) (.scalar (.int (↑(n % position)))) (heap ++ [.list (encode items)]) :=
+      HeapCalls.Evaluates.binary (HeapCalls.Evaluates.lookup savedN) (HeapCalls.Evaluates.lookup rfl)
+        (by simp [Mutable.binary, scalarBinary, positive.ne', positive])
+    have tested : HeapCalls.Evaluates program boundEnv test (heap ++ [.list (encode items)])
+        (.scalar (.bool (decide (n % position = 0)))) (heap ++ [.list (encode items)]) :=
+      HeapCalls.Evaluates.compare remainder HeapCalls.Evaluates.constant
+        (by simp [HeapCalls.compare, scalarCompare, evalCmpOp, Int.natCast_dvd_natCast, Nat.dvd_iff_mod_eq_zero])
+    let nextItems := if n % position = 0 then items ++ [position] else items
+    have step : HeapCalls.BlockContinues program boundEnv (body heap.length)
+        (heap ++ [.list (encode items)]) boundEnv (heap ++ [.list (encode nextItems)]) := by
+      by_cases divides : n % position = 0
+      · apply HeapCalls.BlockContinues.branch (flag := true) (by simpa [divides] using tested) rfl
+        have emitted := HeapCalls.BlockContinues.comprehension_append
+          (globals := []) (module := program) (env := boundEnv) (address := heap.length)
+          (heap := heap ++ [.list (encode items)]) (HeapCalls.Evaluates.lookup (name := "d") rfl)
+          (by simp : (heap ++ [.list (encode items)])[heap.length]? = some (.list (encode items)))
+        simpa [nextItems, divides, encode, List.map_append] using emitted
+      · simpa [body, nextItems, divides] using
+          HeapCalls.BlockContinues.branch (yes := [.comprehensionAppend heap.length (.name "d")]) (no := [])
+            (flag := false) (by simpa [divides] using tested) rfl HeapCalls.BlockContinues.nil
+    obtain ⟨finalEnv, rest⟩ := loop_result heap n (position + 1) (by omega) nextItems boundEnv savedN
+    refine ⟨finalEnv, ?_⟩
+    rw [ProjectEulerStatements.DivisorEnumeration.remaining_step n position active]
+    apply HeapCalls.BlockContinues.range_step (by simp [Calls.rangeContinues]; omega)
+    by_cases divides : n % position = 0
+    all_goals simpa [body, Calls.loopContinuation, Calls.loopControl, nextItems, divides,
+      List.append_assoc, Nat.cast_add, Nat.cast_one] using step.append rest
+  · refine ⟨env, ?_⟩
+    rw [ProjectEulerStatements.DivisorEnumeration.remaining_done n position (by omega)]
+    simp only [List.append_nil]
+    exact HeapCalls.BlockContinues.range_done (by simp [Calls.rangeContinues]; omega) HeapCalls.BlockContinues.nil
+termination_by n + 1 - position
+decreasing_by omega
+
+end DivisorsProof
+
+/-- Bounded trial division produces precisely the positive divisors in order. -/
+theorem divisors.result (n : Nat) (heap : Mutable.Heap) :
+    HeapCalls.ReturnsValue program "divisors" [.scalar (.int n)] heap (.ref heap.length)
+      (heap ++ [.list ((ProjectEulerStatements.DivisorEnumeration.values n).map
+        (fun (value : Nat) => .scalar (.int (value : Int))))]) := by
+  apply HeapCalls.BlockReturns.function rfl rfl
+  have tested : HeapCalls.Evaluates program (HeapCalls.argumentEnv [⟨"n", some (.name "int"), none⟩] [.scalar (.int n)])
+      (.compare (.name "n") [(.eq, .constant (.int 0))]) heap (.scalar (.bool (decide (n = 0)))) heap :=
+    HeapCalls.Evaluates.compare (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+      (by simp [HeapCalls.compare, scalarCompare, evalCmpOp])
+  by_cases zero : n = 0
+  · subst n
+    apply HeapCalls.BlockReturns.branch (flag := true) (by simpa using tested) rfl
+    exact HeapCalls.BlockReturns.return_value (HeapCalls.Evaluates.list .nil)
+  · apply HeapCalls.BlockReturns.branch (flag := false) (by simpa [zero] using tested) rfl
+    apply HeapCalls.BlockReturns.return_value
+    let env := HeapCalls.comprehensionEnv
+      (HeapCalls.argumentEnv [⟨"n", some (.name "int"), none⟩] [.scalar (.int n)])
+      [("d", .call (.name "range") [.constant (.int 1), .binOp (.name "n") .add (.constant (.int 1))], [DivisorsProof.test])]
+    obtain ⟨finalEnv, loop⟩ := DivisorsProof.loop_result heap n 1 (by decide) [] env rfl
+    apply HeapCalls.Evaluates.list_comp_range
+      (.cons HeapCalls.Evaluates.constant (.cons
+        (HeapCalls.Evaluates.binary (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant rfl) .nil)) rfl
+    simpa [ProjectEulerStatements.DivisorEnumeration.remaining_one] using loop
+
+theorem divisors.negative (n : Int) (negative : n < 0) (heap : Mutable.Heap) :
+    HeapCalls.ReturnsValue program "divisors" [.scalar (.int n)] heap (.ref heap.length) (heap ++ [.list []]) := by
+  apply HeapCalls.BlockReturns.function rfl rfl
+  apply HeapCalls.BlockReturns.branch (flag := false) (value := .scalar (.bool false)) (middle := heap)
+    (HeapCalls.Evaluates.compare (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+      (by simp [HeapCalls.compare, scalarCompare, evalCmpOp, show n ≠ 0 by omega])) rfl
+  apply HeapCalls.BlockReturns.return_value
+  apply HeapCalls.Evaluates.list_comp_range
+    (.cons HeapCalls.Evaluates.constant (.cons
+      (HeapCalls.Evaluates.binary (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant rfl) .nil)) rfl
+  exact HeapCalls.BlockContinues.range_done (by simp [Calls.rangeContinues]; omega) HeapCalls.BlockContinues.nil
+
+theorem divisors.«Returns» (n : Int) :
+    (HeapCalls.call program "divisors" [.scalar (.int n)] []).Returns := by
+  by_cases nonnegative : 0 ≤ n
+  · simpa [Int.toNat_of_nonneg nonnegative] using (divisors.result n.toNat []).returns
+  · exact (divisors.negative n (by omega) []).returns
+
+theorem divisors.«Supported» (n : Int) :
+    (HeapCalls.call program "divisors" [.scalar (.int n)] []).Supported :=
+  (divisors.«Returns» n).supported
+
+
+/-- Reversing the computed digits allocates a second list and preserves the first. -/
+theorem digits_be.result (n base : Nat) (hb : 1 < base) (heap : Mutable.Heap) :
+    HeapCalls.ReturnsValue program "digits_be" [.scalar (.int n), .scalar (.int base)] heap
+      (.ref (heap.length + 1))
+      (heap ++ [.list ((Nat.digits base n).map (fun (d : Nat) => .scalar (.int (d : Int)))),
+        .list (((Nat.digits base n).map (fun (d : Nat) => .scalar (.int (d : Int)))).reverse)]) := by
+  apply HeapCalls.BlockReturns.function rfl rfl
+  apply HeapCalls.BlockReturns.return_value
+  convert HeapCalls.Evaluates.reversed_list
+    (items := (Nat.digits base n).map (fun (d : Nat) => .scalar (.int d)))
+    (HeapCalls.Evaluates.call
+      (env := HeapCalls.argumentEnv ((findFunctionIn program.body "digits_be").getD ([], [])).1
+        [.scalar (.int n), .scalar (.int base)])
+      (.cons (HeapCalls.Evaluates.lookup (name := "n") rfl)
+        (.cons (HeapCalls.Evaluates.lookup (name := "base") rfl) .nil))
+      (digits_le.result n base hb heap)) (by simp) using 1 <;>
+    simp [List.append_assoc]
+
+namespace OfDigitsProof
+open ProjectEulerStatements.PositionalDigits
+
+private abbrev body : List Stmt :=
+  [.augAssign (.name "n") .add (.binOp (.name "d") .mult (.name "mul")),
+    .augAssign (.name "mul") .mult (.name "base")]
+
+private theorem loop (items remaining : List Int) (heap : Mutable.Heap) (address position : Nat)
+    (found : heap[address]? = some (.list (items.map fun n => .scalar (.int n))))
+    (suffix : items.drop position = remaining) (env : HeapCalls.Env) (base total multiplier : Int)
+    (getBase : env "base" = some (.scalar (.int base)))
+    (getTotal : env "n" = some (.scalar (.int total)))
+    (getMultiplier : env "mul" = some (.scalar (.int multiplier))) :
+    HeapCalls.BlockReturns program env
+      [.sequenceStepLoop "d" (.ref address) position body [], .return (.name "n")]
+      heap (.scalar (.int (total + multiplier * value base remaining))) heap := by
+  have sequence : Mutable.sequence (.ref address) heap =
+      some (.ok (items.map fun n => .scalar (.int n)), heap) := by simp [Mutable.sequence, found]
+  induction remaining generalizing position env total multiplier with
+  | nil =>
+      apply HeapCalls.BlockReturns.sequence_done (source := .ref address) sequence
+      · have missing : items[position]? = none := by
+          simpa [suffix] using (List.head?_drop (l := items) (i := position)).symm
+        simp [missing]
+      · simpa using HeapCalls.BlockReturns.return_value (HeapCalls.Evaluates.lookup getTotal)
+  | cons digit rest ih =>
+      have item : items[position]? = some digit := by
+        simpa [suffix] using (List.head?_drop (l := items) (i := position)).symm
+      rw [ProjectEulerStatements.PositionalDigits.step]
+      apply HeapCalls.BlockReturns.sequence_step (source := .ref address) (value := .scalar (.int digit)) sequence (by simp [item])
+      apply HeapCalls.BlockReturns.augAssign
+        (left := .scalar (.int total)) (right := .scalar (.int (digit * multiplier)))
+        (value := .scalar (.int (total + digit * multiplier))) (middle := heap) (afterOperation := heap)
+      · simpa [HeapCalls.setLocal] using getTotal
+      · exact HeapCalls.Evaluates.binary (av := .scalar (.int digit))
+          (HeapCalls.Evaluates.lookup (by simp [HeapCalls.setLocal]))
+          (HeapCalls.Evaluates.lookup (by simpa [HeapCalls.setLocal] using getMultiplier)) rfl
+      · rfl
+      apply HeapCalls.BlockReturns.augAssign
+        (left := .scalar (.int multiplier)) (right := .scalar (.int base))
+        (value := .scalar (.int (multiplier * base))) (middle := heap) (afterOperation := heap)
+      · simpa [HeapCalls.setLocal] using getMultiplier
+      · exact HeapCalls.Evaluates.lookup (by simpa [HeapCalls.setLocal] using getBase)
+      · rfl
+      apply ih
+      · simp [List.drop_add_one_eq_tail_drop, suffix]
+      · simpa [HeapCalls.setLocal] using getBase
+      · simp [HeapCalls.setLocal]
+      · simp [HeapCalls.setLocal]
+
+end OfDigitsProof
+
+/-- Positional evaluation terminates for any integer digits and base, including negative bases. -/
+theorem of_digits_le.result (items : List Int) (base : Int) (heap : Mutable.Heap) (address : Nat)
+    (found : heap[address]? = some (.list (items.map fun n => .scalar (.int n)))) :
+    HeapCalls.ReturnsValue program "of_digits_le" [.ref address, .scalar (.int base)] heap
+      (.scalar (.int (ProjectEulerStatements.PositionalDigits.value base items))) heap := by
+  apply HeapCalls.BlockReturns.function rfl rfl
+  apply HeapCalls.BlockReturns.assign HeapCalls.Evaluates.constant
+  apply HeapCalls.BlockReturns.assign HeapCalls.Evaluates.constant
+  apply HeapCalls.BlockReturns.for_sequence (items := items.map fun n => .scalar (.int n))
+    (by intros; simp) (HeapCalls.Evaluates.lookup rfl)
+    (by simp [Mutable.sequence, found])
+  simpa using OfDigitsProof.loop items items heap address 0 found rfl _ base 0 1 rfl rfl rfl
+
+/-- Big-endian evaluation reverses a fresh copy before running the same positional loop. -/
+theorem of_digits_be.result (items : List Int) (base : Int) (heap : Mutable.Heap) (address : Nat)
+    (found : heap[address]? = some (.list (items.map fun n => .scalar (.int n)))) :
+    HeapCalls.ReturnsValue program "of_digits_be" [.ref address, .scalar (.int base)] heap
+      (.scalar (.int (ProjectEulerStatements.PositionalDigits.value base items.reverse)))
+      (heap ++ [.list ((items.map fun n => .scalar (.int n)).reverse)]) := by
+  apply HeapCalls.BlockReturns.function rfl rfl
+  apply HeapCalls.BlockReturns.return_value
+  apply HeapCalls.Evaluates.call
+    (.cons (HeapCalls.Evaluates.reversed_list (HeapCalls.Evaluates.lookup rfl) found)
+      (.cons (HeapCalls.Evaluates.lookup rfl) .nil))
+  exact of_digits_le.result items.reverse base _ heap.length (by simp)
 
 end data.«project-euler-statements».data.py.project_euler_statements.common

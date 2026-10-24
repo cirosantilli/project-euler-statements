@@ -63,6 +63,9 @@ def proper_divisors(n: int) -> list[int]:
 
 
 def divisors(n: int) -> list[int]:
+    """
+    @formalsw: Returns
+    """
     if n == 0:
         return []
     return [d for d in range(1, n + 1) if n % d == 0]
