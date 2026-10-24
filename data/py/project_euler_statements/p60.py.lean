@@ -2,6 +2,7 @@ import data.«project-euler-statements».«.formalsw».data.py.project_euler_sta
 import data.«project-euler-statements».data.py.project_euler_statements.«common.py»
 import ProjectEulerSolutions.Lib.DecimalShift
 import ProjectEulerSolutions.Lib.CliqueSearch
+import ProjectEulerSolutions.Lib.CliqueEnumeration
 import ProjectEulerSolutions.Lib.HeapRangeFold
 import ProjectEulerSolutions.Lib.HeapSequenceFold
 import FormalSW
@@ -984,5 +985,52 @@ theorem «Returns» (limit : Int) : (HeapCalls.call program "naive" [number limi
 
 theorem «Supported» (limit : Int) : (HeapCalls.call program "naive" [number limit] []).Supported :=
   («Returns» limit).supported
+
+end data.«project-euler-statements».data.py.project_euler_statements.p60.naive
+
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p60.naive
+open ProjectEulerSolutions
+
+def relation (p q : Nat) : Bool := compatible p q
+
+theorem enumerationModel_eq_exhaustive (primes : List Nat) (best : CliqueSearch.Best) :
+    enumerationModel primes best = CliqueEnumeration.exhaustive relation 5 [] primes best := by
+  symm
+  unfold enumerationModel updateB updateC updateD updateE
+  simp only [CliqueEnumeration.exhaustive_succ, CliqueEnumeration.exhaustive_zero,
+    CliqueEnumeration.accepts, relation,
+    acceptedB, acceptedC, acceptedD, acceptedE, leafTotal_sum,
+    List.nil_append, List.cons_append, List.getLast?_cons_cons,
+    List.getLast?_nil, List.getLast?_singleton, Option.map_none, Option.getD_none,
+    Option.map_some, Option.getD_some, List.all_nil, Bool.true_and, if_true]
+
+theorem vertices_increasing (limit : Int) : (vertices limit).Pairwise (· < ·) := by
+  unfold vertices
+  exact List.Pairwise.filter _ (List.pairwise_lt_range' 1 (by decide))
+
+theorem mem_vertices (limit : Int) (p : Nat) : p ∈ vertices limit ↔
+    Nat.Prime p ∧ 3 ≤ p ∧ (p : Int) ≤ limit ∧ p ≠ 5 := by
+  simp only [vertices, List.mem_filter, List.mem_range'_1, keepPrime, Bool.and_eq_true,
+    decide_eq_true_eq, prime, Int.toNat_natCast]
+  constructor
+  · rintro ⟨⟨lower, upper⟩, notFive, primality⟩
+    exact ⟨primality, lower, by omega, notFive⟩
+  · rintro ⟨primality, lower, upper, notFive⟩
+    exact ⟨⟨lower, by omega⟩, notFive, primality⟩
+
+theorem enumerationModel_optimal (primes : List Nat) (best : CliqueSearch.Best) (ordered : primes.Pairwise (· < ·)) :
+    CliqueSearch.Optimal relation 5 [] primes 0 best (enumerationModel primes best) := by
+  rw [enumerationModel_eq_exhaustive]
+  exact CliqueEnumeration.exhaustive_optimal relation 5 primes best ordered
+
+theorem answerModel_optimal (limit : Int) :
+    CliqueSearch.Optimal relation 5 [] (vertices limit) 0 ⟨sentinel, []⟩ (answerModel limit) :=
+  enumerationModel_optimal (vertices limit) ⟨sentinel, []⟩ (vertices_increasing limit)
+
+theorem answerModel_eq_search (limit : Int) :
+    answerModel limit = CliqueSearch.search relation 5 [] (vertices limit) 0 ⟨sentinel, []⟩ :=
+  (answerModel_optimal limit).unique (CliqueSearch.search_optimal relation 5 [] (vertices limit) 0 ⟨sentinel, []⟩
+    (vertices_increasing limit))
 
 end data.«project-euler-statements».data.py.project_euler_statements.p60.naive
