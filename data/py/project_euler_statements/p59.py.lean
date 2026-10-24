@@ -1,3 +1,4 @@
+import lang.py.FormalSW.SumCalls
 import ProjectEulerSolutions.Lib.HeapRows
 import ProjectEulerSolutions.Lib.HeapCollection
 import lang.py.FormalSW.ComprehensionCalls
@@ -911,3 +912,324 @@ theorem «Supported» : (HeapCalls.call P59Ast.module "keys" [] []).Supported :=
   «Returns».supported
 
 end data.«project-euler-statements».data.py.project_euler_statements.p59.keys
+
+
+/-! This fragment follows the keys materialization theorem. All calls below are
+actual source calls; the key-space and both loops remain symbolic. -/
+namespace data.«project-euler-statements».data.py.project_euler_statements.p59.naive
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+open ProjectEulerSolutions
+set_option Elab.async false
+set_option maxRecDepth 4096
+set_option maxHeartbeats 1200000
+
+private abbrev source := P59Ast.module
+private abbrev number (value : Int) : Mutable.Value := .scalar (.int value)
+private abbrev flag (value : Bool) : Mutable.Value := .scalar (.bool value)
+private abbrev scoreValue := text_score.valueOfScore
+private abbrev oldScore (best : Option XorDecryption.Selection) : Option Int := best.map XorDecryption.Selection.score
+private abbrev State (env : Mutable.Env) (cipher : List UInt8) (best : Option XorDecryption.Selection) : Prop :=
+  env "cipher" = some (.scalar (.bytes cipher)) ∧
+  env "best_score" = some (scoreValue (oldScore best)) ∧
+  env "best_sum" = some (number (XorDecryption.selectedSum best))
+
+private abbrev isNone (name : String) : Expr := .builtinCall .identity [.name name, .constant .none]
+private abbrev condition : Expr :=
+  .boolOp .and [.unaryOp .not (isNone "score"),
+    .boolOp .or [isNone "best_score", .compare (.name "score") [(.gt, .name "best_score")]]]
+private abbrev updateBody : List Stmt :=
+  [.assign [.name "best_score"] (.name "score"),
+    .assign [.name "best_sum"] (.sumSequence (.name "text") (.constant (.int 0)))]
+private abbrev chooseBody : List Stmt := [.ifThen condition updateBody []]
+private abbrev row : List Stmt :=
+  [.assign [.name "text"] (.call (.name "decrypt") [.name "cipher", .name "k"]),
+    .assign [.name "score"] (.call (.name "text_score") [.name "text"]),
+    .ifThen condition updateBody []]
+
+private def wins : Option XorDecryption.Selection → Option Int → Bool
+  | _, none => false
+  | none, some _ => true
+  | some best, some score => decide (best.score < score)
+
+private theorem isNone_evaluates (env : Mutable.Env) (heap : Mutable.Heap) (name : String)
+    (value : Option Int) (lookup : env name = some (scoreValue value)) (globals : Mutable.Globals) :
+    Evaluates source env (isNone name) heap (flag value.isNone) heap globals := by
+  apply Evaluates.builtin (.cons (Evaluates.lookup lookup) (.cons Evaluates.constant .nil))
+  cases value <;> rfl
+
+/-- The two Boolean operators retain their short-circuit source evaluation.
+In particular no integer/None comparison is requested. -/
+private theorem condition_evaluates (env : Mutable.Env) (heap : Mutable.Heap)
+    (best : Option XorDecryption.Selection) (candidate : Option Int)
+    (getBest : env "best_score" = some (scoreValue (oldScore best)))
+    (getScore : env "score" = some (scoreValue candidate)) (globals : Mutable.Globals) :
+    Evaluates source env condition heap (flag (wins best candidate)) heap globals := by
+  have first : Evaluates source env (.unaryOp .not (isNone "score")) heap
+      (flag (!candidate.isNone)) heap globals := by
+    apply Evaluates.unary (isNone_evaluates env heap "score" candidate getScore globals)
+    cases candidate <;> rfl
+  cases candidate with
+  | none =>
+      exact Evaluates.boolean_stop first rfl rfl
+  | some score =>
+      apply Evaluates.boolean_next (op := .and) first rfl rfl
+      apply Evaluates.boolean_last (flag := wins best (some score))
+      · cases best with
+        | none =>
+            exact Evaluates.boolean_stop (op := .or)
+              (isNone_evaluates env heap "best_score" none getBest globals) rfl rfl
+        | some incumbent =>
+            apply Evaluates.boolean_next (op := .or)
+              (isNone_evaluates env heap "best_score" (some incumbent.score) getBest globals) rfl rfl
+            apply Evaluates.boolean_last (flag := decide (incumbent.score < score))
+            · apply Evaluates.compare (value := flag (decide (incumbent.score < score)))
+                (Evaluates.lookup getScore) (Evaluates.lookup getBest)
+              simp [HeapCalls.compare, scalarCompare, evalCmpOp, scoreValue, text_score.valueOfScore]
+            · rfl
+      · rfl
+
+private theorem winning (best : Option XorDecryption.Selection) (candidate : Option Int)
+    (key : XorDecryption.Key) (total : Int) (won : wins best candidate = true) :
+    ∃ score, candidate = some score ∧
+      XorDecryption.advance best key (candidate.map (fun score => (score, total))) =
+        some ⟨key, score, total⟩ := by
+  cases candidate with
+  | none => simp [wins] at won
+  | some score =>
+      refine ⟨score, rfl, ?_⟩
+      cases best with
+      | none => rfl
+      | some incumbent =>
+          have greater : incumbent.score < score := of_decide_eq_true won
+          simp [XorDecryption.advance, XorDecryption.choose, greater]
+
+private theorem losing (best : Option XorDecryption.Selection) (candidate : Option Int)
+    (key : XorDecryption.Key) (total : Int) (lost : wins best candidate = false) :
+    XorDecryption.advance best key (candidate.map (fun score => (score, total))) = best := by
+  cases candidate with
+  | none => cases best <;> rfl
+  | some score =>
+      cases best with
+      | none => simp [wins] at lost
+      | some incumbent =>
+          have less : ¬ incumbent.score < score := of_decide_eq_false lost
+          simp [XorDecryption.advance, XorDecryption.choose, less]
+
+private theorem foldl_add (values : List Int) (initial : Int) :
+    values.foldl Int.add initial = initial + values.sum := by
+  induction values generalizing initial with
+  | nil => simp
+  | cons head tail ih =>
+      simp only [List.foldl_cons, ih, List.sum_cons]
+      change (initial + head) + tail.sum = initial + (head + tail.sum)
+      exact Int.add_assoc initial head tail.sum
+
+private theorem choose (cipher : List UInt8) (key : XorDecryption.Key)
+    (plain : List Int) (best : Option XorDecryption.Selection)
+    (env : Mutable.Env) (heap : Mutable.Heap) (address : Nat)
+    (state : State env cipher best)
+    (getScore : env "score" = some (scoreValue (XorDecryption.scoreOnly plain)))
+    (getText : env "text" = some (.ref address))
+    (found : heap[address]? = some (.list (keys.encode plain))) (globals : Mutable.Globals) :
+    ∃ finalEnv,
+      State finalEnv cipher (XorDecryption.advance best key (XorDecryption.scoreText plain)) ∧
+      BlockContinues source env chooseBody heap finalEnv heap globals := by
+  have tested := condition_evaluates env heap best (XorDecryption.scoreOnly plain) state.2.1 getScore globals
+  by_cases won : wins best (XorDecryption.scoreOnly plain) = true
+  · obtain ⟨score, candidate, advanced⟩ := winning best (XorDecryption.scoreOnly plain) key plain.sum won
+    let updated := setLocal env "best_score" (number score)
+    let finalEnv := setLocal updated "best_sum" (number plain.sum)
+    have sumRun : Evaluates source updated (.sumSequence (.name "text") (.constant (.int 0)))
+        heap (number plain.sum) heap globals := by
+      have getTextNow : updated "text" = some (.ref address) := by
+        simpa [updated, setLocal] using getText
+      have summed := Evaluates.sum_integers (module := source) (env := updated)
+        (iterable := .name "text") (start := .constant (.int 0))
+        (source := .ref address) (heap := heap) (middle := heap)
+        (values := plain) (initial := 0) (globals := globals)
+        (.cons (Evaluates.lookup getTextNow) (.cons Evaluates.constant .nil))
+        (by simp [Mutable.sequence, found, keys.encode])
+      simpa only [foldl_add, Int.zero_add] using summed
+    have assigned : BlockContinues source env updateBody heap finalEnv heap globals := by
+      exact (BlockContinues.assign (name := "best_score")
+        (Evaluates.lookup (by simpa only [candidate, scoreValue, text_score.valueOfScore] using getScore))).append
+          (BlockContinues.assign (name := "best_sum") sumRun)
+    refine ⟨finalEnv, ?_, ?_⟩
+    · rw [XorDecryption.scoreText_eq_scoreOnly, advanced]
+      simp [State, finalEnv, updated, setLocal, XorDecryption.selectedSum, scoreValue,
+        text_score.valueOfScore, state.1]
+    · apply BlockContinues.branch (flag := true) (by simpa only [won] using tested) rfl
+      exact assigned
+  · have lost : wins best (XorDecryption.scoreOnly plain) = false := Bool.eq_false_iff.mpr won
+    have advanced := losing best (XorDecryption.scoreOnly plain) key plain.sum lost
+    refine ⟨env, ?_, ?_⟩
+    · simpa only [XorDecryption.scoreText_eq_scoreOnly, advanced] using state
+    · apply BlockContinues.branch (flag := false) (by simpa only [lost] using tested) rfl
+      exact BlockContinues.nil
+
+/-- Every key allocates exactly one plaintext list, including rejected text. -/
+private theorem cell (cipher : List UInt8) (key : XorDecryption.Key)
+    (best : Option XorDecryption.Selection) (env : Mutable.Env) (heap : Mutable.Heap) (address : Nat)
+    (state : State env cipher best) (getKey : env "k" = some (.ref address))
+    (foundKey : heap[address]? = some (.list (keys.encode (XorDecryption.keyValues key))))
+    (globals : Mutable.Globals) :
+    ∃ finalEnv,
+      State finalEnv cipher (XorDecryption.advance best key (XorDecryption.scoreKey (XorDecryption.encodeBytes cipher) key)) ∧
+      BlockContinues source env row heap finalEnv
+        (heap ++ [.list (keys.encode (XorDecryption.decrypt (XorDecryption.encodeBytes cipher) key))]) globals := by
+  let plain := XorDecryption.decrypt (XorDecryption.encodeBytes cipher) key
+  let after := heap ++ [.list (keys.encode plain)]
+  let textEnv := setLocal env "text" (.ref heap.length)
+  let scoreEnv := setLocal textEnv "score" (scoreValue (XorDecryption.scoreOnly plain))
+  have decoded : Evaluates source env (.call (.name "decrypt") [.name "cipher", .name "k"])
+      heap (.ref heap.length) after globals := by
+    apply Evaluates.call (.cons (Evaluates.lookup state.1) (.cons (Evaluates.lookup getKey) .nil))
+    exact decrypt.result cipher key heap address foundKey globals
+  have foundText : after[heap.length]? = some (.list (keys.encode plain)) := by simp [after]
+  have scored : Evaluates source textEnv (.call (.name "text_score") [.name "text"])
+      after (scoreValue (XorDecryption.scoreOnly plain)) after globals := by
+    exact Evaluates.call (.cons (Evaluates.lookup (by simp [textEnv, setLocal])) .nil)
+      (text_score.result plain after heap.length foundText globals)
+  have scoreState : State scoreEnv cipher best := by
+    simpa [State, scoreEnv, textEnv, setLocal] using state
+  obtain ⟨finalEnv, finalState, updated⟩ := choose cipher key plain best scoreEnv after heap.length scoreState
+    (by simp [scoreEnv, setLocal]) (by simp [scoreEnv, textEnv, setLocal]) foundText globals
+  refine ⟨finalEnv, finalState, ?_⟩
+  exact ((BlockContinues.assign (name := "text") decoded).append
+    (BlockContinues.assign (name := "score") scored)).append updated
+
+/-- A list cell per key is appended in the same order as actual key traversal. -/
+def plaintextCells (cipher : List UInt8) (space : List XorDecryption.Key) : Mutable.Heap :=
+  space.map fun key => .list (keys.encode (XorDecryption.decrypt (XorDecryption.encodeBytes cipher) key))
+
+def visitedHeap (caller : Mutable.Heap) (cipher : List UInt8) (visited : List XorDecryption.Key) : Mutable.Heap :=
+  keys.materialized caller ++ plaintextCells cipher visited
+
+def completedHeap (caller : Mutable.Heap) (cipher : List UInt8) : Mutable.Heap :=
+  visitedHeap caller cipher XorDecryption.keys
+
+private abbrev outerItems (caller : Mutable.Heap) : List Mutable.Value :=
+  keys.rowRefs (caller ++ [.list (keys.encode XorDecryption.letters)]) 17576
+
+private theorem outer_sequence (caller : Mutable.Heap) (cipher : List UInt8) (visited : List XorDecryption.Key) :
+    Mutable.sequence (.ref (caller.length + 1)) (visitedHeap caller cipher visited) =
+      some (.ok (outerItems caller), visitedHeap caller cipher visited) := by
+  have found := HeapCollection.prefix_found (keys.materialized caller) (plaintextCells cipher visited)
+    (caller.length + 1) _ (keys.outer_found caller)
+  simp [Mutable.sequence, visitedHeap, found]
+
+private theorem item_at (caller : Mutable.Heap) (index : Nat) (inside : index < 17576) :
+    (outerItems caller)[index]? = some (.ref (caller.length + 2 + index)) := by
+  simp only [outerItems, keys.rowRefs, HeapRows.addresses, List.getElem?_map,
+    List.getElem?_range inside, Option.map_some, List.length_append, List.length_singleton]
+
+private theorem loop (cipher : List UInt8) (caller : Mutable.Heap)
+    (remaining before : List XorDecryption.Key) (whole : XorDecryption.keys = before ++ remaining)
+    (best : Option XorDecryption.Selection) (env : Mutable.Env) (state : State env cipher best)
+    (globals : Mutable.Globals) :
+    BlockReturns source env
+      [.sequenceStepLoop "k" (.ref (caller.length + 1)) before.length row [], .return (.name "best_sum")]
+      (visitedHeap caller cipher before)
+      (number (XorDecryption.selectedSum (XorDecryption.scan (XorDecryption.scoreKey (XorDecryption.encodeBytes cipher)) remaining best)))
+      (visitedHeap caller cipher (before ++ remaining)) globals := by
+  induction remaining generalizing before best env with
+  | nil =>
+      simp only [List.append_nil, XorDecryption.scan, List.foldl_nil]
+      apply BlockReturns.sequence_done (items := outerItems caller)
+        (by simpa only [sequenceValue] using outer_sequence caller cipher before)
+      · have length : before.length = 17576 := by
+          simpa only [whole, List.length_append, List.length_nil, Nat.add_zero] using XorDecryption.keys_length
+        simp [outerItems, keys.rowRefs, HeapRows.addresses, length]
+      · exact BlockReturns.return_value (Evaluates.lookup state.2.2)
+  | cons key rest ih =>
+      have keyAt : XorDecryption.keys[before.length]? = some key := by simp [whole]
+      have inside : before.length < 17576 := by
+        have bounded := (List.getElem?_eq_some_iff.mp keyAt).1
+        simpa only [XorDecryption.keys_length] using bounded
+      have foundKey := HeapCollection.prefix_found (keys.materialized caller) (plaintextCells cipher before)
+        (caller.length + 2 + before.length) _ (keys.key_found caller before.length key keyAt)
+      let bound := setLocal env "k" (.ref (caller.length + 2 + before.length))
+      have boundState : State bound cipher best := by simpa [State, bound, setLocal] using state
+      obtain ⟨nextEnv, nextState, stepped⟩ := cell cipher key best bound (visitedHeap caller cipher before)
+        (caller.length + 2 + before.length) boundState (by simp [bound, setLocal]) foundKey globals
+      have after : visitedHeap caller cipher before ++
+          [.list (keys.encode (XorDecryption.decrypt (XorDecryption.encodeBytes cipher) key))] =
+          visitedHeap caller cipher (before ++ [key]) := by
+        simp only [visitedHeap, plaintextCells, List.map_append, List.map_singleton, List.append_assoc]
+      rw [after] at stepped
+      have continued := ih (before ++ [key])
+        (by simpa only [List.append_assoc, List.singleton_append] using whole)
+        (XorDecryption.advance best key (XorDecryption.scoreKey (XorDecryption.encodeBytes cipher) key)) nextEnv nextState
+      apply BlockReturns.sequence_step (items := outerItems caller)
+        (value := .ref (caller.length + 2 + before.length))
+        (by simpa only [sequenceValue] using outer_sequence caller cipher before) (item_at caller before.length inside)
+      simpa only [Calls.loopContinuation, row, chooseBody, updateBody, Calls.loopControl, Calls.loopControlStmt,
+        Bool.false_or, Bool.false_eq_true, if_false, List.length_append, List.length_singleton,
+        List.append_assoc, List.singleton_append, XorDecryption.scan, List.foldl_cons] using stepped.returns continued
+
+/-- The actual materialized reference scans every key, preserves the first
+maximum on ties, and returns zero when every decryption is rejected. -/
+theorem result (cipher : List UInt8) (heap : Mutable.Heap) (globals : Mutable.Globals := []) :
+    ReturnsValue source "naive" [.scalar (.bytes cipher)] heap
+      (number (XorDecryption.answer cipher)) (completedHeap heap cipher) globals := by
+  let params := ((findFunctionIn source.body "naive").getD ([], [])).1
+  let body := ((findFunctionIn source.body "naive").getD ([], [])).2
+  let initial := functionEnv params body [.scalar (.bytes cipher)] globals
+  let scoreEnv := setLocal initial "best_score" (.scalar .none)
+  let initialized := setLocal scoreEnv "best_sum" (number 0)
+  have initialState : State initialized cipher none := by
+    refine ⟨?_, ?_, ?_⟩
+    · simpa [initialized, scoreEnv, setLocal] using
+        (show initial "cipher" = some (.scalar (.bytes cipher)) by cases globals <;> rfl)
+    · simp [initialized, scoreEnv, setLocal, scoreValue, text_score.valueOfScore]
+    · simp [initialized, setLocal, XorDecryption.selectedSum]
+  have prepared : BlockContinues source initial
+      [.annAssign (.name "best_score") (.binOp (.name "int") .bitOr (.constant .none)) (some (.constant .none)),
+        .assign [.name "best_sum"] (.constant (.int 0))] heap initialized heap globals :=
+    (BlockContinues.annAssign (name := "best_score") Evaluates.constant).append
+      (BlockContinues.assign (name := "best_sum") Evaluates.constant)
+  have scanned := loop cipher heap XorDecryption.keys [] rfl none initialized initialState globals
+  have executed : BlockReturns source initialized
+      [.forIn (.name "k") (.call (.name "keys") []) row [], .return (.name "best_sum")]
+      heap (number (XorDecryption.answer cipher)) (completedHeap heap cipher) globals := by
+    apply BlockReturns.for_sequence (items := outerItems heap)
+      (ordinary := by intro expressions; simp)
+      (Evaluates.call .nil (keys.result heap globals))
+      (by simpa only [visitedHeap, plaintextCells, List.map_nil, List.append_nil] using outer_sequence heap cipher [])
+    simpa only [visitedHeap, plaintextCells, List.map_nil, List.append_nil, List.nil_append, List.length_nil,
+      XorDecryption.answer, XorDecryption.best, completedHeap, sequenceSource] using scanned
+  apply BlockReturns.function rfl rfl
+  simpa only [initial, params, body, row, condition, isNone, updateBody] using prepared.returns executed
+
+/-- The precise allocation suffix retains the one letters list, outer collector,
+all independent three-value key buffers and one plaintext list per key. -/
+def allocations (heap : Mutable.Heap) (cipher : List UInt8) : Mutable.Heap :=
+  [.list (keys.encode XorDecryption.letters), .list (outerItems heap)] ++
+    ((XorDecryption.keys.map XorDecryption.keyValues).map fun values => .list (keys.encode values)) ++
+    plaintextCells cipher XorDecryption.keys
+
+theorem completedHeap_eq_append (heap : Mutable.Heap) (cipher : List UInt8) :
+    completedHeap heap cipher = heap ++ allocations heap cipher := by
+  simp [completedHeap, visitedHeap, allocations, keys.materialized, keys.collectorRows,
+    HeapCollection.working, outerItems, XorDecryption.keys_length, List.append_assoc]
+
+theorem caller_found (cipher : List UInt8) (heap : Mutable.Heap) (address : Nat)
+    (object : Mutable.Object) (found : heap[address]? = some object) :
+    (completedHeap heap cipher)[address]? = some object := by
+  rw [completedHeap_eq_append]
+  exact HeapCollection.prefix_found heap _ address object found
+
+end data.«project-euler-statements».data.py.project_euler_statements.p59.naive
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p59.naive
+open FormalSW.PyAst
+
+theorem «Returns» (cipher : List UInt8) :
+    (HeapCalls.scalarFunction P59Ast.module "naive" [.bytes cipher]).Returns :=
+  (result cipher []).scalar_returns (values := [.bytes cipher])
+
+theorem «Supported» (cipher : List UInt8) :
+    (HeapCalls.scalarFunction P59Ast.module "naive" [.bytes cipher]).Supported :=
+  («Returns» cipher).supported
+
+end data.«project-euler-statements».data.py.project_euler_statements.p59.naive

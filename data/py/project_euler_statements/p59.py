@@ -54,6 +54,9 @@ def keys() -> list[list[int]]:
 
 
 def naive(cipher: bytes) -> int:
+    """
+    @formalsw: Returns
+    """
     # Materialize and score every decryption, retaining the first key on ties.
     best_score: int | None = None
     best_sum = 0
