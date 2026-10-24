@@ -25,6 +25,10 @@ def seq_from(a: int, d: int, length: int) -> list[int]:
 
 
 def naive(n: int, seqlen: int) -> list[list[int]]:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     if n == 0 or seqlen < 2:
         return []
     lower, upper = 10 ** (n - 1), 10 ** n
@@ -40,6 +44,8 @@ def naive(n: int, seqlen: int) -> list[list[int]]:
 def naive_default() -> int:
     """
     Select the first four-digit triple other than the given example and concatenate it.
+
+    @formalsw: Returns
     """
     for seq in naive(4, 3):
         if seq != [1487, 4817, 8147]:
