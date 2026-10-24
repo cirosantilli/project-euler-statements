@@ -985,4 +985,95 @@ theorem «Supported» (k n : Int) : (HeapCalls.scalarFunction program "has_prime
 
 end has_prime_family
 
+
+namespace naive
+private theorem witness (k : Int) (bound : k ≤ 8) : ProjectEulerStatements.P51.hasPrimeFamily k.toNat 121313 = true := by
+  have eight := ProjectEulerStatements.P51.has_eight_prime_family
+  simp only [ProjectEulerStatements.P51.hasPrimeFamily, Bool.and_eq_true] at eight ⊢
+  refine ⟨List.any_eq_true.mpr ?_, eight.2⟩
+  obtain ⟨indices, member, accepted⟩ := List.any_eq_true.mp eight.1
+  refine ⟨indices, member, ?_⟩
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at accepted ⊢
+  refine ⟨accepted.1, ?_⟩
+  have lower : k.toNat ≤ 8 := by omega
+  exact le_trans lower accepted.2
+
+private theorem exists_family (k : Int) (bound : k ≤ 8) : ∃ n, ProjectEulerStatements.P51.hasPrimeFamily k.toNat n = true :=
+  ⟨121313, witness k bound⟩
+
+/-- The minimum is defined using the checked eight-prime witness, within its proved threshold range. -/
+def answer (k : Int) : Nat := if bound : k ≤ 8 then Nat.find (exists_family k bound) else 0
+
+theorem answer_family (k : Int) (bound : k ≤ 8) : ProjectEulerStatements.P51.hasPrimeFamily k.toNat (answer k) = true := by
+  rw [answer, dif_pos bound]
+  exact Nat.find_spec (exists_family k bound)
+
+theorem answer_minimal (k : Int) (bound : k ≤ 8) (n : Nat)
+    (accepted : ProjectEulerStatements.P51.hasPrimeFamily k.toNat n = true) : answer k ≤ n := by
+  rw [answer, dif_pos bound]
+  exact Nat.find_min' (exists_family k bound) accepted
+
+theorem answer_le_witness (k : Int) (bound : k ≤ 8) : answer k ≤ 121313 :=
+  answer_minimal k bound 121313 (witness k bound)
+
+private def body : List Stmt :=
+  [.ifThen (.call (.name "has_prime_family") [.name "k", .name "n"]) [.return (.name "n")] [],
+    .augAssign (.name "n") .add (.constant (.int 1))]
+
+private theorem loop (k : Int) (bound : k ≤ 8) (first : Nat) (within : first ≤ answer k)
+    (heap : Mutable.Heap) (env : HeapCalls.Env) (getK : env "k" = some (number k)) (getN : env "n" = some (number first)) :
+    ∃ extra, BlockReturns program env [.whileDo (.constant (.bool true)) body []] heap (number (answer k)) (heap ++ extra) := by
+  obtain ⟨allocated, returned⟩ := has_prime_family.result k first heap
+  have tested : Evaluates program env (.call (.name "has_prime_family") [.name "k", .name "n"]) heap
+      (flag (ProjectEulerStatements.P51.hasPrimeFamily k.toNat first)) (heap ++ allocated) :=
+    Evaluates.call (.cons (Evaluates.lookup getK) (.cons (Evaluates.lookup getN) .nil)) returned
+  by_cases accepted : ProjectEulerStatements.P51.hasPrimeFamily k.toNat first = true
+  · have same : first = answer k := by have := answer_minimal k bound first accepted; omega
+    refine ⟨allocated, ?_⟩
+    apply BlockReturns.while_loop (flag := true) Evaluates.constant rfl
+    apply BlockReturns.branch (flag := true) (by simpa only [accepted] using tested) rfl
+    exact BlockReturns.return_value (Evaluates.lookup (by simpa only [same] using getN))
+  · have earlier : first < answer k := by
+      have winner := answer_family k bound
+      by_contra late
+      have same : first = answer k := by omega
+      exact accepted (same ▸ winner)
+    have rejected : ProjectEulerStatements.P51.hasPrimeFamily k.toNat first = false := by
+      cases value : ProjectEulerStatements.P51.hasPrimeFamily k.toNat first <;> simp_all
+    let next := setLocal env "n" (number (first + 1 : Nat))
+    obtain ⟨extra, rest⟩ := loop k bound (first + 1) (by omega) (heap ++ allocated) next
+      (by simpa [next, setLocal] using getK) (by simp [next, setLocal])
+    refine ⟨allocated ++ extra, ?_⟩
+    apply BlockReturns.while_loop (flag := true) Evaluates.constant rfl
+    apply BlockReturns.branch (flag := false) (by simpa only [rejected] using tested) rfl
+    apply BlockReturns.augAssign (value := number (first + 1 : Nat)) (middle := heap ++ allocated) (afterOperation := heap ++ allocated)
+      getN Evaluates.constant
+    · simp [inplace, Mutable.binary, scalarBinary]
+    · simpa [body, Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, List.append_assoc] using rest
+termination_by answer k - first
+decreasing_by omega
+
+/-- The original unbounded source search reaches the genuine least family for every signed threshold at most eight. -/
+theorem result (k : Int) (bound : k ≤ 8) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "naive" [number k] heap (number (answer k)) (heap ++ extra) := by
+  let env := functionEnv ((findFunctionIn program.body "naive").getD ([], [])).1
+    ((findFunctionIn program.body "naive").getD ([], [])).2 [number k] []
+  obtain ⟨extra, scanned⟩ := loop k bound 0 (Nat.zero_le _) heap (setLocal env "n" (number 0)) (by simp [setLocal]; rfl) (by simp [setLocal])
+  refine ⟨extra, ?_⟩
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.assign Evaluates.constant
+  exact scanned
+
+theorem «Returns» (k : Int)
+    (condition : Calls.Condition program (fun name => if name = "k" then some (.int k) else none) P51Ast.requires_naive_0) :
+    (HeapCalls.scalarFunction program "naive" [.int k]).Returns := by
+  have bound : k ≤ 8 := by simpa [evalCmpOp] using Calls.Evaluates.condition_int_compare condition rfl
+  obtain ⟨extra, returned⟩ := result k bound []
+  exact returned.scalar_returns
+
+theorem «Supported» (k : Int)
+    (condition : Calls.Condition program (fun name => if name = "k" then some (.int k) else none) P51Ast.requires_naive_0) :
+    (HeapCalls.scalarFunction program "naive" [.int k]).Supported := («Returns» k condition).supported
+end naive
+
 end data.«project-euler-statements».data.py.project_euler_statements.p51
