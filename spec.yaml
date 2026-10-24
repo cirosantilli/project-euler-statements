@@ -391,6 +391,12 @@
   return:
     type: str
     desc: The sum of i**i for 1 <= i <= n, reduced modulo 10**k and left-padded with zeros to at least k decimal characters.
+49:
+  comment: "Signature: solve() -> int. naive_default selects the non-example triple from naive(4, 3) and concatenates its four-digit members."
+  args: {}
+  return:
+    type: int
+    desc: The concatenation of the increasing four-digit prime arithmetic progression whose members are digit permutations, excluding (1487, 4817, 8147).
 1014:
   args:
     v: int
