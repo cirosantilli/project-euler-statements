@@ -14,7 +14,7 @@ def has_permuted_multiples(n: int, x: int) -> bool:
 
 
 def naive(n: int) -> int:
-    x = 0
+    x = 1
     while True:
         if has_permuted_multiples(n, x):
             return x
@@ -23,4 +23,6 @@ def naive(n: int) -> int:
 
 if __name__ == '__main__':
     assert same_digits(125874, 2 * 125874)
+    assert naive(2) == 125874
+    assert naive(6) == 142857
 
