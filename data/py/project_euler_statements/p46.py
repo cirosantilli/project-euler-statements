@@ -6,6 +6,9 @@ def is_odd_composite(n: int) -> bool:
 
 
 def can_be_written(n: int) -> bool:
+    """
+    @formalsw: Returns
+    """
     k = 1
     while 2 * k * k < n:
         if is_prime(n - 2 * k * k):
@@ -14,10 +17,13 @@ def can_be_written(n: int) -> bool:
     return False
 
 
-def naive() -> int:
+def naive(after: int = 0) -> int:
+    """
+    Search odd composites above after until the representation first fails.
+    """
     n = 9
     while True:
-        if is_odd_composite(n) and not can_be_written(n):
+        if n > after and is_odd_composite(n) and not can_be_written(n):
             return n
         n += 2
 

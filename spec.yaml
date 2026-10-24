@@ -345,10 +345,11 @@
     type: int
     desc: The least positive number strictly greater than after that is triangular, pentagonal, and hexagonal.
 46:
-  args: {}
+  args:
+    after: int
   return:
     type: int
-    desc: The least odd composite integer that cannot be written as a prime plus twice a positive square.
+    desc: The least odd composite integer strictly greater than after that cannot be written as a prime plus twice a positive square, if one exists. The search diverges when no such counterexample exists.
 47:
   args:
     k: int
