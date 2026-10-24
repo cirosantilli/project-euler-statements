@@ -31,7 +31,7 @@ def naive(limit: int) -> int:
     """
     @formalsw: Returns
     """
-    return max(range(limit), key=cycle_len) if limit > 0 else 0
+    return max(range(1, limit), key=cycle_len) if limit > 1 else 0
 
 
 if __name__ == '__main__':

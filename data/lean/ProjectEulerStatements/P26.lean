@@ -43,7 +43,7 @@ def cycleLen (d : Nat) : Nat :=
   if d' = 1 then 0 else cycleLenAux d'
 
 noncomputable def naive (limit : Nat) : Nat :=
-  match (List.argmax (fun d => cycleLen d) (List.range limit)) with
+  match (List.argmax (fun d => cycleLen d) (List.range' 1 (limit - 1))) with
   | some d => d
   | none => 0
 

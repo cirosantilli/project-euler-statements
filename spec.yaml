@@ -207,11 +207,9 @@
 26:
   args:
     limit: int
-  constraints:
-    - limit >= 4
   return:
     type: int
-    desc: The smallest positive denominator below limit whose reciprocal has the longest recurring decimal cycle.
+    desc: The smallest positive denominator below limit whose reciprocal has the longest recurring decimal cycle; zero when there is no positive denominator below limit.
 27:
   args: {}
   return:

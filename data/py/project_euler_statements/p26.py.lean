@@ -166,7 +166,8 @@ private theorem scan_result (count start winner : Nat) :
       · simpa [Int.natCast_add, Int.add_assoc, Int.add_comm, Int.add_left_comm] using
           ih (start + 1) chosen
 
-theorem naive.nonpositive (limit : Int) (small : limit ≤ 0) :
+/-- No positive denominator lies below a bound at most one. -/
+theorem naive.empty (limit : Int) (small : limit ≤ 1) :
     ReturnsValue program "naive" [.int limit] (.int 0) := by
   apply BlockReturns.function rfl rfl
   apply BlockReturns.return_value
@@ -174,34 +175,39 @@ theorem naive.nonpositive (limit : Int) (small : limit ≤ 0) :
     (Evaluates.compare (Evaluates.lookup rfl) Evaluates.constant (by simp [scalarCompare, evalCmpOp]; omega))
   exact Evaluates.constant
 
-/-- The source's key-based maximum retains the first denominator on equal cycle lengths. -/
+/-- The source's key-based maximum retains the first positive denominator on equal cycle lengths. -/
 theorem naive.result (limit : Nat) :
     ReturnsValue program "naive" [.int limit] (.int (ProjectEulerStatements.P26.naive limit)) := by
-  cases limit with
-  | zero => exact naive.nonpositive 0 (by omega)
-  | succ count =>
-      have expected : ProjectEulerStatements.P26.naive (count + 1) =
-          (List.range' 1 count).foldl (ProjectEulerStatements.ArgMaximum.select cycleLen) 0 := by
-        simp [ProjectEulerStatements.P26.naive, ProjectEulerStatements.ArgMaximum.argmax_range_succ]
-      rw [expected]
-      apply BlockReturns.function rfl rfl
-      apply BlockReturns.return_value
-      apply Evaluates.conditional (c := .bool true)
-      · exact Evaluates.compare (Evaluates.lookup rfl) Evaluates.constant (by simp [scalarCompare, evalCmpOp])
-      · apply Evaluates.extremum_range (values := [.int (count + 1)])
-        · exact .cons (Evaluates.lookup rfl) .nil
+  by_cases small : limit ≤ 1
+  · have count : limit - 1 = 0 := by omega
+    simpa [ProjectEulerStatements.P26.naive, count] using naive.empty limit (by omega)
+  · have count : limit - 1 = limit - 2 + 1 := by omega
+    have expected : ProjectEulerStatements.P26.naive limit =
+        (List.range' 2 (limit - 2)).foldl (ProjectEulerStatements.ArgMaximum.select cycleLen) 1 := by
+      simp [ProjectEulerStatements.P26.naive, count, List.range'_succ,
+        ProjectEulerStatements.ArgMaximum.argmax_cons]
+    rw [expected]
+    apply BlockReturns.function rfl rfl
+    apply BlockReturns.return_value
+    apply Evaluates.conditional (c := .bool true)
+    · exact Evaluates.compare (Evaluates.lookup rfl) Evaluates.constant (by simp [scalarCompare, evalCmpOp]; omega)
+    · apply Evaluates.extremum_range (values := [.int 1, .int limit])
+      · exact .cons Evaluates.constant (.cons (Evaluates.lookup rfl) .nil)
+      · rfl
+      · apply ExtremumReturns.next (score := .int (cycleLen 1)) (updated := (1, .int (cycleLen 1)))
+        · simp [rangeContinues]; omega
+        · exact cycle_len.result 1
         · rfl
-        · apply ExtremumReturns.next (score := .int (cycleLen 0)) (updated := (0, .int (cycleLen 0)))
-          · simp [rangeContinues]
-          · exact cycle_len.result 0
-          · rfl
-          · simpa [Int.add_comm] using scan_result count 1 0
+        · have endpoint : 2 + (limit - 2 : Nat) = limit := by omega
+          have castEndpoint : (2 : Int) + ((limit - 2 : Nat) : Int) = (limit : Int) := by exact_mod_cast endpoint
+          have scanned := scan_result (limit - 2) 2 1
+          simpa only [Nat.cast_ofNat, castEndpoint] using scanned
 
 theorem naive.«Returns» (limit : Int) : (Calls.function program "naive" [.int limit]).Returns := by
   by_cases nonnegative : 0 ≤ limit
   · lift limit to Nat using nonnegative
     exact (naive.result limit).returns
-  · exact (naive.nonpositive limit (by omega)).returns
+  · exact (naive.empty limit (by omega)).returns
 
 theorem naive.«Supported» (limit : Int) : (Calls.function program "naive" [.int limit]).Supported :=
   (naive.«Returns» limit).supported
