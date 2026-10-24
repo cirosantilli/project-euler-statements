@@ -7,7 +7,7 @@ set_option Elab.async false
 
 private abbrev naiveCode : List Stmt :=
   ((findFunctionIn program.body "naive").getD ([], [])).2
-private abbrev permutationBody : List Stmt :=
+abbrev permutationBody : List Stmt :=
   match (naiveCode[2]? : Option Stmt) with
   | some (Stmt.forIn _ _ instructions _) => instructions
   | _ => []
