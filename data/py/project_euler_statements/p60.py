@@ -2,6 +2,9 @@ from .common import is_prime
 
 
 def pow10_for(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     # Smallest power of ten strictly greater than n; all callers use primes.
     base = 1
     while base <= n:
@@ -10,10 +13,16 @@ def pow10_for(n: int) -> int:
 
 
 def concat(left: int, right: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return left * pow10_for(right) + right
 
 
 def pair_ok(left: int, right: int) -> bool:
+    """
+    @formalsw: Returns
+    """
     return is_prime(concat(left, right)) and is_prime(concat(right, left))
 
 
