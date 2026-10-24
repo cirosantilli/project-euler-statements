@@ -24,6 +24,11 @@ def period_len_full(n: int) -> int:
 
 
 def naive(limit: int) -> int:
+    """
+    Count odd periods by recording the complete state cycle for each radicand.
+
+    @formalsw: Returns
+    """
     return sum(1 for n in range(limit + 1) if period_len_full(n) % 2 == 1)
 
 
