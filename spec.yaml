@@ -183,11 +183,9 @@
 23:
   args:
     limit: int
-  constraints:
-    - limit >= 28
   return:
     type: int
-    desc: The sum of the positive integers at most limit that cannot be written as the sum of two abundant numbers.
+    desc: The sum of the positive integers at most limit that cannot be written as the sum of two abundant numbers; zero for an empty range.
 24:
   args:
     digits: list[int]
