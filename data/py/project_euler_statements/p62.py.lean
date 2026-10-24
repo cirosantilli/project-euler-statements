@@ -17,7 +17,7 @@ private def numbers (values : List Int) : List Mutable.Value := values.map numbe
 
 private theorem common_extension : HeapCalls.Extends program CommonAst.module := by
   apply HeapCalls.Extends.of_classless (classless := rfl)
-  change Calls.Extends { body := program.body.take 7 ++ CommonAst.module.body } CommonAst.module
+  change Calls.Extends { body := program.body.take 6 ++ CommonAst.module.body } CommonAst.module
   apply Calls.Extends.prepend
   · intro name member
     change name ∈ ["digits_key", "_count_window", "_search_window", "cube_perm_count", "naive"] at member
@@ -297,5 +297,33 @@ theorem count_window_source_result (limit : Int) (n : Nat) (heap : Mutable.Heap)
 theorem search_window_source_result (limit target : Int) (heap : Mutable.Heap) :
     ∃ extra, ReturnsValue program "_search_window" [number limit, number target] heap
       (number (window.answer limit target)) (heap ++ extra) := window.result limit target heap
+
+namespace _count_window
+
+theorem «Returns» (limit n : Int)
+    (condition : Calls.Condition program (fun name => if name = "n" then some (.int n) else none)
+      P62Ast.requires__count_window_0) :
+    (HeapCalls.scalarFunction program "_count_window" [.int limit, .int n]).Returns :=
+  window_count.«Returns» limit n condition
+
+theorem «Supported» (limit n : Int)
+    (condition : Calls.Condition program (fun name => if name = "n" then some (.int n) else none)
+      P62Ast.requires__count_window_0) :
+    (HeapCalls.scalarFunction program "_count_window" [.int limit, .int n]).Supported :=
+  window_count.«Supported» limit n condition
+
+end _count_window
+
+namespace _search_window
+
+theorem «Returns» (limit target : Int) :
+    (HeapCalls.scalarFunction program "_search_window" [.int limit, .int target]).Returns :=
+  window.«Returns» limit target
+
+theorem «Supported» (limit target : Int) :
+    (HeapCalls.scalarFunction program "_search_window" [.int limit, .int target]).Supported :=
+  window.«Supported» limit target
+
+end _search_window
 
 end data.«project-euler-statements».data.py.project_euler_statements.p62
