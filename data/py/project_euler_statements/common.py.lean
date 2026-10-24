@@ -154,15 +154,15 @@ private def primeLoop : List Stmt :=
 
 private theorem prime_loop (n r p : Nat) (positive : 0 < p) (odd : p % 2 = 1)
     (env : HeapCalls.Env) (getN : env "n" = some (num n)) (getR : env "r" = some (num r))
-    (getP : env "p" = some (num p)) (heap : Heap) :
-    HeapCalls.BlockReturns program env primeLoop heap (flag (decide (Trial n r p))) heap := by
+    (getP : env "p" = some (num p)) (heap : Heap) (globals : Mutable.Globals := []) :
+    HeapCalls.BlockReturns (globals := globals) program env primeLoop heap (flag (decide (Trial n r p))) heap := by
   induction measure : r + 1 - p using Nat.strong_induction_on generalizing p env with
   | h size ih =>
       by_cases inside : p ≤ r
       · apply HeapCalls.BlockReturns.while_loop (middle := heap) (flag := true) (value := flag true)
           (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup getP) (HeapCalls.Evaluates.lookup getR)
             (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, inside])) rfl
-        have divides : HeapCalls.Evaluates program env
+        have divides : HeapCalls.Evaluates (globals := globals) program env
             (.compare (.binOp (.name "n") .mod (.name "p")) [(.eq, .constant (.int 0))])
             heap (flag (decide (p ∣ n))) heap := by
           apply HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (av := num (n % p)) (bv := num 0)
@@ -192,39 +192,40 @@ private theorem prime_loop (n r p : Nat) (positive : 0 < p) (odd : p % 2 = 1)
             (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, inside])) rfl
         exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
 
-private theorem prime_small (n : Int) (small : n < 2) (heap : Heap) :
-    HeapCalls.ReturnsValue program "is_prime" [num n] heap (flag false) heap := by
+private theorem prime_small (n : Int) (small : n < 2) (heap : Heap) (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "is_prime" [num n] heap (flag false) heap := by
   apply HeapCalls.BlockReturns.function rfl rfl
   apply HeapCalls.BlockReturns.branch (middle := heap) (flag := true) (value := flag true)
-    (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+    (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) HeapCalls.Evaluates.constant
       (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, small])) rfl
   exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
 
 /-- The imported trial-division source is pure even when invoked from heap code. -/
-theorem result (n : Nat) (heap : Heap) :
-    HeapCalls.ReturnsValue program "is_prime" [num n] heap (flag (decide (Nat.Prime n))) heap := by
+theorem result (n : Nat) (heap : Heap) (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "is_prime" [num n] heap (flag (decide (Nat.Prime n))) heap := by
   by_cases small : n < 2
   · have bad : ¬ Nat.Prime n := fun prime => by have := prime.two_le; omega
-    simpa [bad] using prime_small n (by omega) heap
+    simpa [bad] using prime_small n (by omega) heap globals
   apply HeapCalls.BlockReturns.function rfl rfl
   apply HeapCalls.BlockReturns.branch (middle := heap) (flag := false) (value := flag false)
-    (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+    (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) HeapCalls.Evaluates.constant
       (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp]; omega)) rfl
   by_cases two : n = 2
   · subst n
     simp only [Nat.prime_two, decide_true]
     apply HeapCalls.BlockReturns.branch (middle := heap) (flag := true) (value := flag true)
-      (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant rfl) rfl
+      (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) HeapCalls.Evaluates.constant rfl) rfl
     exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
   · apply HeapCalls.BlockReturns.branch (middle := heap) (flag := false) (value := flag false)
-      (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant
+      (HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) HeapCalls.Evaluates.constant
         (by simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp]; omega)) rfl
-    have parity : HeapCalls.Evaluates program
-        (argumentEnv [{ name := "n", annotation := some (.name "int") }] [num n])
+    have parity : HeapCalls.Evaluates (globals := globals) program
+        (functionEnv ((findFunctionIn program.body "is_prime").getD ([], [])).1
+          ((findFunctionIn program.body "is_prime").getD ([], [])).2 [num n] globals)
         (.compare (.binOp (.name "n") .mod (.constant (.int 2))) [(.eq, .constant (.int 0))])
         heap (flag (decide (n % 2 = 0))) heap := by
       apply HeapCalls.Evaluates.compare (middle := heap) (afterRight := heap) (av := num (n % 2)) (bv := num 0)
-      · exact HeapCalls.Evaluates.binary (finalHeap := heap) (HeapCalls.Evaluates.lookup rfl) HeapCalls.Evaluates.constant (by simp [Mutable.binary, num, scalarBinary])
+      · exact HeapCalls.Evaluates.binary (finalHeap := heap) (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) HeapCalls.Evaluates.constant (by simp [Mutable.binary, num, scalarBinary])
       · exact HeapCalls.Evaluates.constant
       · simp [HeapCalls.compare, flag, scalarCompare, evalCmpOp, ← Int.dvd_iff_emod_eq_zero, Int.ofNat_dvd_natCast, Nat.dvd_iff_mod_eq_zero]
     by_cases even : n % 2 = 0
@@ -234,20 +235,21 @@ theorem result (n : Nat) (heap : Heap) :
       exact HeapCalls.BlockReturns.return_value HeapCalls.Evaluates.constant
     · apply HeapCalls.BlockReturns.branch (middle := heap) (flag := false) (value := flag false) (by simpa [even] using parity) rfl
       apply HeapCalls.BlockReturns.assign (value := num (Math.isqrt n)) (middle := heap)
-      · apply HeapCalls.Evaluates.library_call (.cons (HeapCalls.Evaluates.lookup rfl) .nil) rfl
+      · apply HeapCalls.Evaluates.library_call (.cons (HeapCalls.Evaluates.lookup (by cases globals <;> rfl)) .nil) rfl
         change scalarResult (some (Math.isqrtCall [.int n])) heap = _
         simp [Math.isqrtCall, scalarResult, num, show ¬ (n : Int) < 0 by omega]
       · apply HeapCalls.BlockReturns.assign HeapCalls.Evaluates.constant
         simpa [trial_prime n (by omega) even] using
-          prime_loop n (Math.isqrt n) 3 (by decide) (by decide) _ rfl rfl rfl heap
+          prime_loop n (Math.isqrt n) 3 (by decide) (by decide) _
+            (by cases globals <;> rfl) rfl rfl heap globals
 
 end HeapPrimeProof
 
 /-- Trial division leaves every existing heap object unchanged. -/
-theorem is_prime.heap_result (n : Nat) (heap : Mutable.Heap) :
-    HeapCalls.ReturnsValue program "is_prime" [.scalar (.int n)] heap
+theorem is_prime.heap_result (n : Nat) (heap : Mutable.Heap) (globals : Mutable.Globals := []) :
+    HeapCalls.ReturnsValue (globals := globals) program "is_prime" [.scalar (.int n)] heap
       (.scalar (.bool (decide (Nat.Prime n)))) heap :=
-  HeapPrimeProof.result n heap
+  HeapPrimeProof.result n heap globals
 
 
 namespace DigitsProof
