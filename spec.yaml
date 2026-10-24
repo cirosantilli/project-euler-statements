@@ -397,6 +397,13 @@
   return:
     type: int
     desc: The concatenation of the increasing four-digit prime arithmetic progression whose members are digit permutations, excluding (1487, 4817, 8147).
+59:
+  comment: "Signature: solve(cipher: bytes) -> int. The reference materializes and scores all decryptions; the optimized solver scores them in place and rejects invalid plaintext early."
+  args:
+    cipher: bytes
+  return:
+    type: int
+    desc: The sum of decrypted byte values for the first lexicographic three-letter lowercase key maximizing the documented English score among ASCII-printable decryptions (also allowing LF and CR), or zero if no such key exists.
 1014:
   args:
     v: int
