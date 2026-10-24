@@ -46,6 +46,9 @@ def text_score(text: list[int]) -> int | None:
 
 
 def keys() -> list[list[int]]:
+    """
+    @formalsw: Returns
+    """
     letters = list(range(97, 123))
     return [[a, b, c] for a in letters for b in letters for c in letters]
 
