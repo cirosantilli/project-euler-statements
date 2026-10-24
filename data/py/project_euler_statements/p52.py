@@ -27,9 +27,7 @@ def has_permuted_multiples(n: int, x: int) -> bool:
 
 def naive(n: int) -> int:
     """
-    @formalsw: Requires(n >= 2)
-    @formalsw: Requires(n <= 6)
-    @formalsw: Returns
+    @formalsw: Requires(n >= 1)
     """
     x = 1
     while True:

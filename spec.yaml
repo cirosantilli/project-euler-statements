@@ -123,6 +123,13 @@
   return:
     type: int
     desc: The integer represented by the first k decimal digits of the sum, or zero for an empty prefix. If k exceeds the digit count, return the whole sum.
+14:
+  comment: "Signature: solve(limit: int) -> int; reference naive(limit: int) -> int. Termination for positive starts depends on the existing Collatz assumption."
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The smallest starting number from 1 through limit having the longest Collatz chain, including both endpoints of the chain; zero for nonpositive limits.
 15:
   comment: "Signature: solve(n: int) -> int. The lattice_paths(grid_n, grid_m) helper also accepts rectangular grids."
   args:
@@ -170,6 +177,22 @@
   return:
     type: int
     desc: The number of Sundays falling on the first day of a month in the inclusive range of complete calendar years.
+20:
+  comment: "Signature: solve(n: int) -> int; reference naive(n: int) -> int."
+  args:
+    n: int
+  constraints:
+    - n >= 0
+  return:
+    type: int
+    desc: The sum of the decimal digits of n factorial, including 0 factorial = 1.
+21:
+  comment: "Signature: solve(limit: int) -> int; reference naive(limit: int) -> int. Amicable partners may lie outside the input range."
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The sum of positive amicable numbers strictly below limit; zero for an empty range.
 22:
   comment: "Signature: solve(names: list[str]) -> int."
   args:
@@ -258,7 +281,7 @@
     type: int
     desc: The number of combinations totaling target, with unlimited coins of each listed type.
 32:
-  comment: "Signature: solve() -> int. naive_default() adapts naive(max_a: int, max_b: int) with bounds 99 and 9999. The optimized solver requires its FULL_MASK global to retain the value 511."
+  comment: "Signatures: solve() -> int and naive() -> int. The reference exhausts permutations of the nine problem digits and every split into factors and product. The old fixed-instance proof is archived pending structural Equiv checking."
   args: {}
   return:
     type: int
@@ -270,7 +293,7 @@
     type: int
     desc: The denominator of the product of the four nontrivial two-digit digit-cancelling fractions, reduced to lowest terms.
 34:
-  comment: "Signature: solve() -> int. naive_default() adapts naive(limit: int) with the inclusive bound 2540160, computed by the optimized solver as 7 * 9!."
+  comment: "Signatures: solve() -> int and naive() -> int. Both derive a complete bound from d * 9! versus 10**(d-1); neither accepts a reference-only search limit. The previous proof is archived after the reference change."
   args: {}
   return:
     type: int
@@ -285,22 +308,22 @@
     type: int
     desc: The number of circular primes strictly below limit, requiring every decimal digit rotation to be prime.
 36:
-  comment: "Signature: solve(limit: int = 1_000_000) -> int. The optimized generator covers palindromes of at most six decimal digits."
+  comment: "Signature: solve(limit: int = 1_000_000) -> int. The optimized generator extends prefixes until the supplied bound is exhausted. Its previous capped-domain proof is archived pending a generalized proof."
   args:
     limit: int
   constraints:
-    - 0 <= limit <= 1_000_000
+    - limit >= 0
   return:
     type: int
     desc: The sum of numbers strictly below limit whose decimal and binary digits are both palindromes.
 37:
-  comment: "Signature: solve() -> int. naive_default() adapts naive(limit: int) with the exclusive bound 1_000_000."
+  comment: "Signatures: solve() -> int and naive() -> int. The reference exhausts the right-truncatable-prime tree until the frontier is empty, with no numeric cutoff. The optimized sieve grows until it finds the problem's eleven primes; the previous equivalence proof is archived."
   args: {}
   return:
     type: int
     desc: The sum of primes below one million that remain prime after every proper decimal truncation from either end, excluding single-digit primes.
 38:
-  comment: "Signature: solve() -> int. naive_default() adapts naive(limit: int) with the inclusive bound 9999. The optimized solver requires TARGET_MASK to retain its initialized value 1022."
+  comment: "Signatures: solve() -> int and naive() -> int. At least two products must fit in nine decimal digits, so the base has at most four digits. This is derived from the problem, not supplied as an exhaustion limit. The previous proof is archived after the reference change."
   args: {}
   return:
     type: int
@@ -315,11 +338,14 @@
     type: int
     desc: The smallest perimeter from 0 through limit having the most integer right triangles with ordered sides a < b < c, or 0 if there are no such triangles.
 40:
-  comment: "Signature: solve() -> int. naive_default() adapts naive(limit: int) at 1_000_000, providing at least one million decimal digits."
-  args: {}
+  comment: "Signatures: solve(positions: tuple[int, ...] = (1, 10, 100, 1000, 10000, 100000, 1000000)) -> int and naive(positions: tuple[int, ...] = (1, 10, 100, 1000, 10000, 100000, 1000000)) -> int. The reference extends the decimal stream until each requested position exists, without an independent stream limit. The previous fixed-position proof is archived pending generalized equivalence."
+  args:
+    positions: tuple[int, ...]
+  constraints:
+    - Every position is positive. An empty tuple is allowed.
   return:
     type: int
-    desc: The product of digits at one-based positions 1, 10, 100, 1000, 10000, 100000, and 1000000 in the decimal concatenation of the positive integers.
+    desc: The product of the digits at the requested one-based positions in the decimal concatenation of the positive integers; one for an empty tuple.
 41:
   comment: "Signature: solve(max_digits: int = 9) -> int. naive_bound(max_digits) adapts the exact-width naive(n) reference by searching all widths through max_digits."
   args:
@@ -357,13 +383,14 @@
     type: int
     desc: The minimum of 10**30 and all differences P(k) - P(j) for 1 <= j < k <= limit whose sum and difference are both positive pentagonal numbers. Returns 10**30 if no qualifying pair improves that bound.
 45:
-  comment: "Signature: solve() -> int. The reference scans triangular indices 286 through 100286; the proof establishes that this window contains the first qualifying value."
-  args: {}
+  comment: "Signatures: solve(after: int = 40755) -> int and naive(after: int = 40755) -> int. Both search without a numeric cutoff. The previous fixed-instance proof is archived pending generalized equivalence."
+  args:
+    after: int
   return:
     type: int
-    desc: The least triangular number after T(285) that is also pentagonal and hexagonal.
+    desc: The least positive number strictly greater than after that is triangular, pentagonal, and hexagonal.
 46:
-  comment: "Signature: solve() -> int. The reference scans integers below 10_000; the proof establishes that the first counterexample lies inside this window."
+  comment: "Signatures: solve() -> int and naive() -> int. Both search until the first counterexample, without an externally supplied cutoff. The previous bounded-reference proof is archived pending structural Equiv checking."
   args: {}
   return:
     type: int
@@ -397,6 +424,74 @@
   return:
     type: int
     desc: The concatenation of the increasing four-digit prime arithmetic progression whose members are digit permutations, excluding (1487, 4817, 8147).
+50:
+  comment: "Signature: solve(limit: int) -> int; reference naive(limit: int) -> int. Both cover every signed integer limit and retain the first ascending window on equal-length ties."
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The prime strictly below limit expressible as the longest sum of consecutive ascending primes, choosing the earliest starting window on a tie; zero if there is no such prime.
+51:
+  comment: "Signature: solve(target: int = 8) -> int; reference naive(k: int) -> int, with k = target. The optimized solver now expands digit widths without a fixed cutoff. The previous proof covering targets through eight is archived; no universal termination claim is made when a requested family does not exist."
+  args:
+    target: int
+  return:
+    type: int
+    desc: The least prime belonging to a family of at least target primes obtained by replacing a nonempty subset of equal digit positions by the same decimal digit, without leading zeros.
+52:
+  comment: "Signature: solve(limit_mul: int = 6) -> int; reference naive(n: int) -> int, with n = limit_mul. The previous proof covering multipliers through six is archived. Both searches have no upper multiplier cap; there is no universal termination claim for inputs with no solution."
+  args:
+    limit_mul: int
+  constraints:
+    - limit_mul >= 1
+  return:
+    type: int
+    desc: The least positive integer whose multiples from 2 through limit_mul have exactly the same decimal digit multiset as itself.
+53:
+  comment: "Signature: solve(limit_n: int, threshold: int) -> int; reference naive(limit_n: int = 100, threshold: int = 1_000_000) -> int. Both cover all signed bounds and thresholds."
+  args:
+    limit_n: int
+    threshold: int
+  return:
+    type: int
+    desc: The number of pairs (n, r) with 1 <= n <= limit_n and 0 <= r <= n for which the binomial coefficient C(n, r) is strictly greater than threshold; zero for an empty range.
+54:
+  comment: "Signature: solve(lines: Iterable[str]) -> int; reference naive(hands) -> int. The source proof relates a finite list of text lines to the corresponding list of pairs of five-card hands, as specified by Input.Valid."
+  args:
+    lines: Iterable[str]
+  constraints:
+    - The input is a finite list of lines, each describing two matching five-card hands in the reference representation.
+    - Card tokens and the live VALUE_MAP and rank_values tables assign coherent rank values at most 14, as specified by Input.Valid.
+  return:
+    type: int
+    desc: The number of games won by player one under standard poker rank and tie-break comparisons, including ace-low straights; ties are not wins.
+55:
+  comment: "Signature: solve(limit: int = 10_000) -> int; reference naive(n: int, max_iters: int) -> int through naive_default(n), with n = limit and max_iters = 50. Fifty iterations are part of the problem's candidate definition."
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The number of positive integers strictly below limit that produce no decimal palindrome in the first fifty reverse-and-add steps; zero for an empty range.
+56:
+  comment: "Signature: solve(limit: int) -> int; reference naive(n: int) -> int, with n = limit. Both cover all signed integer limits."
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The maximum decimal digit sum of a**b for 0 <= a,b < limit, with 0**0 = 1; zero for an empty range.
+57:
+  comment: "Signature: solve(limit: int) -> int; reference naive(k: int) -> int, with k = limit. The first expansion is 3/2."
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The number of the first limit square-root-of-two expansions whose numerator has more decimal digits than the denominator; zero for nonpositive limits.
+58:
+  comment: "Signature: solve() -> int; reference naive(num: int, den: int) -> int through naive_default(), using num = 1 and den = 10. The fixed threshold is part of the stated problem."
+  args: {}
+  return:
+    type: int
+    desc: The side length of the first odd square spiral whose prime diagonal entries comprise strictly less than one tenth of all diagonal entries.
 59:
   comment: "Signature: solve(cipher: bytes) -> int. The reference materializes and scores all decryptions; the optimized solver scores them in place and rejects invalid plaintext early."
   args:
@@ -404,6 +499,32 @@
   return:
     type: int
     desc: The sum of decrypted byte values for the first lexicographic three-letter lowercase key maximizing the documented English score among ASCII-printable decryptions (also allowing LF and CR), or zero if no such key exists.
+60:
+  comment: "Signatures: solve(limit: int = 10000) -> tuple[int, list[int]] and naive(limit: int = 10000) -> tuple[int, list[int]]. The input limit is an explicit bound in the chosen problem variant, and the proof covers every signed limit."
+  args:
+    limit: int
+  return:
+    type: tuple[int, list[int]]
+    desc: The least sum and ascending list of five distinct primes at most limit whose pairwise concatenations in either order are prime; (10**30, []) if no such set exists. First-on-tie traversal is preserved.
+61:
+  comment: "Signatures: solve() -> int and naive() -> int. Each polygonal family is enumerated until its values reach 10000, the intrinsic four-digit boundary. There is no polygonal-index limit argument. The old bounded-reference proof is archived pending structural Equiv checking."
+  args: {}
+  return:
+    type: int
+    desc: The sum of a cyclic set of six distinct four-digit numbers with one triangular, square, pentagonal, hexagonal, heptagonal, and octagonal member, whose adjacent two-digit suffixes and prefixes match, including the last and first members.
+62:
+  comment: "Signatures: solve(k: int) -> int and naive(target: int) -> int, with target = k. Both search without an externally supplied limit. The reference expands complete digit widths until it finds a matching class; absent such a class, it does not return. The previous finite-reference proof is archived pending an unbounded equivalence proof."
+  args:
+    k: int
+  reference:
+    function: naive
+    args:
+      target: int
+    argument_mapping:
+      target: k
+  return:
+    type: int
+    desc: The least positive cube having exactly k positive cube permutations of its full decimal digit multiset, if such a cube exists. Leading-zero permutations are not additional numbers of that width. There is no finite-search zero fallback.
 1014:
   args:
     v: int

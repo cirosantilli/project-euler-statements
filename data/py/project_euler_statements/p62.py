@@ -1,18 +1,3 @@
-"""
-@formalsw: theorem cube_perm_count_source_result
-  (limit : Int) (n : Nat) (heap : FormalSW.PyAst.Mutable.Heap) :
-  ∃ extra, FormalSW.PyAst.HeapCalls.ReturnsValue P62Ast.module "cube_perm_count"
-    [.scalar (.int limit), .scalar (.int n)] heap
-    (.scalar (.int (data.«project-euler-statements».data.py.project_euler_statements.p62.cube_perm_count.answer limit n)))
-    (heap ++ extra)
-
-@formalsw: theorem naive_source_result
-  (limit target : Int) (heap : FormalSW.PyAst.Mutable.Heap) :
-  ∃ extra, FormalSW.PyAst.HeapCalls.ReturnsValue P62Ast.module "naive"
-    [.scalar (.int limit), .scalar (.int target)] heap
-    (.scalar (.int (data.«project-euler-statements».data.py.project_euler_statements.p62.naive.answer limit target)))
-    (heap ++ extra)
-"""
 from .common import digits_le
 
 
@@ -24,7 +9,7 @@ def digits_key(n: int) -> list[int]:
     return sorted(digits_le(n))
 
 
-def cube_perm_count(limit: int, n: int) -> int:
+def _count_window(limit: int, n: int) -> int:
     """
     @formalsw: Requires(n >= 0)
     @formalsw: Returns
@@ -33,16 +18,46 @@ def cube_perm_count(limit: int, n: int) -> int:
     return sum(1 for i in range(1, limit + 1) if digits_key(i ** 3) == key)
 
 
-def naive(limit: int, target: int) -> int:
+def _search_window(limit: int, target: int) -> int:
     """
     @formalsw: Returns
     """
     for n in range(1, limit + 1):
-        if cube_perm_count(limit, n) == target:
+        if _count_window(limit, n) == target:
             return n ** 3
     return 0
 
 
-if __name__ == '__main__':
-    assert cube_perm_count(500, 345) == 3
+def cube_perm_count(n: int) -> int:
+    """
+    Count every positive cube with the same decimal digits as n**3.
 
+    The exclusive root bound is derived from the cube's digit width.
+    """
+    stop = 1
+    ceiling = 10 ** len(digits_key(n ** 3))
+    while stop ** 3 < ceiling:
+        stop += 1
+    return _count_window(stop - 1, n)
+
+
+def naive(target: int) -> int:
+    """
+    Search complete digit widths without an externally supplied search bound.
+
+    Every candidate in a completed width has its full permutation count.
+    If no class has the requested size, this search does not return.
+    """
+    digits = 1
+    stop = 1
+    while True:
+        while stop ** 3 < 10 ** digits:
+            stop += 1
+        result = _search_window(stop - 1, target)
+        if result != 0:
+            return result
+        digits += 1
+
+
+if __name__ == '__main__':
+    assert cube_perm_count(345) == 3

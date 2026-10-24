@@ -8,29 +8,31 @@ def champernowne_digits(limit: int) -> list[int]:
     return out
 
 
-def digit_at(n: int, limit: int) -> int:
-    ds = champernowne_digits(limit)
-    return ds[n - 1] if 0 <= n - 1 < len(ds) else 0
+def digit_at(n: int) -> int:
+    """
+    Extend the decimal stream until the requested one-based position exists.
+    """
+    if n < 1:
+        raise ValueError("Position must be positive")
+    digits = []
+    value = 1
+    while len(digits) < n:
+        digits.extend(digits_be(value))
+        value += 1
+    return digits[n - 1]
 
 
-def naive(limit: int) -> int:
-    """
-    @formalsw: Requires(limit >= 0)
-    @formalsw: Returns
-    """
-    acc = 1
-    for i in [1, 10, 100, 1000, 10000, 100000, 1000000]:
-        acc *= digit_at(i, limit)
-    return acc
+def naive(positions: tuple[int, ...] = (1, 10, 100, 1000, 10000, 100000, 1000000)) -> int:
+    product = 1
+    for position in positions:
+        product *= digit_at(position)
+    return product
 
 
 def naive_default() -> int:
-    """
-    @formalsw: Returns
-    """
-    return naive(1_000_000)
+    return naive()
 
 
 if __name__ == '__main__':
-    assert digit_at(12, 20) == 1
+    assert digit_at(12) == 1
 

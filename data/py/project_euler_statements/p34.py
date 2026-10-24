@@ -6,19 +6,19 @@ def digit_fact_sum(n: int) -> int:
     return sum(factorial(d) for d in digits_le(n))
 
 
-def naive(limit: int) -> int:
+def naive() -> int:
     """
-    @formalsw: Requires(limit >= 0)
-    @formalsw: Returns
+    Derive a complete search bound: a d-digit solution is at most d * 9!.
     """
-    return sum(n for n in range(limit + 1) if n not in (1, 2) and digit_fact_sum(n) == n)
+    digits = 1
+    while 10 ** (digits - 1) <= digits * factorial(9):
+        digits += 1
+    upper = (digits - 1) * factorial(9)
+    return sum(n for n in range(upper + 1) if n not in (1, 2) and digit_fact_sum(n) == n)
 
 
 def naive_default() -> int:
-    """
-    @formalsw: Returns
-    """
-    return naive(2540160)
+    return naive()
 
 
 if __name__ == '__main__':

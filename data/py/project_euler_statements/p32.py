@@ -16,19 +16,25 @@ def pandigital_product(a: int, b: int) -> bool:
     return is_pandigital_1_to_9(digits_be(a) + digits_be(b) + digits_be(a * b))
 
 
-def naive(max_a: int, max_b: int) -> int:
+def naive() -> int:
     """
-    @formalsw: Returns
+    Split every permutation of the problem's nine digits into two factors and a product.
     """
-    products = [a * b for a in range(max_a + 1) for b in range(max_b + 1) if a and b and pandigital_product(a, b)]
-    return sum(set(products))
+    from itertools import permutations
+
+    products = set()
+    for digits in permutations("123456789"):
+        text = "".join(digits)
+        for first in range(1, len(text) - 1):
+            for second in range(first + 1, len(text)):
+                product = int(text[second:])
+                if int(text[:first]) * int(text[first:second]) == product:
+                    products.add(product)
+    return sum(products)
 
 
 def naive_default() -> int:
-    """
-    @formalsw: Returns
-    """
-    return naive(99, 9999)
+    return naive()
 
 
 if __name__ == '__main__':

@@ -21,26 +21,24 @@ def is_pandigital_1_to_9(n: int) -> bool:
     return len(ds) == 9 and all(1 <= d <= 9 for d in ds) and len(set(ds)) == 9
 
 
-def naive(limit: int) -> int:
+def naive() -> int:
     """
-    @formalsw: Requires(limit >= 0)
-    @formalsw: Returns
+    Two or more products must fit in nine digits, so the base has at most four digits.
     """
-    vals = []
-    for n in range(limit + 1):
-        for k in range(9):
-            if k + 1 > 1:
-                v = concat_product(n, k + 1)
-                if num_digits(v) == 9 and is_pandigital_1_to_9(v):
-                    vals.append(v)
-    return max(vals) if vals else 0
+    best = 0
+    digits = 9
+    for n in range(1, 10 ** (digits // 2)):
+        k = 1
+        while num_digits(concat_product(n, k)) <= digits:
+            value = concat_product(n, k)
+            if k > 1 and is_pandigital_1_to_9(value):
+                best = max(best, value)
+            k += 1
+    return best
 
 
 def naive_default() -> int:
-    """
-    @formalsw: Returns
-    """
-    return naive(9999)
+    return naive()
 
 
 if __name__ == '__main__':

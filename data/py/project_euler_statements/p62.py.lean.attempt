@@ -4,7 +4,7 @@ import ProjectEulerSolutions.Lib.PrimePermutations
 import ProjectEulerSolutions.Lib.HeapCollection
 import lang.py.FormalSW.SumCalls
 
-/-! Source proofs for the finite cubic-permutation reference. -/
+/-! Source proofs for the internal finite-window counting and search helpers. -/
 set_option Elab.async false
 
 namespace data.«project-euler-statements».data.py.project_euler_statements.p62
@@ -17,12 +17,12 @@ private def numbers (values : List Int) : List Mutable.Value := values.map numbe
 
 private theorem common_extension : HeapCalls.Extends program CommonAst.module := by
   apply HeapCalls.Extends.of_classless (classless := rfl)
-  change Calls.Extends { body := program.body.take 5 ++ CommonAst.module.body } CommonAst.module
+  change Calls.Extends { body := program.body.take 7 ++ CommonAst.module.body } CommonAst.module
   apply Calls.Extends.prepend
   · intro name member
-    change name ∈ ["digits_key", "cube_perm_count", "naive"] at member
+    change name ∈ ["digits_key", "_count_window", "_search_window", "cube_perm_count", "naive"] at member
     simp only [List.mem_cons, List.not_mem_nil, or_false] at member
-    rcases member with rfl | rfl | rfl <;> decide
+    rcases member with rfl | rfl | rfl | rfl | rfl <;> decide
   · intro name member
     change name ∈ ([] : List String) at member
     simp at member
@@ -61,7 +61,7 @@ theorem «Supported» (n : Int)
     (HeapCalls.call program "digits_key" [number n] []).Supported := («Returns» n condition).supported
 end digits_key
 
-namespace cube_perm_count
+namespace window_count
 def accepts (n i : Nat) : Bool := decide (sortedDigits (i ^ 3) = sortedDigits (n ^ 3))
 theorem accepts_iff (n i : Nat) : accepts n i = true ↔
     (Nat.digits 10 (i ^ 3)).Perm (Nat.digits 10 (n ^ 3)) := by
@@ -139,10 +139,10 @@ theorem loop (n first count total stop : Nat) (length : first + count = stop)
 
 /-- Every finite signed limit is supported, including empty ranges; the queried cube is nonnegative. -/
 theorem result (limit : Int) (n : Nat) (heap : Mutable.Heap) :
-    ∃ extra, ReturnsValue program "cube_perm_count" [number limit, number n] heap
+    ∃ extra, ReturnsValue program "_count_window" [number limit, number n] heap
       (number (answer limit n)) (heap ++ extra) := by
-  let entry := functionEnv ((findFunctionIn program.body "cube_perm_count").getD ([], [])).1
-    ((findFunctionIn program.body "cube_perm_count").getD ([], [])).2 [number limit, number n] []
+  let entry := functionEnv ((findFunctionIn program.body "_count_window").getD ([], [])).1
+    ((findFunctionIn program.body "_count_window").getD ([], [])).2 [number limit, number n] []
   let keyed := setLocal entry "key" (.ref (heap.length + 1))
   let middle := heap ++ digitObjects (n ^ 3)
   let generators : List (String × Expr × List Expr) :=
@@ -189,8 +189,8 @@ private def inputEnv (n : Int) : ScalarEnv :=
   fun name => if name = "n" then some (.int n) else none
 
 theorem «Returns» (limit n : Int)
-    (condition : Calls.Condition program (inputEnv n) P62Ast.requires_cube_perm_count_0) :
-    (HeapCalls.scalarFunction program "cube_perm_count" [.int limit, .int n]).Returns := by
+    (condition : Calls.Condition program (inputEnv n) P62Ast.requires__count_window_0) :
+    (HeapCalls.scalarFunction program "_count_window" [.int limit, .int n]).Returns := by
   have nonnegative : 0 ≤ n := by
     simpa [evalCmpOp] using Calls.Evaluates.condition_int_compare condition rfl
   lift n to Nat using nonnegative
@@ -198,30 +198,30 @@ theorem «Returns» (limit n : Int)
   exact returned.scalar_returns
 
 theorem «Supported» (limit n : Int)
-    (condition : Calls.Condition program (inputEnv n) P62Ast.requires_cube_perm_count_0) :
-    (HeapCalls.scalarFunction program "cube_perm_count" [.int limit, .int n]).Supported :=
+    (condition : Calls.Condition program (inputEnv n) P62Ast.requires__count_window_0) :
+    (HeapCalls.scalarFunction program "_count_window" [.int limit, .int n]).Supported :=
   («Returns» limit n condition).supported
-end cube_perm_count
+end window_count
 
-namespace naive
+namespace window
 def search (limit target : Int) : Nat → Nat → Int
   | _, 0 => 0
   | first, count + 1 =>
-      if (cube_perm_count.answer limit first : Int) = target then (first ^ 3 : Nat)
+      if (window_count.answer limit first : Int) = target then (first ^ 3 : Nat)
       else search limit target (first + 1) count
 def answer (limit target : Int) : Int := search limit target 1 limit.toNat
-def test : Expr := .compare (.call (.name "cube_perm_count") [.name "limit", .name "n"]) [(.eq, .name "target")]
-def body : List Stmt := [.ifThen test [.return (cube_perm_count.cubeExpression "n")] []]
+def test : Expr := .compare (.call (.name "_count_window") [.name "limit", .name "n"]) [(.eq, .name "target")]
+def body : List Stmt := [.ifThen test [.return (window_count.cubeExpression "n")] []]
 
 theorem test_evaluate (limit target : Int) (n : Nat) (heap : Mutable.Heap) (env : HeapCalls.Env)
     (getLimit : env "limit" = some (number limit)) (getTarget : env "target" = some (number target))
     (getN : env "n" = some (number n)) :
     ∃ extra, Evaluates program env test heap
-      (flag (decide ((cube_perm_count.answer limit n : Int) = target))) (heap ++ extra) := by
-  obtain ⟨extra, returned⟩ := cube_perm_count.result limit n heap
+      (flag (decide ((window_count.answer limit n : Int) = target))) (heap ++ extra) := by
+  obtain ⟨extra, returned⟩ := window_count.result limit n heap
   refine ⟨extra, ?_⟩
   apply Evaluates.compare (middle := heap ++ extra) (afterRight := heap ++ extra)
-    (av := number (cube_perm_count.answer limit n)) (bv := number target)
+    (av := number (window_count.answer limit n)) (bv := number target)
   · exact Evaluates.call (.cons (Evaluates.lookup getLimit) (.cons (Evaluates.lookup getN) .nil)) returned
   · exact Evaluates.lookup getTarget
   · simp [HeapCalls.compare, scalarCompare, evalCmpOp]
@@ -242,12 +242,12 @@ theorem loop (limit target : Int) (first count stop : Nat) (length : first + cou
       have boundLimit : bound "limit" = some (number limit) := by simpa [bound, setLocal] using getLimit
       have boundTarget : bound "target" = some (number target) := by simpa [bound, setLocal] using getTarget
       obtain ⟨firstExtra, tested⟩ := test_evaluate limit target first heap bound boundLimit boundTarget rfl
-      by_cases selected : (cube_perm_count.answer limit first : Int) = target
+      by_cases selected : (window_count.answer limit first : Int) = target
       · refine ⟨firstExtra, ?_⟩
         simp only [search, if_pos selected]
         apply BlockReturns.range_step (by simp [Calls.rangeContinues]; omega)
         apply BlockReturns.branch (flag := true) (by simpa only [selected, decide_true] using tested) rfl
-        exact BlockReturns.return_value (cube_perm_count.cube_evaluate first "n" (heap ++ firstExtra) bound rfl)
+        exact BlockReturns.return_value (window_count.cube_evaluate first "n" (heap ++ firstExtra) bound rfl)
       · obtain ⟨extra, rest⟩ := ih (first + 1) (by omega) (heap ++ firstExtra) bound boundLimit boundTarget
         refine ⟨firstExtra ++ extra, ?_⟩
         simp only [search, if_neg selected]
@@ -259,10 +259,10 @@ theorem loop (limit target : Int) (first count stop : Nat) (length : first + cou
 
 /-- The entire finite reference returns its first matching cube for every signed limit and target. -/
 theorem result (limit target : Int) (heap : Mutable.Heap) :
-    ∃ extra, ReturnsValue program "naive" [number limit, number target] heap
+    ∃ extra, ReturnsValue program "_search_window" [number limit, number target] heap
       (number (answer limit target)) (heap ++ extra) := by
-  let entry := functionEnv ((findFunctionIn program.body "naive").getD ([], [])).1
-    ((findFunctionIn program.body "naive").getD ([], [])).2 [number limit, number target] []
+  let entry := functionEnv ((findFunctionIn program.body "_search_window").getD ([], [])).1
+    ((findFunctionIn program.body "_search_window").getD ([], [])).2 [number limit, number target] []
   by_cases positive : 0 < limit + 1
   · obtain ⟨extra, executed⟩ := loop limit target 1 limit.toNat (limit.toNat + 1) (by omega) heap entry rfl rfl
     have castStop : ((limit.toNat + 1 : Nat) : Int) = limit + 1 := by omega
@@ -282,20 +282,20 @@ theorem result (limit target : Int) (heap : Mutable.Heap) :
     exact BlockReturns.return_value Evaluates.constant
 
 theorem «Returns» (limit target : Int) :
-    (HeapCalls.scalarFunction program "naive" [.int limit, .int target]).Returns := by
+    (HeapCalls.scalarFunction program "_search_window" [.int limit, .int target]).Returns := by
   obtain ⟨extra, returned⟩ := result limit target []
   exact returned.scalar_returns
 
 theorem «Supported» (limit target : Int) :
-    (HeapCalls.scalarFunction program "naive" [.int limit, .int target]).Supported := («Returns» limit target).supported
-end naive
+    (HeapCalls.scalarFunction program "_search_window" [.int limit, .int target]).Supported := («Returns» limit target).supported
+end window
 
-theorem cube_perm_count_source_result (limit : Int) (n : Nat) (heap : Mutable.Heap) :
-    ∃ extra, ReturnsValue program "cube_perm_count" [number limit, number n] heap
-      (number (cube_perm_count.answer limit n)) (heap ++ extra) := cube_perm_count.result limit n heap
+theorem count_window_source_result (limit : Int) (n : Nat) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "_count_window" [number limit, number n] heap
+      (number (window_count.answer limit n)) (heap ++ extra) := window_count.result limit n heap
 
-theorem naive_source_result (limit target : Int) (heap : Mutable.Heap) :
-    ∃ extra, ReturnsValue program "naive" [number limit, number target] heap
-      (number (naive.answer limit target)) (heap ++ extra) := naive.result limit target heap
+theorem search_window_source_result (limit target : Int) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "_search_window" [number limit, number target] heap
+      (number (window.answer limit target)) (heap ++ extra) := window.result limit target heap
 
 end data.«project-euler-statements».data.py.project_euler_statements.p62
