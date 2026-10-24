@@ -2,6 +2,9 @@ from math import comb
 
 
 def naive(limit_n: int = 100, threshold: int = 1_000_000) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(
         1
         for n in range(1, limit_n + 1)
