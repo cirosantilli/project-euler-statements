@@ -1,48 +1,45 @@
 from itertools import permutations
-from .common import digits_le
 
 
-def num_digits(n: int) -> int:
-    return len(digits_le(n))
+def ring_string(outer: list[int], inner: tuple[int, ...], start: int) -> str:
+    n = len(inner)
+    parts: list[str] = []
+    for offset in range(n):
+        index = (start + offset) % n
+        parts.append(str(outer[index]) + str(inner[index]) + str(inner[(index + 1) % n]))
+    return "".join(parts)
 
 
-def concat_nat(a: int, b: int) -> int:
-    return a * 10 ** num_digits(b) + b
-
-
-def concat_list(xs: list[int]) -> int:
-    acc = 0
-    for x in xs:
-        acc = concat_nat(acc, x)
-    return acc
+def naive(n: int = 5, digits: int = 16) -> str:
+    if n < 3 or digits < 3 * n:
+        return ""
+    best = ""
+    for values in permutations(list(range(1, 2 * n + 1))):
+        outer = list(values[:n])
+        inner = values[n:]
+        if outer[0] != min(outer):
+            continue
+        target = outer[0] + inner[0] + inner[1]
+        magic = True
+        for index in range(1, n):
+            if outer[index] + inner[index] + inner[(index + 1) % n] != target:
+                magic = False
+                break
+        if not magic:
+            continue
+        text = ring_string(outer, inner, 0)
+        if len(text) == digits and text > best:
+            best = text
+    return best
 
 
 def max_string_3_gon() -> int:
-    vals = []
-    for p in permutations([1, 2, 3, 4, 5, 6]):
-        a, b, c, d, e, f = p
-        s1, s2, s3 = a + b + c, d + c + e, f + e + b
-        if s1 == s2 == s3 and a <= d and a <= f:
-            vals.append(concat_list([a, b, c, d, c, e, f, e, b]))
-    return max(vals) if vals else 0
+    return int(naive(3, 9) or "0")
 
 
 def max_string_5_gon() -> int:
-    vals = []
-    for p in permutations([1,2,3,4,5,6,7,8,9,10]):
-        o1,o2,o3,o4,o5,i1,i2,i3,i4,i5 = p
-        sums = [o1+i1+i2, o2+i2+i3, o3+i3+i4, o4+i4+i5, o5+i5+i1]
-        if len(set(sums)) == 1 and o1 <= o2 and o1 <= o3 and o1 <= o4 and o1 <= o5:
-            v = concat_list([o1,i1,i2,o2,i2,i3,o3,i3,i4,o4,i4,i5,o5,i5,i1])
-            if num_digits(v) == 16:
-                vals.append(v)
-    return max(vals) if vals else 0
+    return int(naive() or "0")
 
 
-def naive() -> int:
-    return max_string_5_gon()
-
-
-if __name__ == '__main__':
-    assert max_string_3_gon() == 432621513
-
+if __name__ == "__main__":
+    assert naive(3, 9) == "432621513"

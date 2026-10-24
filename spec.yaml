@@ -508,6 +508,13 @@
   return:
     type: int
     desc: The greatest sum along a path from the top to the bottom, moving to either adjacent child at each row; zero for an empty triangle. Weights may be signed integers.
+68:
+  args:
+    n: int
+    digits: int
+  return:
+    type: str
+    desc: The lexicographically greatest decimal string of length digits for a magic n-gon using each label from 1 through 2*n once, with the inner labels repeated across adjacent triples. Start at the least outer label and read clockwise. Return an empty string for n < 3 or if no ring has the requested length.
 74:
   args:
     limit: int
