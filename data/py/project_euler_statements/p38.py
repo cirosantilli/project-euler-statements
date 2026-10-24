@@ -16,25 +16,26 @@ def concat_product(n: int, k: int) -> int:
     return acc
 
 
-def is_pandigital_1_to_9(n: int) -> bool:
+def is_pandigital(n: int, width: int = 9) -> bool:
     ds = digits_be(n)
-    return len(ds) == 9 and all(1 <= d <= 9 for d in ds) and len(set(ds)) == 9
+    return len(ds) == width and all(1 <= d <= width for d in ds) and len(set(ds)) == width
 
 
-def naive() -> int:
+def naive(width: int = 9) -> int:
     """
-    Two or more products must fit in nine digits, so the base has at most four digits.
+    @formalsw: Returns
     """
-    best = 0
-    digits = 9
-    for n in range(1, 10 ** (digits // 2)):
-        k = 1
-        while num_digits(concat_product(n, k)) <= digits:
+    if width < 2:
+        return 0
+    if width > 9:
+        return 0
+    vals = []
+    for n in range(1, 10 ** (width // 2)):
+        for k in range(2, width + 1):
             value = concat_product(n, k)
-            if k > 1 and is_pandigital_1_to_9(value):
-                best = max(best, value)
-            k += 1
-    return best
+            if is_pandigital(value, width):
+                vals.append(value)
+    return max(vals) if vals else 0
 
 
 def naive_default() -> int:
@@ -44,4 +45,3 @@ def naive_default() -> int:
 if __name__ == '__main__':
     assert concat_product(192, 3) == 192384576
     assert concat_product(9, 5) == 918273645
-

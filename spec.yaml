@@ -285,10 +285,12 @@
     type: int
     desc: The sum of primes below one million that remain prime after every proper decimal truncation from either end, excluding single-digit primes.
 38:
-  args: {}
+  args:
+    width: int
   return:
     type: int
-    desc: The largest 1-to-9 pandigital concatenated product of a positive integer at most 9999 with (1, 2, ..., k), where k is greater than one.
+    desc: The largest concatenation of n times 1 through n times k, with n positive and k at least two, whose decimal digits are exactly 1 through width once each; zero if none exists, including widths below two or above nine.
+  comment: The target could also be an arbitrary subset of the nonzero decimal digits.
 39:
   args:
     limit: int
