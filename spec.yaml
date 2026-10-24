@@ -260,10 +260,13 @@
     type: int
     desc: The denominator of the product of the four nontrivial two-digit digit-cancelling fractions, reduced to lowest terms.
 34:
-  args: {}
+  args:
+    base: int
+  constraints:
+    - base >= 2
   return:
     type: int
-    desc: The sum of numbers other than 1 and 2 that equal the sum of their decimal digits' factorials, through the computed bound.
+    desc: The sum of integers with at least two digits in the given base that equal the sum of the factorials of those digits.
 35:
   args:
     limit: int
