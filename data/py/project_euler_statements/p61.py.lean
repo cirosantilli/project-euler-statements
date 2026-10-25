@@ -6,6 +6,7 @@ import ProjectEulerSolutions.Lib.PolygonalCycle
 import ProjectEulerSolutions.Lib.HeapCollection
 import ProjectEulerSolutions.Lib.HeapLoop
 import ProjectEulerSolutions.Lib.HeapSequenceFold
+import ProjectEulerSolutions.Lib.PolygonalCycleReference.Certificate
 
 namespace data.«project-euler-statements».data.py.project_euler_statements.p61.polygonal
 open FormalSW.PyAst
@@ -975,6 +976,176 @@ theorem search_result (fuel : Nat) (heap : Mutable.Heap) (path remainingAddress 
 
 end extend
 
+namespace naive
+private abbrev numbers := extend.numbers
+private abbrev kinds := extend.kinds
+def types : List Nat := [1, 2, 3, 4, 5]
+def startValue (limit start : Int) : Int := ProjectEulerSolutions.PolygonalCycle.extend limit 5 [start] types
+def startArguments : List Expr :=
+  [.list [.name "start"], .list [.constant (.int 1), .constant (.int 2), .constant (.int 3),
+    .constant (.int 4), .constant (.int 5)], .name "__formalsw_cell_naive_families"]
+def startCall : Expr := .call (.name "__formalsw_local_naive_extend") startArguments
+def startIterable : Expr := .subscript
+  (.subscript (.name "__formalsw_cell_naive_families") (.constant (.int 0))) (.constant (.int 0))
+def startBody : List Stmt := [.assign [.name "best"] (.builtinCall .max [.name "best", startCall])]
+def code : List Stmt :=
+  [.assign [.name "__formalsw_cell_naive_families"] (.list [families.expression]),
+   .assign [.name "best"] (.constant (.int 0)), .forIn (.name "start") startIterable startBody [], .return (.name "best")]
+
+theorem code_source : executableBody ((findFunctionIn program.body "naive").getD ([], [])).2 = code := rfl
+
+def startHeap (heap : Mutable.Heap) (start : Int) : Mutable.Heap := heap ++ [.list [number start], .list (kinds types)]
+
+theorem arguments_evaluate (heap : Mutable.Heap) (start : Int) (familiesCell : Nat) (env : HeapCalls.Env)
+    (getStart : env "start" = some (number start))
+    (getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell)) (globals : Mutable.Globals := []) :
+    Evaluates.Arguments program env startArguments heap [.ref heap.length, .ref (heap.length + 1), .ref familiesCell]
+      (startHeap heap start) globals := by
+  have pathRun : Evaluates program env (.list [.name "start"]) heap (.ref heap.length)
+      (heap ++ [.list [number start]]) globals := Evaluates.list (.cons (Evaluates.lookup getStart) .nil)
+  have remainingRun : Evaluates program env
+      (.list [.constant (.int 1), .constant (.int 2), .constant (.int 3), .constant (.int 4), .constant (.int 5)])
+      (heap ++ [.list [number start]]) (.ref (heap.length + 1)) (startHeap heap start) globals := by
+    have evaluated : Evaluates program env
+        (.list [.constant (.int 1), .constant (.int 2), .constant (.int 3), .constant (.int 4), .constant (.int 5)])
+        (heap ++ [.list [number start]]) (.ref (heap ++ [Mutable.Object.list [number start]]).length)
+        ((heap ++ [.list [number start]]) ++ [.list (kinds types)]) globals :=
+      Evaluates.list (.cons Evaluates.constant (.cons Evaluates.constant (.cons Evaluates.constant
+        (.cons Evaluates.constant (.cons Evaluates.constant .nil)))))
+    simpa [startHeap, List.append_assoc] using evaluated
+  exact .cons pathRun (.cons remainingRun (.cons (Evaluates.lookup getCell) .nil))
+
+variable {heap : Mutable.Heap} {familiesCell : Nat} {limit : Int}
+
+def startState (world : extend.World heap familiesCell limit) (start : Int) :
+    extend.SearchState (startHeap heap start) heap.length (heap.length + 1) familiesCell limit [start] types where
+  world := world.append [.list [number start], .list (kinds types)]
+  pathFound := by simp [startHeap, extend.numbers]
+  remainingFound := by simp [startHeap]
+  validKinds := by intro kind member; simp [types] at member; omega
+
+theorem start_evaluate (world : extend.World heap familiesCell limit) (start : Int) (env : HeapCalls.Env)
+    (getStart : env "start" = some (number start))
+    (getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell)) (globals : Mutable.Globals := []) :
+    ∃ extra, Evaluates program env startCall heap (number (startValue limit start)) (heap ++ extra) globals := by
+  obtain ⟨extra, returned⟩ := extend.search_result 5 (startHeap heap start) heap.length (heap.length + 1)
+    familiesCell limit [start] types (startState world start) (by simp) (by decide) globals
+  let total := [.list [number start], .list (kinds types)] ++ extra
+  have layout : startHeap heap start ++ extra = heap ++ total := by simp only [startHeap, total, List.append_assoc]
+  refine ⟨total, ?_⟩
+  rw [← layout]
+  exact Evaluates.call (arguments_evaluate heap start familiesCell env getStart getCell globals) returned
+
+theorem iterable_evaluate (world : extend.World heap familiesCell limit) (env : HeapCalls.Env)
+    (getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell)) (globals : Mutable.Globals := []) :
+    Evaluates program env startIterable heap (.ref (world.target 0)) heap globals := by
+  have table : Evaluates program env
+      (.subscript (.name "__formalsw_cell_naive_families") (.constant (.int 0))) heap (.ref world.table) heap globals := by
+    apply Evaluates.subscript (middle := heap) (afterIndex := heap) (finalHeap := heap)
+      (by intros; intro impossible; cases impossible) (Evaluates.lookup getCell) Evaluates.constant
+    exact Mutable.getItem_list _ _ 0 [.ref world.table] world.cellFound (by simp)
+  apply Evaluates.subscript (middle := heap) (afterIndex := heap) (finalHeap := heap)
+    (by intros; intro impossible; cases impossible) table Evaluates.constant
+  have found := Mutable.getItem_list heap world.table 0 ((List.range 6).map (fun kind => .ref (world.target kind)))
+    world.tableFound (by simp)
+  simpa using found
+
+theorem start_loop (world : extend.World heap familiesCell limit) (env : HeapCalls.Env)
+    (getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell))
+    (best : Int) (getBest : env "best" = some (number best)) (globals : Mutable.Globals := []) :
+    ∃ extra finalEnv, BlockContinues program env [.forIn (.name "start") startIterable startBody []] heap finalEnv (heap ++ extra) globals ∧
+      finalEnv "best" = some (number ((ProjectEulerSolutions.PolygonalCycle.fourDigit limit 3).foldl
+        (fun best start => max best (startValue limit start)) best)) := by
+  let invariant := fun (currentHeap : Mutable.Heap) (currentEnv : HeapCalls.Env) (currentBest : Int) =>
+    Nonempty (extend.World currentHeap familiesCell limit) ∧
+    currentEnv "__formalsw_cell_naive_families" = some (.ref familiesCell) ∧ currentEnv "best" = some (number currentBest)
+  have bindInvariant : ∀ currentHeap currentEnv currentBest start, invariant currentHeap currentEnv currentBest →
+      start ∈ ProjectEulerSolutions.PolygonalCycle.fourDigit limit 3 →
+      invariant currentHeap (setLocal currentEnv "start" (number start)) currentBest := by
+    intro currentHeap currentEnv currentBest start good _
+    exact ⟨good.1, by simpa [setLocal] using good.2.1, by simpa [setLocal] using good.2.2⟩
+  have cell : ∀ currentHeap currentEnv currentBest start, invariant currentHeap currentEnv currentBest →
+      start ∈ ProjectEulerSolutions.PolygonalCycle.fourDigit limit 3 → currentEnv "start" = some (number start) →
+      ∃ finalEnv finalHeap, BlockContinues program currentEnv startBody currentHeap finalEnv finalHeap globals ∧
+        invariant finalHeap finalEnv (max currentBest (startValue limit start)) ∧
+        (∃ extra, finalHeap = currentHeap ++ extra) ∧ HeapRangeFold.Frame ["start", "best"] currentEnv finalEnv := by
+    intro currentHeap currentEnv currentBest start good _ getStart
+    obtain ⟨⟨current⟩, currentCell, currentBestFound⟩ := good
+    obtain ⟨extra, evaluated⟩ := start_evaluate current start currentEnv getStart currentCell globals
+    have maximum : Evaluates program currentEnv (.builtinCall .max [.name "best", startCall]) currentHeap
+        (number (max currentBest (startValue limit start))) (currentHeap ++ extra) globals := by
+      apply Evaluates.builtin (.cons (Evaluates.lookup currentBestFound) (.cons evaluated .nil))
+      by_cases better : currentBest < startValue limit start
+      · simp [primitive, Calls.positionalMaximum, Calls.maximumFrom, scalarCompare, evalCmpOp, scalarResult,
+          better, Int.max_eq_right (by omega : currentBest ≤ startValue limit start)]
+      · simp [primitive, Calls.positionalMaximum, Calls.maximumFrom, scalarCompare, evalCmpOp, scalarResult,
+          better, Int.max_eq_left (by omega : startValue limit start ≤ currentBest)]
+    refine ⟨setLocal currentEnv "best" (number (max currentBest (startValue limit start))), currentHeap ++ extra,
+      BlockContinues.assign maximum, ⟨⟨current.append extra⟩, ?_, rfl⟩, ⟨extra, rfl⟩,
+      HeapRangeFold.Frame.updated _ currentEnv "best" _ (by decide)⟩
+    simpa [setLocal] using currentCell
+  obtain ⟨finalEnv, finalHeap, executed, good, ⟨extra, layout⟩, frame⟩ := HeapSequenceFold.for_list program "start" startBody rfl
+    ["start", "best"] (by decide) number (fun best start => max best (startValue limit start)) invariant
+    (world.target 0) (ProjectEulerSolutions.PolygonalCycle.fourDigit limit 3) bindInvariant cell heap env best
+    ⟨⟨world⟩, getCell, getBest⟩ startIterable (by intro expressions impossible; cases impossible)
+    (iterable_evaluate world env getCell globals) (world.familyFound 0 (by decide))
+  rw [layout] at executed
+  exact ⟨extra, finalEnv, executed, good.2.2⟩
+
+/-- The complete reference source returns its exhaustive model for every signed limit. -/
+theorem heap_result (limit : Int) (caller : Mutable.Heap) (globals : Mutable.Globals := []) :
+    ∃ extra, ReturnsValue program "naive" [number limit] caller
+      (number (ProjectEulerSolutions.PolygonalCycle.reference limit)) (caller ++ extra) globals := by
+  let params := ((findFunctionIn program.body "naive").getD ([], [])).1
+  let sourceBody := ((findFunctionIn program.body "naive").getD ([], [])).2
+  let env := functionEnv params sourceBody [number limit] globals
+  have getLimit : env "limit" = some (number limit) := by cases globals <;> rfl
+  have setup := families.setup_result limit caller env getLimit globals
+  let readyEnv := setLocal (families.setupEnv env caller limit) "best" (number 0)
+  obtain ⟨extra, finalEnv, searched, finalBest⟩ := start_loop (extend.World.of_setup caller limit) readyEnv
+    (by simp [readyEnv, families.setupEnv, setLocal]) 0 rfl globals
+  change finalEnv "best" = some (number (ProjectEulerSolutions.PolygonalCycle.reference limit)) at finalBest
+  let setupExtra := (.list (families.references caller.length (List.range' 3 6).length) ::
+    families.objects limit (List.range' 3 6)) ++ [.list [.ref caller.length]]
+  have layout : families.setupHeap caller limit ++ extra = caller ++ (setupExtra ++ extra) := by
+    simp only [families.setupHeap, families.tableHeap, HeapCollection.working, setupExtra, List.append_assoc]
+  refine ⟨setupExtra ++ extra, ?_⟩
+  rw [← layout]
+  apply BlockReturns.function rfl rfl
+  have tail : BlockReturns program (families.setupEnv env caller limit) ((executableBody sourceBody).drop 1)
+      (families.setupHeap caller limit) (number (ProjectEulerSolutions.PolygonalCycle.reference limit))
+      (families.setupHeap caller limit ++ extra) globals := by
+    change BlockReturns program (families.setupEnv env caller limit)
+      [.assign [.name "best"] (.constant (.int 0)), .forIn (.name "start") startIterable startBody [], .return (.name "best")] _ _ _ globals
+    apply BlockReturns.assign Evaluates.constant
+    exact BlockContinues.returns searched (BlockReturns.return_value (Evaluates.lookup finalBest))
+  have complete := BlockContinues.returns setup tail
+  simpa only [List.take_append_drop] using complete
+
+theorem «Returns» (limit : Int) : (HeapCalls.scalarFunction program "naive" [.int limit]).Returns := by
+  obtain ⟨extra, returned⟩ := heap_result limit []
+  exact returned.scalar_returns (values := [.int limit])
+
+theorem «Supported» (limit : Int) : (HeapCalls.scalarFunction program "naive" [.int limit]).Supported := («Returns» limit).supported
+end naive
+
+namespace naive_default
+theorem heap_result (caller : Mutable.Heap) (globals : Mutable.Globals := []) :
+    ∃ extra, ReturnsValue program "naive_default" [] caller (number 28684) (caller ++ extra) globals := by
+  obtain ⟨extra, returned⟩ := naive.heap_result 140 caller globals
+  rw [ProjectEulerSolutions.PolygonalCycle.Reference.reference_checked] at returned
+  refine ⟨extra, ?_⟩
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  exact Evaluates.call (.cons Evaluates.constant .nil) returned
+
+theorem «Returns» : (HeapCalls.scalarFunction program "naive_default" []).Returns := by
+  obtain ⟨extra, returned⟩ := heap_result []
+  exact returned.scalar_returns
+
+theorem «Supported» : (HeapCalls.scalarFunction program "naive_default" []).Supported := «Returns».supported
+end naive_default
+
 theorem is_cyclic_pair_source_result (left right : Int) (heap : Mutable.Heap) (globals : Mutable.Globals) :
     ReturnsValue program "is_cyclic_pair" [number left, number right] heap
       (flag (ProjectEulerSolutions.PolygonalCycle.links left right)) heap globals :=
@@ -1001,5 +1172,9 @@ theorem extend_source_result (fuel : Nat) (heap : Mutable.Heap) (path remainingA
     ∃ extra, ReturnsValue program "__formalsw_local_naive_extend" [.ref path, .ref remainingAddress, .ref familiesCell]
       heap (number (ProjectEulerSolutions.PolygonalCycle.extend limit fuel values remaining)) (heap ++ extra) globals :=
   fun nonempty depth => extend.search_result fuel heap path remainingAddress familiesCell limit values remaining state nonempty depth globals
+
+theorem naive_source_result (limit : Int) (caller : Mutable.Heap) (globals : Mutable.Globals) :
+    ∃ extra, ReturnsValue program "naive" [number limit] caller (number (ProjectEulerSolutions.PolygonalCycle.reference limit))
+      (caller ++ extra) globals := naive.heap_result limit caller globals
 
 end data.«project-euler-statements».data.py.project_euler_statements.p61

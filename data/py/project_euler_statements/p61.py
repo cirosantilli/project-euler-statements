@@ -35,6 +35,11 @@
   ∃ extra, FormalSW.PyAst.HeapCalls.ReturnsValue P61Ast.module "__formalsw_local_naive_extend"
     [.ref path, .ref remainingAddress, .ref familiesCell] heap
     (.scalar (.int (ProjectEulerSolutions.PolygonalCycle.extend limit fuel values remaining))) (heap ++ extra) globals
+
+@formalsw: theorem naive_source_result
+  (limit : Int) (caller : FormalSW.PyAst.Mutable.Heap) (globals : FormalSW.PyAst.Mutable.Globals) :
+  ∃ extra, FormalSW.PyAst.HeapCalls.ReturnsValue P61Ast.module "naive" [.scalar (.int limit)] caller
+    (.scalar (.int (ProjectEulerSolutions.PolygonalCycle.reference limit))) (caller ++ extra) globals
 """
 from __future__ import annotations
 
@@ -96,6 +101,7 @@ def four_digit(f: Callable[[int], int], limit: int) -> list[int]:
 
 def naive(limit: int) -> int:
     """
+    @formalsw: Returns
     Enumerate every type order, scanning whole families for each next value.
     Fix the first type to triangular; every valid cycle has that rotation.
     """
@@ -128,6 +134,9 @@ def naive(limit: int) -> int:
 
 
 def naive_default() -> int:
+    """
+    @formalsw: Returns
+    """
     # P_3,141 = 10011; the other five families grow at least as quickly.
     return naive(140)
 
