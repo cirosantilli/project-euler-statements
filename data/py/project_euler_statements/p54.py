@@ -26,7 +26,11 @@ def sorted_ranks(rs: list[int]) -> list[int]:
     return sorted(rs)
 
 
-def is_straight(rs) -> bool:
+def is_straight(rs: list[int]) -> bool:
+    """
+    @formalsw: Returns
+    @formalsw: ReturnType
+    """
     rs = sorted_ranks(rs)
     if rs == [2, 3, 4, 5, 14]:
         return True
