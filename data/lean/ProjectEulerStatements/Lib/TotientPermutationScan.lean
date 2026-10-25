@@ -97,4 +97,27 @@ theorem scanStep_matches (n width best bestPhi : Nat) (matched : PhiMatches best
     · exact matched
   · exact matched
 
+theorem visit_one (best : Nat) : visit best 1 = best := by
+  have absent : ¬ eligible 1 := by rintro ⟨large, _⟩; omega
+  simp only [visit, if_neg absent]
+
+/-- Starting at two omits only the two candidates which can never be eligible. -/
+theorem fold_from_two (limit : Nat) (positive : 1 ≤ limit) :
+    (List.range' 2 (limit - 1)).foldl visit 0 = result (limit : Int) := by
+  have count : 2 + (limit - 1) = limit + 1 := by omega
+  have split : List.range (limit + 1) = [0, 1] ++ List.range' 2 (limit - 1) := by
+    have joined := List.range'_append_1 (s := 0) (m := 2) (n := limit - 1)
+    simpa only [count, Nat.zero_add, ← List.range_eq_range'] using joined.symm
+  rw [result, Int.toNat_natCast, ← fold_range_best, split, List.foldl_append]
+  simp only [List.foldl_cons, List.foldl_nil, visit_zero, visit_one]
+
+/-- Every bound below two has no eligible positive candidate. -/
+theorem result_small (limit : Int) (small : limit < 2) : result limit = 0 := by
+  have bounded : limit.toNat ≤ 1 := by omega
+  have spec := bestUpTo_spec limit.toNat
+  by_contra nonzero
+  have chosen := spec.selected nonzero
+  have large := chosen.1.1
+  omega
+
 end ProjectEulerStatements.TotientPermutation
