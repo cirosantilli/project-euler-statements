@@ -480,6 +480,12 @@
   return:
     type: int
     desc: The number of pairs of positive integers a and n for which a**n has exactly n digits in the given numeral base.
+64:
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The number of nonsquare integers n with 2 <= n <= limit whose square-root continued fraction has an odd period; zero if limit is below two.
 1014:
   args:
     v: int
