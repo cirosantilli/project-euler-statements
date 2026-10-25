@@ -1,8 +1,12 @@
 from math import gcd
+
 from .common import digits_le
 
 
 def phi(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(1 for k in range(1, n + 1) if gcd(k, n) == 1)
 
 
@@ -27,7 +31,7 @@ def naive(limit: int) -> int:
     return best
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     assert phi(9) == 6
     assert is_permutation(87109, 79180)
 

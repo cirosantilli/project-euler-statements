@@ -521,6 +521,12 @@
   return:
     type: int
     desc: The least positive n at most limit maximizing n/phi(n), where phi(n) counts the positive integers at most n coprime to n; return one when limit is below one.
+70:
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The least integer n with 1 < n <= limit whose decimal digits are a permutation of those of phi(n), minimizing n/phi(n), where phi(n) counts the positive integers at most n coprime to n. Return zero if no candidate exists.
 74:
   args:
     limit: int
