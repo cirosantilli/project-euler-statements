@@ -28,7 +28,7 @@ private theorem common_extension : HeapCalls.Extends program CommonAst.module :=
     change name ∈ ([] : List String) at member
     simp at member
 
-private theorem digits_result (n : Nat) (heap : Mutable.Heap) :
+theorem digits_result (n : Nat) (heap : Mutable.Heap) :
     ReturnsValue (globals := globals) program "digits_be" [number n] heap
       (.ref (heap.length + 1)) (heap ++ digitHeap n) := by
   apply ReturnsValue.with_defaults rfl rfl rfl
