@@ -462,4 +462,242 @@ theorem requires_prime_family_size_0_supported (heap : Mutable.Heap) (n : Int) (
     (HeapCalls.evaluate program (familyEnv n) P51Ast.requires_prime_family_size_0 heap).Supported :=
   Execution.supported_of_finishes (size_condition n heap).finishes
 
+
+namespace sublists
+/-- The source prefixes each newly read element, reversing every ordinary sublist. -/
+def values (items : List Int) : List (List Int) := items.sublists.map List.reverse
+
+theorem values_concat (items : List Int) (item : Int) :
+    values (items ++ [item]) = values items ++ (values items).map (item :: ·) := by
+  simp [values, List.sublists_concat, List.map_map, Function.comp_def]
+
+private def refs (addresses : List Nat) : List Mutable.Value := addresses.map Mutable.Value.ref
+private def Rows (heap : Mutable.Heap) (forbidden addresses : List Nat) (rows : List (List Int)) : Prop :=
+  List.Forall₂ (fun address row => address ∉ forbidden ∧ heap[address]? = some (.list (numbers row))) addresses rows
+
+private theorem Rows.extend {values : List (List Int)} (rows : Rows heap forbidden addresses values) (extra : Mutable.Heap) :
+    Rows (heap ++ extra) forbidden addresses values := by
+  induction rows with
+  | nil => exact .nil
+  | cons head tail ih => exact .cons ⟨head.1, prefix_found heap extra _ _ head.2⟩ ih
+
+private theorem Rows.store {values : List (List Int)} (rows : Rows heap forbidden addresses values) (address : Nat) (member : address ∈ forbidden)
+    (replacement : Mutable.Object) : Rows (heap.set address replacement) forbidden addresses values := by
+  induction rows with
+  | nil => exact .nil
+  | cons head tail ih =>
+      refine .cons ⟨head.1, ?_⟩ ih
+      rw [List.getElem?_set_ne (by intro same; subst address; exact head.1 member)]
+      exact head.2
+
+private theorem Rows.change {values : List (List Int)} (rows : Rows (working base old garbage) [outAddress, base.length] addresses values)
+    (replacement : List Mutable.Value) (extra : Mutable.Heap) :
+    Rows (working base replacement (garbage ++ extra)) [outAddress, base.length] addresses values := by
+  have changed := (rows.extend extra).store base.length (by simp) (.list replacement)
+  simpa only [ProjectEulerSolutions.HeapCollection.append, ProjectEulerSolutions.HeapCollection.store] using changed
+
+private def element : Expr := .binOp (.list [.name "x"]) .add (.name "ys")
+private def generators : List (String × Expr × List Expr) := [("ys", .name "out", [])]
+
+private theorem element_result (heap : Mutable.Heap) (env : HeapCalls.Env) (item : Int) (address : Nat) (row : List Int)
+    (getItem : env "x" = some (number item)) (getRow : env "ys" = some (.ref address))
+    (rowFound : heap[address]? = some (.list (numbers row))) :
+    Evaluates program env element heap (.ref (heap.length + 1))
+      (heap ++ [.list [number item], .list (numbers (item :: row))]) := by
+  apply Evaluates.binary (av := .ref heap.length) (bv := .ref address)
+    (middle := heap ++ [.list [number item]]) (afterRight := heap ++ [.list [number item]])
+  · exact Evaluates.list (.cons (Evaluates.lookup getItem) .nil)
+  · exact Evaluates.lookup getRow
+  · have input := prefix_found heap [.list [number item]] _ _ rowFound
+    simp [Mutable.binary, show (BinOp.add == BinOp.add) = true from rfl, Mutable.array, Mutable.allocate, input, numbers, List.append_assoc, Except.map]
+
+private theorem comprehension_loop (inputAddresses : List Nat) (outAddress : Nat) (item : Int)
+    (base : Mutable.Heap) (sourceFound : base[outAddress]? = some (.list (refs inputAddresses)))
+    (remainingAddresses : List Nat) (remainingRows : List (List Int))
+    (remaining : List.Forall₂ (fun address row => base[address]? = some (.list (numbers row))) remainingAddresses remainingRows)
+    (position : Nat) (suffix : inputAddresses.drop position = remainingAddresses)
+    (collected : List Nat) (before : List (List Int)) (garbage : Mutable.Heap)
+    (rows : Rows (working base (refs collected) garbage) [outAddress, base.length] collected before)
+    (env : HeapCalls.Env) (getItem : env "x" = some (number item)) :
+    ∃ finalEnv addresses finalGarbage,
+      BlockContinues program env
+        [.sequenceStepLoop "ys" (.ref outAddress) position [.comprehensionAppend base.length element] []]
+        (working base (refs collected) garbage) finalEnv (working base (refs addresses) finalGarbage) ∧
+      Rows (working base (refs addresses) finalGarbage) [outAddress, base.length] addresses
+        (before ++ remainingRows.map (item :: ·)) := by
+  induction remaining generalizing position collected before garbage env with
+  | nil =>
+      refine ⟨env, collected, garbage, ?_, ?_⟩
+      · apply BlockContinues.sequence_done (items := refs inputAddresses)
+          (by simp [sequenceValue, Mutable.sequence, working, prefix_found base _ _ _ sourceFound])
+        · have missing : inputAddresses[position]? = none := by
+            simpa [suffix] using (List.head?_drop (l := inputAddresses) (i := position)).symm
+          simp [refs, missing]
+        · exact .nil
+      · simpa only [List.map_nil, List.append_nil] using rows
+  | @cons address row tailAddresses tailRows headFound tailFound ih =>
+      let heap := working base (refs collected) garbage
+      let bound := setLocal env "ys" (.ref address)
+      let extra : Mutable.Heap := [.list [number item], .list (numbers (item :: row))]
+      let fresh := heap.length + 1
+      let nextAddresses := collected ++ [fresh]
+      have boundItem : bound "x" = some (number item) := by simpa [bound, setLocal] using getItem
+      have evaluated := element_result heap bound item address row boundItem (by simp [bound, setLocal])
+        (by simp [heap, working, prefix_found base _ _ _ headFound])
+      have emitted : BlockContinues program bound [.comprehensionAppend base.length element] heap bound
+          (working base (refs nextAddresses) (garbage ++ extra)) := by
+        simpa only [heap, fresh, nextAddresses, refs, List.map_append, List.map_cons, List.map_nil] using
+          emit base (refs collected) garbage extra (.ref fresh) evaluated
+      have freshFound : (working base (refs nextAddresses) (garbage ++ extra))[fresh]? = some (.list (numbers (item :: row))) := by
+        have allocated : (heap ++ extra)[fresh]? = some (.list (numbers (item :: row))) := by simp [extra, fresh]
+        have preserved := List.getElem?_set_ne (l := heap ++ extra) (a := Mutable.Object.list (refs nextAddresses))
+          (show base.length ≠ fresh by simp [fresh, heap, working]; omega)
+        simpa only [heap, ProjectEulerSolutions.HeapCollection.append, store] using preserved.trans allocated
+      have newRows : Rows (working base (refs nextAddresses) (garbage ++ extra)) [outAddress, base.length]
+          nextAddresses (before ++ [item :: row]) := by
+        apply List.rel_append (rows.change (refs nextAddresses) extra)
+        exact .cons ⟨by
+          have within := (List.getElem?_eq_some_iff.mp sourceFound).1
+          simp only [List.mem_cons, List.not_mem_nil, or_false, not_or]
+          constructor <;> (intro same; simp [fresh, heap, working] at same; omega), freshFound⟩ .nil
+      obtain ⟨finalEnv, addresses, finalGarbage, rest, finalRows⟩ := ih (position + 1)
+        (by simp [List.drop_add_one_eq_tail_drop, suffix]) nextAddresses (before ++ [item :: row])
+        (garbage ++ extra) newRows bound boundItem
+      refine ⟨finalEnv, addresses, finalGarbage, ?_, ?_⟩
+      · have selected : inputAddresses[position]? = some address := by
+          simpa [suffix] using (List.head?_drop (l := inputAddresses) (i := position)).symm
+        apply BlockContinues.sequence_step (items := refs inputAddresses) (value := .ref address)
+          (by simp [sequenceValue, Mutable.sequence, working, prefix_found base _ _ _ sourceFound]) (by simp [refs, selected])
+        simpa only [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, Bool.false_eq_true,
+          if_false] using emitted.append rest
+      · simpa only [List.map_cons, List.append_assoc, List.singleton_append] using finalRows
+
+private theorem Rows.forget_collector (rows : Rows heap [outAddress, collector] addresses rowsValues) :
+    Rows heap [outAddress] addresses rowsValues := by
+  apply List.Forall₂.imp ?_ rows
+  intro address row represented
+  exact ⟨fun member => represented.1 (List.mem_cons.mpr (Or.inl (List.mem_singleton.mp member))), represented.2⟩
+
+private def expression : Expr := .listComp element generators
+private def body : List Stmt := [.augAssign (.name "out") .add expression]
+
+private theorem comprehension (item : Int) (heap : Mutable.Heap) (outAddress : Nat)
+    (addresses : List Nat) (rowValues : List (List Int))
+    (found : heap[outAddress]? = some (.list (refs addresses)))
+    (represented : Rows heap [outAddress] addresses rowValues) (env : HeapCalls.Env)
+    (getItem : env "x" = some (number item)) (getOut : env "out" = some (.ref outAddress)) :
+    ∃ newAddresses garbage,
+      Evaluates program env expression heap (.ref heap.length) (working heap (refs newAddresses) garbage) ∧
+      Rows (working heap (refs newAddresses) garbage) [outAddress, heap.length] newAddresses (rowValues.map (item :: ·)) := by
+  have entries : List.Forall₂ (fun address row => heap[address]? = some (.list (numbers row))) addresses rowValues :=
+    List.Forall₂.imp (fun _ _ represented => represented.2) represented
+  obtain ⟨finalEnv, newAddresses, garbage, scanned, finalRows⟩ := comprehension_loop addresses outAddress item heap found
+    addresses rowValues entries 0 rfl [] [] [] .nil (comprehensionEnv env generators)
+    (by simpa [generators, comprehensionEnv] using getItem)
+  refine ⟨newAddresses, garbage, ?_, ?_⟩
+  · apply Evaluates.list_comp_sequence (items := refs addresses) (by intros; simp) (Evaluates.lookup getOut)
+      (by simp [Mutable.sequence, found])
+    simpa only [working, refs, List.map_nil] using scanned
+  · simpa only [List.nil_append] using finalRows
+
+private theorem loop (items remaining : List Int) (position : Nat) (suffix : items.drop position = remaining)
+    (processed : List Int) (base garbage : Mutable.Heap) (inputAddress : Nat)
+    (inputFound : base[inputAddress]? = some (.list (numbers items)))
+    (addresses : List Nat) (rows : Rows (working base (refs addresses) garbage) [base.length] addresses (values processed))
+    (env : HeapCalls.Env) (getOut : env "out" = some (.ref base.length)) :
+    ∃ finalEnv finalAddresses finalGarbage,
+      BlockContinues program env [.sequenceStepLoop "x" (.ref inputAddress) position body []]
+        (working base (refs addresses) garbage) finalEnv (working base (refs finalAddresses) finalGarbage) ∧
+      Rows (working base (refs finalAddresses) finalGarbage) [base.length] finalAddresses (values (processed ++ remaining)) ∧
+      finalEnv "out" = some (.ref base.length) := by
+  induction remaining generalizing position processed garbage addresses env with
+  | nil =>
+      refine ⟨env, addresses, garbage, ?_, ?_, getOut⟩
+      · apply BlockContinues.sequence_done (items := numbers items)
+          (by simp [sequenceValue, Mutable.sequence, working, prefix_found base _ _ _ inputFound])
+        · have missing : items[position]? = none := by
+            simpa [suffix] using (List.head?_drop (l := items) (i := position)).symm
+          simp [numbers, missing]
+        · exact .nil
+      · simpa only [List.append_nil] using rows
+  | cons head tail ih =>
+      let heap := working base (refs addresses) garbage
+      let bound := setLocal env "x" (number head)
+      obtain ⟨newAddresses, allocated, evaluated, newRows⟩ := comprehension head heap base.length addresses (values processed)
+        (by simp [heap]) rows bound (by simp [bound, setLocal]) (by simpa [bound, setLocal] using getOut)
+      let newGarbage := garbage ++ (.list (refs newAddresses) :: allocated)
+      let combined := addresses ++ newAddresses
+      let ready := setLocal bound "out" (.ref base.length)
+      have shape : working heap (refs newAddresses) allocated = working base (refs addresses) newGarbage := by
+        dsimp [heap, newGarbage, working]
+        simp only [List.append_assoc, List.cons_append]
+      have outFound : (working heap (refs newAddresses) allocated)[base.length]? = some (.list (refs addresses)) := by
+        rw [shape]
+        simp
+      have collectorFound : (working heap (refs newAddresses) allocated)[heap.length]? = some (.list (refs newAddresses)) := by simp
+      have stored : (working heap (refs newAddresses) allocated).set base.length (.list (refs combined)) =
+          working base (refs combined) newGarbage := by rw [shape, store]
+      have stepped : BlockContinues program bound body heap ready (working base (refs combined) newGarbage) := by
+        have operation := inplace_add_lists (working heap (refs newAddresses) allocated) base.length heap.length
+          (refs addresses) (refs newAddresses) outFound collectorFound
+        simp only [refs, ← List.map_append] at operation
+        have assigned : BlockContinues program bound body heap ready
+            ((working heap (refs newAddresses) allocated).set base.length (.list (refs combined))) :=
+          BlockContinues.augAssign (name := "out") (by simpa [bound, setLocal] using getOut) evaluated operation
+        simpa only [stored] using assigned
+      have originalRows : Rows (working heap (refs newAddresses) allocated) [base.length] addresses (values processed) :=
+        rows.extend (.list (refs newAddresses) :: allocated)
+      have combinedRows : Rows (working base (refs combined) newGarbage) [base.length] combined (values (processed ++ [head])) := by
+        rw [values_concat]
+        have oldStored := originalRows.store base.length (by simp) (.list (refs combined))
+        have newStored := newRows.forget_collector.store base.length (by simp) (.list (refs combined))
+        rw [stored] at oldStored newStored
+        exact List.rel_append oldStored newStored
+      obtain ⟨finalEnv, finalAddresses, finalGarbage, rest, finalRows, finalOut⟩ := ih (position + 1)
+        (by simp [List.drop_add_one_eq_tail_drop, suffix]) (processed ++ [head]) newGarbage combined combinedRows ready (by simp [ready, setLocal])
+      refine ⟨finalEnv, finalAddresses, finalGarbage, ?_, ?_, finalOut⟩
+      · have selected : items[position]? = some head := by
+          simpa [suffix] using (List.head?_drop (l := items) (i := position)).symm
+        apply BlockContinues.sequence_step (items := numbers items) (value := number head)
+          (by simp [sequenceValue, Mutable.sequence, working, prefix_found base _ _ _ inputFound]) (by simp [numbers, selected])
+        simpa only [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, Bool.false_eq_true, if_false] using stepped.append rest
+      · simpa only [List.append_assoc, List.singleton_append] using finalRows
+
+/-- Every returned row is a fresh list; existing lists and their aliases remain unchanged. -/
+theorem result (items : List Int) (heap : Mutable.Heap) (address : Nat)
+    (inputFound : heap[address]? = some (.list (numbers items))) :
+    ∃ extra outAddress addresses, ReturnsValue program "sublists" [.ref address] heap (.ref outAddress) (heap ++ extra) ∧
+      (heap ++ extra)[outAddress]? = some (.list (refs addresses)) ∧
+      Rows (heap ++ extra) [outAddress] addresses (values items) := by
+  let base := heap ++ [.list []]
+  let initial := functionEnv ((findFunctionIn program.body "sublists").getD ([], [])).1
+    ((findFunctionIn program.body "sublists").getD ([], [])).2 [.ref address] []
+  let ready := setLocal initial "out" (.ref base.length)
+  have represented : Rows (working base (refs [heap.length]) []) [base.length] [heap.length] (values []) := by
+    apply List.Forall₂.cons ?_ .nil
+    constructor
+    · simp [base]
+    · simp [base, working, numbers]
+  obtain ⟨finalEnv, addresses, garbage, scanned, finalRows, finalOut⟩ := loop items items 0 rfl [] base [] address
+    (prefix_found heap _ _ _ inputFound) [heap.length] represented ready (by simp [ready, setLocal])
+  let extra := .list [] :: .list (refs addresses) :: garbage
+  have finalShape : working base (refs addresses) garbage = heap ++ extra := by
+    dsimp [working, base, extra]
+    simp only [List.append_assoc, List.singleton_append]
+  refine ⟨extra, base.length, addresses, ?_, ?_, ?_⟩
+  · apply BlockReturns.function rfl rfl
+    apply BlockReturns.assign (value := .ref base.length) (middle := working base (refs [heap.length]) [])
+    · apply Evaluates.list (.cons (Evaluates.list .nil) .nil)
+    · have enumerated : BlockContinues program ready [.forIn (.name "x") (.name "xs") body []]
+          (working base (refs [heap.length]) []) finalEnv (heap ++ extra) := by
+        apply BlockContinues.for_sequence (items := numbers items) (by intros; simp) (Evaluates.lookup (by simp [ready, setLocal]; rfl))
+          (by simp [Mutable.sequence, working, prefix_found base _ _ _ (prefix_found heap _ _ _ inputFound)])
+        simpa only [finalShape] using scanned
+      exact enumerated.returns (BlockReturns.return_value (Evaluates.lookup finalOut))
+  · rw [← finalShape]
+    simp
+  · simpa only [finalShape, List.nil_append] using finalRows
+
+end sublists
+
 end data.«project-euler-statements».data.py.project_euler_statements.p51
