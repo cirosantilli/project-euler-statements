@@ -2,6 +2,9 @@ from .common import digits_le, of_digits_le, is_prime, sublists
 
 
 def replace_at(digits: list[int], idxs: list[int], d: int) -> list[int]:
+    """
+    @formalsw: Returns
+    """
     return [d if i in idxs else x for i, x in enumerate(digits)]
 
 

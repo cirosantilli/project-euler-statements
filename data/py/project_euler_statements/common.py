@@ -79,7 +79,7 @@ def erase_dups(xs):
     return out
 
 
-def sublists(xs):
+def sublists(xs: list[int]) -> list[list[int]]:
     out = [[]]
     for x in xs:
         out += [[x] + ys for ys in out]
