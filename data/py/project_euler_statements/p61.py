@@ -1,3 +1,30 @@
+"""
+@formalsw: theorem is_cyclic_pair_source_result
+  (left right : Int) (heap : FormalSW.PyAst.Mutable.Heap) (globals : FormalSW.PyAst.Mutable.Globals) :
+  FormalSW.PyAst.HeapCalls.ReturnsValue P61Ast.module "is_cyclic_pair"
+    [.scalar (.int left), .scalar (.int right)] heap
+    (.scalar (.bool (ProjectEulerSolutions.PolygonalCycle.links left right))) heap globals
+
+@formalsw: theorem families_source_result
+  (limit : Int) (caller : FormalSW.PyAst.Mutable.Heap) (env : FormalSW.PyAst.HeapCalls.Env)
+  (globals : FormalSW.PyAst.Mutable.Globals) :
+  env "limit" = some (.scalar (.int limit)) →
+  FormalSW.PyAst.HeapCalls.BlockContinues P61Ast.module env
+    ((FormalSW.PyAst.executableBody
+      ((FormalSW.PyAst.findFunctionIn P61Ast.module.body "naive").getD ([], [])).2).take 1)
+    caller (data.«project-euler-statements».data.py.project_euler_statements.p61.families.setupEnv env caller limit)
+    (data.«project-euler-statements».data.py.project_euler_statements.p61.families.setupHeap caller limit) globals
+
+@formalsw: theorem extend_base_source_result
+  (values : List Int) (heap : FormalSW.PyAst.Mutable.Heap) (path remaining : Nat)
+  (familiesCell : FormalSW.PyAst.Mutable.Value) (globals : FormalSW.PyAst.Mutable.Globals) :
+  values ≠ [] →
+  heap[path]? = some (.list (values.map (fun value => .scalar (.int value)))) →
+  heap[remaining]? = some (.list []) →
+  FormalSW.PyAst.HeapCalls.ReturnsValue P61Ast.module "__formalsw_local_naive_extend"
+    [.ref path, .ref remaining, familiesCell] heap
+    (.scalar (.int (if ProjectEulerSolutions.PolygonalCycle.closed values then values.sum else 0))) heap globals
+"""
 from __future__ import annotations
 
 from collections.abc import Callable
