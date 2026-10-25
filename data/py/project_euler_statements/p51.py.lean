@@ -168,4 +168,222 @@ theorem «Supported» (heap : Mutable.Heap) (digitsAddress indicesAddress : Nat)
     (HeapCalls.call program "replace_at" [.ref digitsAddress, .ref indicesAddress, number digit] heap).Supported :=
   («Returns» heap digitsAddress indicesAddress digit valid digitsTyped indicesTyped).supported
 end replace_at
+
+namespace family_numbers
+private def naturals (items : List Nat) : List Mutable.Value := items.map (fun (item : Nat) => number item)
+private def replaced (items : List Nat) (indices : List Int) (digit : Nat) : List Nat :=
+  ProjectEulerStatements.P51.replaceAt items (replace_at.positions indices) digit
+private def value (items : List Nat) (indices : List Int) (digit : Nat) : Nat :=
+  Nat.ofDigits 10 (replaced items indices digit)
+private def selected (items : List Nat) (indices : List Int) (digit : Nat) : Option Nat :=
+  if (Nat.digits 10 (value items indices digit)).length = items.length then some (value items indices digit) else none
+private def temporaries (items : List Nat) (indices : List Int) (digit : Nat) : Mutable.Heap :=
+  [.list (naturals (replaced items indices digit)), .list (naturals (Nat.digits 10 (value items indices digit)))]
+private def converted : Expr := .call (.name "of_digits_le") [.call (.name "replace_at") [.name "digits", .name "idxs", .name "d"]]
+private def condition : Expr := .compare (.builtinCall .len [.call (.name "digits_le") [.name "m"]]) [(.eq, .name "length")]
+private def accepted : List Stmt := [.expr (.call (.attribute (.name "out") "append") [.name "m"])]
+private def body : List Stmt := [.assign [.name "m"] converted, .ifThen condition accepted []]
+
+private structure Locals (env : HeapCalls.Env) (digitsAddress indicesAddress collector size : Nat) : Prop where
+  getDigits : env "digits" = some (.ref digitsAddress)
+  getIndices : env "idxs" = some (.ref indicesAddress)
+  getOut : env "out" = some (.ref collector)
+  getLength : env "length" = some (number size)
+
+private theorem Locals.set (locals : Locals env digitsAddress indicesAddress collector size) (name : String) (item : Mutable.Value)
+    (unused : name ∉ ["digits", "idxs", "out", "length"]) :
+    Locals (setLocal env name item) digitsAddress indicesAddress collector size := by
+  have stable (query : String) (member : query ∈ ["digits", "idxs", "out", "length"]) :
+      setLocal env name item query = env query := by
+    have different : query ≠ name := by intro same; subst query; exact unused member
+    simp [setLocal, different]
+  exact ⟨(stable "digits" (by simp)).trans locals.getDigits, (stable "idxs" (by simp)).trans locals.getIndices,
+    (stable "out" (by simp)).trans locals.getOut, (stable "length" (by simp)).trans locals.getLength⟩
+
+private theorem converted_result (items : List Nat) (indices : List Int) (digit : Nat)
+    (heap : Mutable.Heap) (digitsAddress indicesAddress : Nat) (env : HeapCalls.Env)
+    (digitsFound : heap[digitsAddress]? = some (.list (naturals items)))
+    (indicesFound : heap[indicesAddress]? = some (.list (numbers indices)))
+    (getDigits : env "digits" = some (.ref digitsAddress)) (getIndices : env "idxs" = some (.ref indicesAddress))
+    (getDigit : env "d" = some (number digit)) :
+    Evaluates program env converted heap (number (value items indices digit))
+      (heap ++ [.list (naturals (replaced items indices digit))]) := by
+  have replacement := replace_at.result (items.map Int.ofNat) indices digit heap digitsAddress indicesAddress
+    (by simpa only [naturals, numbers, List.map_map, Function.comp_def] using digitsFound) indicesFound
+  rw [replace_at.values_natural] at replacement
+  have replacement' : Evaluates program env (.call (.name "replace_at") [.name "digits", .name "idxs", .name "d"])
+      heap (.ref heap.length) (heap ++ [.list (naturals (replaced items indices digit))]) := by
+    apply Evaluates.call (.cons (Evaluates.lookup getDigits) (.cons (Evaluates.lookup getIndices) (.cons (Evaluates.lookup getDigit) .nil)))
+    simpa only [naturals, numbers, replaced, List.map_map, Function.comp_def] using replacement
+  have conversion := common.of_digits_le.result ((replaced items indices digit).map Int.ofNat) 10
+    (heap ++ [.list (naturals (replaced items indices digit))]) heap.length
+    (by simp [naturals, List.map_map, Function.comp_def])
+  have naturalValue : ProjectEulerStatements.PositionalDigits.value 10 ((replaced items indices digit).map Int.ofNat) =
+      ((Nat.ofDigits 10 (replaced items indices digit) : Nat) : Int) := by
+    simpa only [Nat.cast_ofNat] using ProjectEulerStatements.PositionalDigits.value_naturals 10 (replaced items indices digit)
+  rw [naturalValue] at conversion
+  have defaulted := ReturnsValue.with_defaults (supplied := [.ref heap.length]) rfl rfl rfl conversion
+  apply Evaluates.call (.cons replacement' .nil)
+  exact defaulted.extend common_extension
+
+private theorem condition_result (items : List Nat) (indices : List Int) (digit : Nat) (heap : Mutable.Heap) (env : HeapCalls.Env)
+    (getValue : env "m" = some (number (value items indices digit))) (getLength : env "length" = some (number items.length)) :
+    Evaluates program env condition heap
+      (flag (decide ((Nat.digits 10 (value items indices digit)).length = items.length)))
+      (heap ++ [.list (naturals (Nat.digits 10 (value items indices digit)))]) := by
+  have digits : Evaluates program env (.call (.name "digits_le") [.name "m"]) heap (.ref heap.length)
+      (heap ++ [.list (naturals (Nat.digits 10 (value items indices digit)))]) := by
+    apply Evaluates.call (.cons (Evaluates.lookup getValue) .nil)
+    exact (common.digits_le.decimal (value items indices digit) heap).extend common_extension
+  have length : Evaluates program env (.builtinCall .len [.call (.name "digits_le") [.name "m"]]) heap
+      (number (Nat.digits 10 (value items indices digit)).length)
+      (heap ++ [.list (naturals (Nat.digits 10 (value items indices digit)))]) :=
+    Evaluates.builtin (.cons digits .nil) (by simp [primitive, Mutable.length, naturals])
+  exact Evaluates.compare length (Evaluates.lookup getLength) (by simp [HeapCalls.compare, scalarCompare, evalCmpOp])
+
+private theorem cell_result (items : List Nat) (indices : List Int) (digit : Nat)
+    (base garbage : Mutable.Heap) (before : List Nat) (digitsAddress indicesAddress : Nat)
+    (digitsFound : base[digitsAddress]? = some (.list (naturals items)))
+    (indicesFound : base[indicesAddress]? = some (.list (numbers indices))) (env : HeapCalls.Env)
+    (locals : Locals env digitsAddress indicesAddress base.length items.length)
+    (getDigit : env "d" = some (number digit)) :
+    BlockContinues program env body (working base (naturals before) garbage)
+      (setLocal env "m" (number (value items indices digit)))
+      (working base (naturals (before ++ (selected items indices digit).toList)) (garbage ++ temporaries items indices digit)) := by
+  let heap := working base (naturals before) garbage
+  let middle := heap ++ [.list (naturals (replaced items indices digit))]
+  let ready := setLocal env "m" (number (value items indices digit))
+  have assigned : BlockContinues program env [.assign [.name "m"] converted] heap ready middle := by
+    apply BlockContinues.assign
+    exact converted_result items indices digit heap digitsAddress indicesAddress env
+      (by simp [heap, working, prefix_found base _ _ _ digitsFound])
+      (by simp [heap, working, prefix_found base _ _ _ indicesFound]) locals.getDigits locals.getIndices getDigit
+  have tested := condition_result items indices digit middle ready (by simp [ready, setLocal])
+    (by simpa [ready, setLocal] using locals.getLength)
+  have readyLocals := locals.set "m" (number (value items indices digit)) (by simp)
+  apply assigned.append
+  by_cases sameWidth : (Nat.digits 10 (value items indices digit)).length = items.length
+  · apply BlockContinues.branch (flag := true) tested (by simp [sameWidth, Mutable.truth, scalarTruth])
+    apply BlockContinues.discard
+    have receiver := Evaluates.lookup (globals := []) (module := program) (heap := middle ++ [.list (naturals (Nat.digits 10 (value items indices digit)))]) readyLocals.getOut
+    have found : (middle ++ [.list (naturals (Nat.digits 10 (value items indices digit)))])[base.length]? = some (.list (naturals before)) := by
+      simp only [middle, heap, ProjectEulerSolutions.HeapCollection.append]
+      exact ProjectEulerSolutions.HeapCollection.found base _ _
+    have appended := Evaluates.append receiver found (Evaluates.lookup (name := "m") (value := number (value items indices digit)) (by simp [setLocal])) found
+    simpa only [selected, sameWidth, if_true, Option.toList_some, temporaries, naturals, List.map_append,
+      List.map_cons, List.map_nil, middle, heap, List.append_assoc, List.singleton_append,
+      ProjectEulerSolutions.HeapCollection.append, store] using appended
+  · apply BlockContinues.branch (flag := false) tested (by simp [sameWidth, Mutable.truth, scalarTruth])
+    have unchanged : middle ++ [.list (naturals (Nat.digits 10 (value items indices digit)))] =
+        working base (naturals before) (garbage ++ temporaries items indices digit) := by
+      dsimp [middle, heap, working, temporaries]
+      simp only [List.append_assoc, List.cons_append, List.nil_append]
+    simp only [Bool.false_eq_true, if_false, selected, sameWidth, Option.toList_none, List.append_nil]
+    rw [← unchanged]
+    exact .nil
+
+private theorem loop (items : List Nat) (indices : List Int) (first count : Nat) (bound : first + count = 10)
+    (base garbage : Mutable.Heap) (before : List Nat) (digitsAddress indicesAddress : Nat)
+    (digitsFound : base[digitsAddress]? = some (.list (naturals items)))
+    (indicesFound : base[indicesAddress]? = some (.list (numbers indices))) (env : HeapCalls.Env)
+    (locals : Locals env digitsAddress indicesAddress base.length items.length) :
+    ∃ finalEnv finalGarbage,
+      BlockContinues program env [.rangeStepLoop "d" first 10 1 body []] (working base (naturals before) garbage) finalEnv
+        (working base (naturals (before ++ (List.range' first count).filterMap (selected items indices))) finalGarbage) ∧
+      Locals finalEnv digitsAddress indicesAddress base.length items.length := by
+  induction count generalizing first garbage before env with
+  | zero =>
+      refine ⟨env, garbage, ?_, locals⟩
+      simp only [List.range'_zero, List.filterMap_nil, List.append_nil]
+      exact BlockContinues.range_done (by simp [Calls.rangeContinues]; omega) .nil
+  | succ count ih =>
+      let boundEnv := setLocal env "d" (number first)
+      have boundLocals := locals.set "d" (number first) (by simp)
+      have stepped := cell_result items indices first base garbage before digitsAddress indicesAddress digitsFound indicesFound
+        boundEnv boundLocals (by simp [boundEnv, setLocal])
+      let ready := setLocal boundEnv "m" (number (value items indices first))
+      have readyLocals := boundLocals.set "m" (number (value items indices first)) (by simp)
+      obtain ⟨finalEnv, finalGarbage, rest, finalLocals⟩ := ih (first + 1) (by omega)
+        (garbage ++ temporaries items indices first) (before ++ (selected items indices first).toList) ready readyLocals
+      refine ⟨finalEnv, finalGarbage, ?_, finalLocals⟩
+      apply BlockContinues.range_step (by simp [Calls.rangeContinues]; omega)
+      cases selection : selected items indices first <;>
+        simpa only [Calls.loopContinuation, show Calls.loopControl body = false from rfl, Bool.false_eq_true, if_false,
+          Int.natCast_add, Int.natCast_one, List.range'_succ, List.filterMap_cons, List.append_assoc,
+          selection, Option.toList_none, Option.toList_some, List.nil_append, List.singleton_append] using stepped.append rest
+
+/-- The source retains exactly those replacements with the original decimal width, preserving the input heap prefix. -/
+theorem result (n : Nat) (indices : List Int) (heap : Mutable.Heap) (indicesAddress : Nat)
+    (indicesFound : heap[indicesAddress]? = some (.list (numbers indices))) :
+    ∃ garbage, ReturnsValue program "family_numbers" [number n, .ref indicesAddress] heap (.ref (heap.length + 1))
+      (working (heap ++ [.list (naturals (Nat.digits 10 n))])
+        (naturals (ProjectEulerStatements.P51.familyNumbers n (replace_at.positions indices))) garbage) := by
+  let items := Nat.digits 10 n
+  let base := heap ++ [.list (naturals items)]
+  let initial := functionEnv ((findFunctionIn program.body "family_numbers").getD ([], [])).1
+    ((findFunctionIn program.body "family_numbers").getD ([], [])).2 [number n, .ref indicesAddress] []
+  let withDigits := setLocal initial "digits" (.ref heap.length)
+  let withLength := setLocal withDigits "length" (number items.length)
+  let ready := setLocal withLength "out" (.ref base.length)
+  have digitsFound : base[heap.length]? = some (.list (naturals items)) := by simp [base]
+  have locals : Locals ready heap.length indicesAddress base.length items.length := by
+    constructor <;> simp [ready, withLength, withDigits, setLocal]
+    rfl
+  obtain ⟨finalEnv, garbage, scanned, finalLocals⟩ := loop items indices 0 10 rfl base [] [] heap.length indicesAddress
+    digitsFound (prefix_found heap _ _ _ indicesFound) ready locals
+  have enumeration : (List.range' 0 10).filterMap (selected items indices) =
+      ProjectEulerStatements.P51.familyNumbers n (replace_at.positions indices) := by
+    rw [← List.range_eq_range']
+    rfl
+  refine ⟨garbage, ?_⟩
+  change ReturnsValue program "family_numbers" [number n, .ref indicesAddress] heap (.ref (heap.length + 1))
+    (working base (naturals (ProjectEulerStatements.P51.familyNumbers n (replace_at.positions indices))) garbage)
+  have baseLength : base.length = heap.length + 1 := by simp [base]
+  rw [← baseLength]
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.assign (value := .ref heap.length) (middle := base)
+  · apply Evaluates.call (.cons (Evaluates.lookup rfl) .nil)
+    exact (common.digits_le.decimal n heap).extend common_extension
+  apply BlockReturns.assign (value := number items.length) (middle := base)
+  · apply Evaluates.builtin (.cons (Evaluates.lookup rfl) .nil)
+    simp [primitive, Mutable.length, digitsFound, naturals]
+  apply BlockReturns.assign (value := .ref base.length) (middle := working base (naturals []) [])
+  · exact Evaluates.list .nil
+  have enumerated : BlockContinues program ready [.forIn (.name "d") (.call (.name "range") [.constant (.int 10)]) body []]
+      (working base (naturals []) []) finalEnv
+      (working base (naturals (ProjectEulerStatements.P51.familyNumbers n (replace_at.positions indices))) garbage) := by
+    apply BlockContinues.for_range (.cons Evaluates.constant .nil) rfl
+    simpa only [enumeration, List.nil_append] using scanned
+  exact enumerated.returns (BlockReturns.return_value (Evaluates.lookup finalLocals.getOut))
+
+end family_numbers
+
+
+private def familyEnv (n : Int) : HeapCalls.Env := fun name => if name = "n" then some (number n) else none
+private theorem family_condition (n : Int) (heap : Mutable.Heap) :
+    Evaluates program (familyEnv n) P51Ast.requires_family_numbers_0 heap (flag (decide (0 ≤ n))) heap := by
+  apply Evaluates.compare (Evaluates.lookup rfl) Evaluates.constant
+  simp [HeapCalls.compare, scalarCompare, evalCmpOp]
+
+theorem family_numbers.«Returns» (heap : Mutable.Heap) (n : Int) (address : Nat) (_valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]")
+    (condition : HeapCalls.Condition program (familyEnv n) P51Ast.requires_family_numbers_0 heap) :
+    (HeapCalls.call program "family_numbers" [number n, .ref address] heap).Returns := by
+  have nonnegative : 0 ≤ n := by
+    simpa [Mutable.truth, scalarTruth] using (family_condition n heap).condition_iff.mp condition
+  obtain ⟨items, found⟩ := Mutable.Value.ints_of_hasType typed
+  obtain ⟨garbage, returned⟩ := family_numbers.result n.toNat items heap address found
+  simpa only [Int.toNat_of_nonneg nonnegative] using returned.returns
+
+theorem family_numbers.«Supported» (heap : Mutable.Heap) (n : Int) (address : Nat) (valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]")
+    (condition : HeapCalls.Condition program (familyEnv n) P51Ast.requires_family_numbers_0 heap) :
+    (HeapCalls.call program "family_numbers" [number n, .ref address] heap).Supported :=
+  (family_numbers.«Returns» heap n address valid typed condition).supported
+
+theorem requires_family_numbers_0_supported (heap : Mutable.Heap) (n : Int) (_address : Nat) (_valid : heap.Valid)
+    (_typed : Mutable.Value.HasType heap (.ref _address) "list[int]") :
+    (HeapCalls.evaluate program (familyEnv n) P51Ast.requires_family_numbers_0 heap).Supported :=
+  Execution.supported_of_finishes (family_condition n heap).finishes
+
 end data.«project-euler-statements».data.py.project_euler_statements.p51

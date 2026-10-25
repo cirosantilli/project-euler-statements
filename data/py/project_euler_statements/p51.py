@@ -9,6 +9,10 @@ def replace_at(digits: list[int], idxs: list[int], d: int) -> list[int]:
 
 
 def family_numbers(n: int, idxs: list[int]) -> list[int]:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     digits = digits_le(n)
     length = len(digits)
     out = []
