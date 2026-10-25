@@ -28,6 +28,9 @@ def p8(n: int) -> int:
 
 
 def polygonal(sides: int, index: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return index * ((sides - 2) * index - (sides - 4)) // 2
 
 
