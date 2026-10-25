@@ -28,6 +28,9 @@ def sum_range(pref: list[int], i: int, j: int) -> int:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Returns
+    """
     ps = primes_below(limit)
     pref = prefix_sums(ps)
     candidates = []
