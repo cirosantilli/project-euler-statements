@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
-
 def p3(n: int) -> int:
     return n * (n + 1) // 2
 
@@ -47,27 +44,34 @@ def is_cyclic_pair(a: int, b: int) -> bool:
 
 
 def is_cyclic_list(xs: list[int]) -> bool:
-    if len(xs) < 2:
+    if not xs:
         return False
     return all(is_cyclic_pair(a, b) for a, b in zip(xs, xs[1:])) and is_cyclic_pair(xs[-1], xs[0])
 
 
-def four_digit(f: Callable[[int], int]) -> list[int]:
+def four_digit(sides: int) -> list[int]:
     values = []
     index = 1
-    while f(index) < 10000:
-        if f(index) >= 1000:
-            values.append(f(index))
+    while True:
+        value = polygonal(sides, index)
+        if value >= 10000:
+            break
+        if value >= 1000:
+            values.append(value)
         index += 1
     return values
 
 
-def naive() -> int:
+def naive(max_sides: int = 8) -> int:
     """
     Enumerate every type order, scanning whole families for each next value.
-    Fix the first type to triangular; every valid cycle has that rotation.
+    Fix the first type to triangular; every cycle has that rotation.
+
+    @formalsw: Returns
     """
-    families = [four_digit(f) for f in [p3, p4, p5, p6, p7, p8]]
+    if max_sides < 3:
+        return 0
+    families = {sides: four_digit(sides) for sides in range(3, max_sides + 1)}
 
     def extend(path: list[int], remaining: list[int]) -> int:
         if not remaining:
@@ -84,9 +88,10 @@ def naive() -> int:
                     continue
                 best = max(best, extend(path + [value], unused))
         return best
+
     best = 0
-    for start in families[0]:
-        best = max(best, extend([start], [1, 2, 3, 4, 5]))
+    for start in families[3]:
+        best = max(best, extend([start], list(range(4, max_sides + 1))))
     return best
 
 
@@ -95,9 +100,11 @@ def naive_default() -> int:
 
 
 if __name__ == "__main__":
+    assert not is_cyclic_list([])
+    assert is_cyclic_list([5151])
+    assert not is_cyclic_list([1234])
     assert is_cyclic_list([8128, 2882, 8281])
     assert is_cyclic_list([8256, 5625, 2512, 1281, 8128, 2882])
     assert naive(-1) == 0
-    assert naive(0) == 0
-    assert naive(20) == 0
+    assert naive(2) == 0
     assert naive_default() == 28684

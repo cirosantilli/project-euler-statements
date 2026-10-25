@@ -454,10 +454,12 @@
     type: tuple[int, list[int]]
     desc: The least sum and ascending list of five distinct primes at most limit whose pairwise concatenations in either order are prime; (10**30, []) if no such set exists. First-on-tie traversal is preserved.
 61:
-  args: {}
+  args:
+    max_sides: int
   return:
     type: int
-    desc: The sum of a cyclic set of six distinct four-digit numbers with one triangular, square, pentagonal, hexagonal, heptagonal, and octagonal member, whose adjacent two-digit suffixes and prefixes match, including the last and first members.
+    desc: The greatest sum of a cycle of distinct four-digit numbers with one member of each polygonal type from three through max_sides, whose adjacent two-digit suffixes and prefixes match, including the last and first members; zero if max_sides is below three or no cycle exists.
+  comment: The required polygonal types could be an arbitrary finite set, and the digit width could be any positive even integer.
 62:
   args:
     k: int
