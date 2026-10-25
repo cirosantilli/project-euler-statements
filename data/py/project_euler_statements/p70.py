@@ -23,6 +23,12 @@ def better(a: int, b: int) -> bool:
 
 
 def naive(limit: int) -> int:
+    """
+    Return the least totient-permutation ratio minimizer up to the inclusive bound.
+    Return zero if there is no candidate.
+
+    @formalsw: Returns
+    """
     best = 0
     for n in range(limit + 1):
         if n > 1 and is_permutation(n, phi(n)):

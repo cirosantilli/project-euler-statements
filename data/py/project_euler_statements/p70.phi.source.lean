@@ -10,13 +10,13 @@ abbrev program := P70Ast.module
 abbrev gcdCondition : Expr := .compare (.call (.name "gcd") [.name "k", .name "n"])
   [(.eq, .constant (.int 1))]
 
-private def coprimeCount (n first : Nat) : Nat :=
+def coprimeCount (n first : Nat) : Nat :=
   ((Finset.Icc first n).filter (fun k => Nat.gcd k n = 1)).card
 
-private theorem count_done (n first : Nat) (finished : n < first) : coprimeCount n first = 0 := by
+theorem count_done (n first : Nat) (finished : n < first) : coprimeCount n first = 0 := by
   simp [coprimeCount, Finset.Icc_eq_empty_of_lt finished]
 
-private theorem count_step (n first : Nat) (active : first ≤ n) :
+theorem count_step (n first : Nat) (active : first ≤ n) :
     coprimeCount n first =
       (if Nat.gcd first n = 1 then 1 else 0) + coprimeCount n (first + 1) := by
   have interval : Finset.Icc first n = insert first (Finset.Icc (first + 1) n) := by
