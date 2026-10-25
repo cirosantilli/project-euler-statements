@@ -537,6 +537,12 @@
   return:
     type: int
     desc: The numerator of the greatest reduced proper fraction strictly below num/den whose positive denominator is at most limit; zero if there is no positive candidate. The target need not be reduced.
+72:
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The number of reduced proper fractions with positive denominator at most limit; zero when limit is below two.
 74:
   args:
     limit: int
