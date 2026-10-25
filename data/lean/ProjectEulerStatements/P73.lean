@@ -1,16 +1,13 @@
-import Mathlib.Data.List.Basic
+import ProjectEulerStatements.Lib.FractionIntervalCount
 
+set_option linter.style.header false
+
+/-! Exhaustive proper-fraction counts for arbitrary rational interval endpoints. -/
 namespace ProjectEulerStatements.P73
+open FractionIntervalCount
 
-def countBetween (limit : Nat) : Nat :=
-  (List.range (limit + 1)).foldl (fun acc d =>
-    (List.range d).foldl (fun acc2 n =>
-      if decide (n < d ∧ Nat.gcd n d = 1 ∧ n * 2 < d ∧ n * 3 > d) then acc2 + 1 else acc2) acc) 0
-
-def naive (limit : Nat) : Nat :=
-  countBetween limit
-
-example : countBetween 8 = 3 := by
-  native_decide
+def naive (limit : Int) (lowerNum : Int := 1) (lowerDen : Int := 3)
+    (upperNum : Int := 1) (upperDen : Int := 2) : Nat :=
+  result ⟨lowerNum, lowerDen, upperNum, upperDen⟩ limit
 
 end ProjectEulerStatements.P73

@@ -543,6 +543,19 @@
   return:
     type: int
     desc: The number of reduced proper fractions with positive denominator at most limit; zero when limit is below two.
+73:
+  args:
+    limit: int
+    lower_num: int
+    lower_den: int
+    upper_num: int
+    upper_den: int
+  constraints:
+    - lower_den > 0
+    - upper_den > 0
+  return:
+    type: int
+    desc: The number of reduced fractions n/d with 0 < n < d <= limit strictly between lower_num/lower_den and upper_num/upper_den. Endpoints need not be reduced or lie in [0, 1]; reversed or disjoint intervals have count zero.
 74:
   args:
     limit: int
