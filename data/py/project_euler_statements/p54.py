@@ -46,7 +46,10 @@ def straight_high(rs: list[int]) -> int:
     return 5 if rs == [2, 3, 4, 5, 14] else (rs[-1] if rs else 0)
 
 
-def rank_counts(rs):
+def rank_counts(rs: list[int]):
+    """
+    @formalsw: Returns
+    """
     vals = []
     for r in rs:
         if r not in vals:
@@ -58,7 +61,10 @@ def sort_counts(cs):
     return sorted(cs, key=lambda p: (-p[0], -p[1]))
 
 
-def counts_key(rs):
+def counts_key(rs: list[int]):
+    """
+    @formalsw: Returns
+    """
     out = []
     for count, value in sort_counts(rank_counts(rs)):
         out += [value] * count

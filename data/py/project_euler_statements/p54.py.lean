@@ -1,3 +1,7 @@
+import ProjectEulerSolutions.Lib.PokerGroupOrder
+import lang.py.FormalSW.MembershipCalls
+import ProjectEulerSolutions.Lib.HeapCollection
+import ProjectEulerSolutions.Lib.PokerUnique
 import lang.py.FormalSW.DictionaryCalls
 import data.«project-euler-statements».«.formalsw».data.py.project_euler_statements.«p54.py.ast»
 import ProjectEulerSolutions.Lib.PokerTiebreaks
@@ -948,3 +952,1093 @@ theorem result (cards : List Card) (valuation : Card → Int) (heap : Heap) (add
 end hand_ranks
 
 end data.«project-euler-statements».data.py.project_euler_statements.p54.rank_source
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.counts_source
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+open ProjectEulerSolutions.PokerUnique
+set_option Elab.async false
+
+private abbrev program := P54Ast.module
+private abbrev number (value : Int) : Mutable.Value := .scalar (.int value)
+private abbrev numbers (values : List Int) : List Mutable.Value := values.map number
+private abbrev flag (value : Bool) : Mutable.Value := .scalar (.bool value)
+private abbrev buffer (heap : Heap) (values : List Int) : Heap := heap ++ [.list (numbers values)]
+private abbrev working := ProjectEulerSolutions.HeapCollection.working
+
+private theorem found_append {heap : Heap} {address : Nat} {object : Mutable.Object}
+    (found : heap[address]? = some object) (extra : Heap) :
+    (heap ++ extra)[address]? = some object := by
+  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp found).1]
+  exact found
+
+private abbrev dedupBody : List Stmt :=
+  [.ifThen (.membership (.name "r") (.name "vals") true)
+    [.expr (.call (.attribute (.name "vals") "append") [.name "r"])] []]
+
+private theorem dedup_step (heap : Heap) (env : HeapCalls.Env) (done : List Int) (value : Int)
+    (globals : Mutable.Globals) (getValue : env "r" = some (number value))
+    (getVals : env "vals" = some (.ref heap.length)) :
+    BlockContinues program env dedupBody (buffer heap done) env (buffer heap (addUnique done value)) globals := by
+  have found : (buffer heap done)[heap.length]? = some (.list (numbers done)) := by simp [buffer]
+  have tested : Evaluates program env (.membership (.name "r") (.name "vals") true) (buffer heap done)
+      (flag (!decide (value ∈ done))) (buffer heap done) globals := by
+    apply Evaluates.membership (.cons (Evaluates.lookup getValue) (.cons (Evaluates.lookup getVals) .nil))
+    exact membership_list_ints (buffer heap done) heap.length value done found true
+  by_cases present : value ∈ done
+  · simp only [addUnique, if_pos present]
+    apply BlockContinues.branch (flag := false) (value := flag false) (middle := buffer heap done)
+      (by simpa only [present, decide_true, Bool.not_true] using tested) rfl
+    exact BlockContinues.nil
+  · simp only [addUnique, if_neg present]
+    apply BlockContinues.branch (flag := true) (value := flag true) (middle := buffer heap done)
+      (by simpa only [present, decide_false, Bool.not_false] using tested) rfl
+    apply BlockContinues.discard
+    have appended := Evaluates.append (module := program) (env := env) (globals := globals)
+      (Evaluates.lookup getVals) found (Evaluates.lookup getValue) found
+    simpa [buffer, numbers, List.map_append, List.set_append_right] using appended
+
+private theorem dedup_loop (heap : Heap) (address : Nat) (values remaining : List Int)
+    (found : heap[address]? = some (.list (numbers values))) (position : Nat)
+    (suffix : values.drop position = remaining) (done : List Int) (env : HeapCalls.Env) (globals : Mutable.Globals)
+    (getRs : env "rs" = some (.ref address)) (getVals : env "vals" = some (.ref heap.length)) :
+    ∃ finalEnv, finalEnv "rs" = some (.ref address) ∧ finalEnv "vals" = some (.ref heap.length) ∧
+      BlockContinues program env [.sequenceStepLoop "r" (.ref address) position dedupBody []]
+        (buffer heap done) finalEnv (buffer heap (remaining.foldl addUnique done)) globals := by
+  have sequence (collected : List Int) : Mutable.sequence (.ref address) (buffer heap collected) =
+      some (.ok (numbers values), buffer heap collected) := by
+    have original := found_append found [.list (numbers collected)]
+    simp [Mutable.sequence, original, buffer]
+  induction remaining generalizing position done env with
+  | nil =>
+      have missing : values[position]? = none := by simpa [suffix] using (List.head?_drop (l := values) (i := position)).symm
+      refine ⟨env, getRs, getVals, ?_⟩
+      apply BlockContinues.sequence_done (source := .ref address) (sequence done)
+        (by simp only [numbers, List.getElem?_map, missing, Option.map_none])
+      exact BlockContinues.nil
+  | cons value rest ih =>
+      have item : values[position]? = some value := by simpa [suffix] using (List.head?_drop (l := values) (i := position)).symm
+      let ready := setLocal env "r" (number value)
+      have readyRs : ready "rs" = some (.ref address) := by simpa [ready, setLocal] using getRs
+      have readyVals : ready "vals" = some (.ref heap.length) := by simpa [ready, setLocal] using getVals
+      have stepped := dedup_step heap ready done value globals rfl readyVals
+      obtain ⟨finalEnv, finalRs, finalVals, continued⟩ := ih (position+1)
+        (by simp [List.drop_add_one_eq_tail_drop, suffix]) (addUnique done value) ready readyRs readyVals
+      refine ⟨finalEnv, finalRs, finalVals, ?_⟩
+      apply BlockContinues.sequence_step (source := .ref address) (value := number value) (sequence done)
+        (by simp only [numbers, List.getElem?_map, item, Option.map_some])
+      simpa [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, List.foldl_cons] using
+        stepped.append continued
+
+/-- One fresh tuple contains the occurrence count followed by its first-seen rank. -/
+def row (values : List Int) (rank : Int) : Mutable.Object := .tuple [number (values.count rank), number rank]
+def scratch (values keys : List Int) : Heap := keys.map (row values)
+def references (start : Nat) : List Int → List Mutable.Value
+  | [] => []
+  | _ :: rest => .ref start :: references (start+1) rest
+
+private abbrev countExpression : Expr := .call (.attribute (.name "rs") "count") [.name "v"]
+private abbrev rowExpression : Expr := .tuple [countExpression, .name "v"]
+
+private theorem row_eval (heap : Heap) (env : HeapCalls.Env) (address : Nat) (values : List Int) (rank : Int)
+    (globals : Mutable.Globals) (getRs : env "rs" = some (.ref address)) (getRank : env "v" = some (number rank))
+    (found : heap[address]? = some (.list (numbers values))) :
+    Evaluates program env rowExpression heap (.ref heap.length) (heap ++ [row values rank]) globals := by
+  have counted : Evaluates program env countExpression heap (number (values.count rank)) heap globals := by
+    apply Evaluates.count (Evaluates.lookup getRs) found (.cons (Evaluates.lookup getRank) .nil)
+      (primitive_count_list heap address values rank found)
+    intro name same
+    cases same
+    simp only [getRs, Option.isSome_some]
+  exact Evaluates.tuple (.cons counted (.cons (Evaluates.lookup getRank) .nil)) (by simp)
+
+private theorem collect_rows (base : Heap) (address valsAddress : Nat) (values keys remaining : List Int)
+    (found : base[address]? = some (.list (numbers values)))
+    (valsFound : base[valsAddress]? = some (.list (numbers keys))) (position : Nat)
+    (suffix : keys.drop position = remaining) (groups : List Mutable.Value) (garbage : Heap)
+    (env : HeapCalls.Env) (globals : Mutable.Globals) (getRs : env "rs" = some (.ref address)) :
+    ∃ finalEnv, BlockContinues program env
+      [.sequenceStepLoop "v" (.ref valsAddress) position [.comprehensionAppend base.length rowExpression] []]
+      (working base groups garbage) finalEnv
+      (working base (groups ++ references (working base groups garbage).length remaining)
+        (garbage ++ scratch values remaining)) globals := by
+  have sequence (collected : List Mutable.Value) (extra : Heap) :
+      Mutable.sequence (.ref valsAddress) (working base collected extra) =
+        some (.ok (numbers keys), working base collected extra) := by
+    have retained := found_append valsFound (.list collected :: extra)
+    simp [Mutable.sequence, ProjectEulerSolutions.HeapCollection.working, retained]
+  induction remaining generalizing position groups garbage env with
+  | nil =>
+      have missing : keys[position]? = none := by simpa [suffix] using (List.head?_drop (l := keys) (i := position)).symm
+      refine ⟨env, ?_⟩
+      apply BlockContinues.sequence_done (source := .ref valsAddress) (sequence groups garbage)
+        (by simp only [numbers, List.getElem?_map, missing, Option.map_none])
+      simpa only [references, scratch, List.map_nil, List.append_nil] using
+        (BlockContinues.nil (module := program) (env := env) (heap := working base groups garbage) (globals := globals))
+  | cons rank rest ih =>
+      have item : keys[position]? = some rank := by simpa [suffix] using (List.head?_drop (l := keys) (i := position)).symm
+      let ready := setLocal env "v" (number rank)
+      have readyRs : ready "rs" = some (.ref address) := by simpa [ready, setLocal] using getRs
+      have original : (working base groups garbage)[address]? = some (.list (numbers values)) :=
+        found_append found (.list groups :: garbage)
+      have tuple := row_eval (working base groups garbage) ready address values rank globals readyRs rfl original
+      have emitted := ProjectEulerSolutions.HeapCollection.emit base groups garbage [row values rank]
+        (.ref (working base groups garbage).length) tuple
+      obtain ⟨finalEnv, continued⟩ := ih (position+1)
+        (by simp [List.drop_add_one_eq_tail_drop, suffix])
+        (groups ++ [.ref (working base groups garbage).length]) (garbage ++ [row values rank]) ready readyRs
+      refine ⟨finalEnv, ?_⟩
+      apply BlockContinues.sequence_step (source := .ref valsAddress) (value := number rank) (sequence groups garbage)
+        (by simp only [numbers, List.getElem?_map, item, Option.map_some])
+      have lengthStep :
+          (working base (groups ++ [.ref (working base groups garbage).length]) (garbage ++ [row values rank])).length =
+            (working base groups garbage).length+1 := by
+        simp [ProjectEulerSolutions.HeapCollection.working]
+        omega
+      simpa [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, references, scratch,
+        List.append_assoc, lengthStep] using emitted.append continued
+
+private abbrev params := ((findFunctionIn program.body "rank_counts").getD ([], [])).1
+private abbrev body := ((findFunctionIn program.body "rank_counts").getD ([], [])).2
+private abbrev initial (globals : Mutable.Globals) (address : Nat) : HeapCalls.Env :=
+  functionEnv params body [.ref address] globals
+private theorem get_rs (globals : Mutable.Globals) (address : Nat) : initial globals address "rs" = some (.ref address) := by
+  cases globals <;> rfl
+
+/-- The returned list references one count/rank tuple per first-seen rank, preserving the caller heap. -/
+theorem result (values : List Int) (heap : Heap) (address : Nat) (globals : Mutable.Globals)
+    (found : heap[address]? = some (.list (numbers values))) :
+    ReturnsValue program "rank_counts" [.ref address] heap (.ref (heap.length+1))
+      (heap ++ [.list (numbers (unique values)), .list (references (heap.length+2) (unique values))] ++
+        scratch values (unique values)) globals := by
+  let ready := setLocal (initial globals address) "vals" (.ref heap.length)
+  have readyRs : ready "rs" = some (.ref address) := by simpa [ready, setLocal] using get_rs globals address
+  obtain ⟨deduped, getRs, getVals, dedupedLoop⟩ := dedup_loop heap address values values found 0 rfl [] ready globals readyRs rfl
+  let base := buffer heap (unique values)
+  have sourceFound : base[address]? = some (.list (numbers values)) := found_append found _
+  have valsFound : base[heap.length]? = some (.list (numbers (unique values))) := by simp [base, buffer]
+  let inside := comprehensionEnv deduped [("v", .name "vals", [])]
+  have insideRs : inside "rs" = some (.ref address) := by
+    simpa [inside, comprehensionEnv] using getRs
+  obtain ⟨finalEnv, collected⟩ := collect_rows base address heap.length values (unique values) (unique values)
+    sourceFound valsFound 0 rfl [] [] inside globals insideRs
+  have built : Evaluates program deduped (.listComp rowExpression [("v", .name "vals", [])]) base (.ref base.length)
+      (working base (references (base.length+1) (unique values)) (scratch values (unique values))) globals := by
+    apply Evaluates.list_comp_sequence (name := "v") (iterable := .name "vals") (filters := []) (generators := [])
+      (finalEnv := finalEnv) (items := numbers (unique values)) (value := .ref heap.length) (middle := base)
+      (by intro expressions impossible; cases impossible) (Evaluates.lookup getVals)
+      (by simp [Mutable.sequence, valsFound])
+    simpa only [List.nil_append, comprehensionFilters, comprehensionBody, List.foldr_nil,
+      ProjectEulerSolutions.HeapCollection.working, List.length_append, List.length_singleton] using collected
+  have returned : ReturnsValue program "rank_counts" [.ref address] heap (.ref base.length)
+      (working base (references (base.length+1) (unique values)) (scratch values (unique values))) globals := by
+    apply BlockReturns.function rfl rfl
+    apply BlockReturns.assign (Evaluates.list .nil)
+    apply BlockContinues.returns
+      (body := [.forIn (.name "r") (.name "rs") dedupBody []])
+      (following := [.return (.listComp rowExpression [("v", .name "vals", [])])])
+      (middleEnv := deduped) (middleHeap := base)
+    · apply BlockContinues.for_sequence (items := numbers values) (by intro expressions impossible; cases impossible)
+        (Evaluates.lookup readyRs) (by simp [Mutable.sequence, found_append found [.list []]])
+      exact dedupedLoop
+    · exact BlockReturns.return_value built
+  simpa only [base, buffer, ProjectEulerSolutions.HeapCollection.working, unique, List.length_append,
+    List.length_singleton, List.append_assoc, List.cons_append, List.nil_append, Nat.add_assoc] using returned
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.counts_source
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.rank_counts
+open FormalSW.PyAst
+
+theorem «Returns» (heap : Mutable.Heap) (address : Nat) (_valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call P54Ast.module "rank_counts" [.ref address] heap).Returns := by
+  obtain ⟨values, found⟩ := Mutable.Value.ints_of_hasType typed
+  exact (counts_source.result values heap address [] found).returns
+
+theorem «Supported» (heap : Mutable.Heap) (address : Nat) (valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call P54Ast.module "rank_counts" [.ref address] heap).Supported :=
+  («Returns» heap address valid typed).supported
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.rank_counts
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.sort_counts_source
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+open ProjectEulerSolutions
+set_option Elab.async false
+
+private abbrev program := P54Ast.module
+private abbrev number (value : Int) : Mutable.Value := .scalar (.int value)
+private abbrev numbers (values : List Int) : List Mutable.Value := values.map number
+
+structure Entry where
+  address : Nat
+  count : Int
+  rank : Int
+
+def Entry.pair (entry : Entry) : Int × Int := (entry.count, entry.rank)
+def original (entry : Entry) : Mutable.Value := .ref entry.address
+def items (entries : List Entry) : List Mutable.Value := entries.map original
+def row (entry : Entry) : Mutable.Object := .tuple [number entry.count, number entry.rank]
+def keyRow (entry : Entry) : Mutable.Object := .tuple [number (-entry.count), number (-entry.rank)]
+def scratch (entries : List Entry) : Heap := entries.map keyRow
+
+def Found (heap : Heap) (entries : List Entry) : Prop :=
+  ∀ entry ∈ entries, heap[entry.address]? = some (row entry)
+
+def cached (start : Nat) : List Entry → List (Mutable.Value × Mutable.Value)
+  | [] => []
+  | entry :: rest => (original entry, .ref start) :: cached (start+1) rest
+
+def readPair (heap : Heap) (value : Mutable.Value) : Int × Int :=
+  let values := TupleSorting.readInts heap value
+  (values.getD 0 0, values.getD 1 0)
+
+def negative (pair : Int × Int) : Int × Int := (-pair.1, -pair.2)
+def negativeLess (left right : Int × Int) : Bool := PokerGroupOrder.pairLess (negative left) (negative right)
+def less (heap : Heap) (left right : Mutable.Value × Mutable.Value) : Bool :=
+  negativeLess (readPair heap left.1) (readPair heap right.1)
+
+def sortedRefs (heap : Heap) (entries : List Entry) : List Mutable.Value :=
+  (HeapSort.sortBy (less (heap ++ scratch entries)) (cached heap.length entries)).map Prod.fst
+
+def finalHeap (heap : Heap) (entries : List Entry) : Heap :=
+  heap ++ scratch entries ++ [.list (sortedRefs heap entries)]
+
+private theorem found_append {heap : Heap} {address : Nat} {object : Mutable.Object}
+    (found : heap[address]? = some object) (extra : Heap) :
+    (heap ++ extra)[address]? = some object := by
+  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp found).1]
+  exact found
+
+private theorem read_pair (heap : Heap) (entry : Entry) (found : heap[entry.address]? = some (row entry)) :
+    readPair heap (original entry) = entry.pair := by
+  simp [readPair, original, TupleSorting.readInts, row, found, Entry.pair]
+
+private theorem cached_fst (start : Nat) (entries : List Entry) :
+    (cached start entries).map Prod.fst = items entries := by
+  induction entries generalizing start with
+  | nil => rfl
+  | cons entry rest ih => simp [cached, items, ih]
+
+private theorem cached_append (start : Nat) (entries : List Entry) (entry : Entry) :
+    cached start (entries ++ [entry]) = cached start entries ++ [(original entry, .ref (start+entries.length))] := by
+  induction entries generalizing start with
+  | nil => simp [cached]
+  | cons first rest ih => simp [cached, ih, Nat.add_comm, Nat.add_left_comm]
+
+private theorem cached_rows (heap : Heap) (entries : List Entry) :
+    List.Forall₂ (fun cache entry => cache.1 = original entry ∧ ∃ address,
+      cache.2 = .ref address ∧ (heap ++ scratch entries)[address]? = some (keyRow entry))
+      (cached heap.length entries) entries := by
+  induction entries generalizing heap with
+  | nil => exact .nil
+  | cons entry rest ih =>
+      apply List.Forall₂.cons
+      · exact ⟨rfl, heap.length, rfl, by simp [scratch]⟩
+      · simpa [cached, scratch, List.append_assoc] using ih (heap ++ [keyRow entry])
+
+private theorem related_member {α β : Type} (relation : α → β → Prop)
+    {left : List α} {right : List β} (related : List.Forall₂ relation left right)
+    (item : α) (member : item ∈ left) : ∃ value ∈ right, relation item value := by
+  induction related with
+  | nil => cases member
+  | @cons first value rest values related _ ih =>
+      rcases List.mem_cons.mp member with rfl | member
+      · exact ⟨value, List.mem_cons_self, related⟩
+      · obtain ⟨foundValue, present, shape⟩ := ih member
+        exact ⟨foundValue, List.mem_cons_of_mem _ present, shape⟩
+
+private theorem cached_member (heap : Heap) (entries : List Entry) (cache : Mutable.Value × Mutable.Value)
+    (member : cache ∈ cached heap.length entries) :
+    ∃ entry ∈ entries, cache.1 = original entry ∧ ∃ address, cache.2 = .ref address ∧
+      (heap ++ scratch entries)[address]? = some (keyRow entry) :=
+  related_member _ (cached_rows heap entries) cache member
+
+private theorem negative_le (left right : Int × Int) :
+    PokerGroupOrder.pairLE (negative left) (negative right) ↔ PokerGroupOrder.pairLE right left := by
+  unfold PokerGroupOrder.pairLE negative
+  omega
+
+private theorem negative_ordered (pairs : List (Int × Int)) :
+    (HeapSort.sortBy negativeLess pairs).Pairwise (fun left right => PokerGroupOrder.pairLE right left) := by
+  have mapped := HeapSort.sortBy_map negative PokerGroupOrder.pairLess pairs
+  change (HeapSort.sortBy negativeLess pairs).map negative =
+    HeapSort.sortBy PokerGroupOrder.pairLess (pairs.map negative) at mapped
+  have ordered := PokerGroupOrder.sortBy_ordered (pairs.map negative)
+  rw [← mapped] at ordered
+  exact (List.pairwise_map.mp ordered).imp (fun {left right} related => (negative_le left right).mp related)
+
+/-- The reference's ascending negated keys decode to descending count/rank pairs. -/
+theorem negative_sort_eq (pairs : List (Int × Int)) :
+    HeapSort.sortBy negativeLess pairs = PokerGroupOrder.sortedPairs true pairs := by
+  apply List.Perm.eq_of_pairwise (le := fun left right => PokerGroupOrder.pairLE right left)
+    (fun left right _ _ before after => ?_) (negative_ordered pairs)
+    (PokerGroupOrder.sortedPairs_descending pairs)
+    ((HeapSort.sortBy_perm negativeLess pairs).trans (PokerGroupOrder.sortedPairs_perm true pairs).symm)
+  apply Prod.ext <;> unfold PokerGroupOrder.pairLE at before after <;> omega
+
+private theorem keyed_insert_of_compare (heap : Heap) (compareLess :
+    (Mutable.Value × Mutable.Value) → (Mutable.Value × Mutable.Value) → Bool)
+    (value : Mutable.Value × Mutable.Value) (keys : List (Mutable.Value × Mutable.Value))
+    (compared : ∀ key ∈ keys, HeapSort.compare (heap.length+1) heap false key.2 value.2 =
+      some (.ok (compareLess key value))) :
+    HeapSort.keyedInsert heap value keys = some (.ok (HeapSort.insertBy compareLess value keys)) := by
+  induction keys with
+  | nil => rfl
+  | cons first rest ih =>
+      have firstCompared := compared first List.mem_cons_self
+      have restCompared := ih (fun key member => compared key (List.mem_cons_of_mem _ member))
+      simp only [HeapSort.keyedInsert, firstCompared, HeapSort.insertBy]
+      cases compareLess first value <;> simp [restCompared, Except.map]
+
+private theorem keyed_sort_of_compare (heap : Heap) (compareLess :
+    (Mutable.Value × Mutable.Value) → (Mutable.Value × Mutable.Value) → Bool)
+    (keys : List (Mutable.Value × Mutable.Value))
+    (compared : ∀ left ∈ keys, ∀ right ∈ keys,
+      HeapSort.compare (heap.length+1) heap false left.2 right.2 = some (.ok (compareLess left right))) :
+    HeapSort.keyedSort heap keys = some (.ok (HeapSort.sortBy compareLess keys)) := by
+  induction keys with
+  | nil => rfl
+  | cons first rest ih =>
+      have ordered := ih (fun left hl right hr => compared left (List.mem_cons_of_mem _ hl)
+        right (List.mem_cons_of_mem _ hr))
+      simp only [HeapSort.keyedSort, ordered, HeapSort.sortBy]
+      apply keyed_insert_of_compare
+      intro key member
+      exact compared key (List.mem_cons_of_mem _ ((HeapSort.sortBy_perm compareLess rest).mem_iff.mp member))
+        first List.mem_cons_self
+
+private theorem keys_compared (heap : Heap) (entries : List Entry) (known : Found heap entries)
+    (left : Mutable.Value × Mutable.Value) (leftMember : left ∈ cached heap.length entries)
+    (right : Mutable.Value × Mutable.Value) (rightMember : right ∈ cached heap.length entries) :
+    HeapSort.compare ((heap ++ scratch entries).length+1) (heap ++ scratch entries) false left.2 right.2 =
+      some (.ok (less (heap ++ scratch entries) left right)) := by
+  obtain ⟨a, aMember, aOriginal, aKey, aReference, aFound⟩ := cached_member heap entries left leftMember
+  obtain ⟨b, bMember, bOriginal, bKey, bReference, bFound⟩ := cached_member heap entries right rightMember
+  have aRead := read_pair (heap ++ scratch entries) a (found_append (known a aMember) _)
+  have bRead := read_pair (heap ++ scratch entries) b (found_append (known b bMember) _)
+  have positive : 0 < (heap ++ scratch entries).length := by
+    have inside := (List.getElem?_eq_some_iff.mp aFound).1
+    omega
+  have depth : (heap ++ scratch entries).length-1+2 = (heap ++ scratch entries).length+1 := by omega
+  have compared := HeapSort.compare_int_tuples (heap ++ scratch entries) aKey bKey
+    ((heap ++ scratch entries).length-1) [-a.count, -a.rank] [-b.count, -b.rank] aFound bFound
+  simpa only [depth, aReference, bReference, less, aOriginal, bOriginal, aRead, bRead,
+    negativeLess, negative, Entry.pair, PokerGroupOrder.pairLess, PokerGroupOrder.row] using compared
+
+private theorem finish (heap : Heap) (entries : List Entry) (known : Found heap entries) :
+    sortedFinish false (cached heap.length entries).reverse (heap ++ scratch entries) =
+      some (.ok (.ref (heap ++ scratch entries).length), finalHeap heap entries) := by
+  have sorted := keyed_sort_of_compare (heap ++ scratch entries) (less (heap ++ scratch entries))
+    (cached heap.length entries) (keys_compared heap entries known)
+  simp [sortedFinish, HeapSort.keyedSortWithReverse, sorted, finalHeap, sortedRefs, Mutable.allocate, Except.map]
+
+/-- Sorting retains every input tuple reference, including references with equal numerical contents. -/
+theorem sortedRefs_perm (heap : Heap) (entries : List Entry) :
+    (sortedRefs heap entries).Perm (items entries) := by
+  rw [← cached_fst heap.length entries]
+  exact (HeapSort.sortBy_perm (less (heap ++ scratch entries)) (cached heap.length entries)).map Prod.fst
+
+/-- Numerical projection of the actual returned references equals the root's descending group order. -/
+theorem sortedRefs_pairs (heap : Heap) (entries : List Entry) (known : Found heap entries) :
+    (sortedRefs heap entries).map (readPair (heap ++ scratch entries)) =
+      PokerGroupOrder.sortedPairs true (entries.map Entry.pair) := by
+  have decoded : (cached heap.length entries).map (fun cache => readPair (heap ++ scratch entries) cache.1) =
+      entries.map Entry.pair := by
+    change (cached heap.length entries).map (readPair (heap ++ scratch entries) ∘ Prod.fst) = _
+    rw [← List.map_map, cached_fst]
+    simp only [items, List.map_map]
+    apply List.map_congr_left
+    intro entry member
+    exact read_pair (heap ++ scratch entries) entry (found_append (known entry member) _)
+  have mapped := HeapSort.sortBy_map (fun cache : Mutable.Value × Mutable.Value =>
+      readPair (heap ++ scratch entries) cache.1) negativeLess (cached heap.length entries)
+  change (HeapSort.sortBy (less (heap ++ scratch entries)) (cached heap.length entries)).map
+      (fun cache => readPair (heap ++ scratch entries) cache.1) = _ at mapped
+  rw [decoded, negative_sort_eq] at mapped
+  simpa only [sortedRefs, List.map_map, Function.comp_def] using mapped
+
+private abbrev component (index : Int) : Expr := .subscript (.name "p") (.constant (.int index))
+private abbrev keyExpression : Expr := .tuple [.unaryOp .uSub (component 0), .unaryOp .uSub (component 1)]
+
+private theorem key_eval (heap : Heap) (env : HeapCalls.Env) (entry : Entry) (globals : Mutable.Globals)
+    (bound : env "p" = some (original entry)) (found : heap[entry.address]? = some (row entry)) :
+    Evaluates program env keyExpression heap (.ref heap.length) (heap ++ [keyRow entry]) globals := by
+  have first : Evaluates program env (component 0) heap (number entry.count) heap globals := by
+    apply Evaluates.subscript (by intros; simp) (Evaluates.lookup bound) Evaluates.constant
+    simp [original, Mutable.getItem, Mutable.index, row, found, number, Except.map]
+  have second : Evaluates program env (component 1) heap (number entry.rank) heap globals := by
+    apply Evaluates.subscript (by intros; simp) (Evaluates.lookup bound) Evaluates.constant
+    simp [original, Mutable.getItem, Mutable.index, row, found, number, Except.map]
+  exact Evaluates.tuple (.cons (Evaluates.unary first rfl) (.cons (Evaluates.unary second rfl) .nil)) (by simp)
+
+private theorem keys_result (heap : Heap) (env : HeapCalls.Env) (done remaining : List Entry)
+    (globals : Mutable.Globals) (known : Found heap (done ++ remaining)) :
+    SortedReturns program ⟨"p", keyExpression, env, false⟩ (items remaining)
+      (cached heap.length done).reverse (heap ++ scratch done) (.ref (heap ++ scratch (done ++ remaining)).length)
+      (finalHeap heap (done ++ remaining)) globals := by
+  induction remaining generalizing done with
+  | nil =>
+      simpa only [List.append_nil] using SortedReturns.done (finish heap done (by simpa using known))
+  | cons entry rest ih =>
+      have found := found_append (known entry (List.mem_append_right _ List.mem_cons_self)) (scratch done)
+      have evaluated := key_eval (heap ++ scratch done) (setLocal env "p" (original entry)) entry globals
+        (by simp [setLocal]) found
+      have tailKnown : Found heap ((done ++ [entry]) ++ rest) := by
+        simpa only [List.append_assoc, List.singleton_append] using known
+      have continued := ih (done ++ [entry]) tailKnown
+      apply SortedReturns.next evaluated
+      simpa [items, scratch, cached_append, List.reverse_append, List.append_assoc] using continued
+
+private abbrev params := ((findFunctionIn program.body "sort_counts").getD ([], [])).1
+private abbrev body := ((findFunctionIn program.body "sort_counts").getD ([], [])).2
+private abbrev initial (globals : Mutable.Globals) (address : Nat) : HeapCalls.Env :=
+  functionEnv params body [.ref address] globals
+private theorem get_cs (globals : Mutable.Globals) (address : Nat) : initial globals address "cs" = some (.ref address) := by
+  cases globals <;> rfl
+
+/-- The original source lambda allocates one negated key tuple per input item, then a fresh result list. -/
+theorem result (heap : Heap) (address : Nat) (entries : List Entry) (globals : Mutable.Globals)
+    (found : heap[address]? = some (.list (items entries))) (known : Found heap entries) :
+    ReturnsValue program "sort_counts" [.ref address] heap (.ref (heap ++ scratch entries).length)
+      (finalHeap heap entries) globals := by
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  apply Evaluates.sorted_sequence (Evaluates.lookup (get_cs globals address)) Evaluates.constant
+    (items := items entries) (direction := false) (middle := heap)
+  · simp [sortedStart, sortedItems, Mutable.sequence, found, Mutable.truth, scalarTruth]
+  · simpa only [List.nil_append, cached, List.reverse_nil, scratch, List.map_nil, List.append_nil] using
+      keys_result heap (initial globals address) [] entries globals (by simpa using known)
+
+/-- The caller's original objects remain unchanged throughout both callback collection and sorting. -/
+theorem caller_found (heap : Heap) (entries : List Entry) (address : Nat) (object : Mutable.Object)
+    (found : heap[address]? = some object) : (finalHeap heap entries)[address]? = some object := by
+  exact found_append (found_append found (scratch entries)) [.list (sortedRefs heap entries)]
+
+/-- The newly allocated result list contains the sorted original references. -/
+theorem returned_found (heap : Heap) (entries : List Entry) :
+    (finalHeap heap entries)[(heap ++ scratch entries).length]? = some (.list (sortedRefs heap entries)) := by
+  simp [finalHeap]
+
+/-- Reading the source result in its final heap yields the exact descending frequency/rank rows. -/
+theorem sortedRefs_rows (heap : Heap) (entries : List Entry) (known : Found heap entries) :
+    (sortedRefs heap entries).map (TupleSorting.readInts (finalHeap heap entries)) =
+      (PokerGroupOrder.sortedPairs true (entries.map Entry.pair)).map PokerGroupOrder.row := by
+  rw [← sortedRefs_pairs heap entries known]
+  simp only [List.map_map, Function.comp_def]
+  apply List.map_congr_left
+  intro item member
+  obtain ⟨entry, present, rfl⟩ := List.mem_map.mp ((sortedRefs_perm heap entries).mem_iff.mp member)
+  have before := found_append (known entry present) (scratch entries)
+  have after := caller_found heap entries entry.address (row entry) (known entry present)
+  simp [original, TupleSorting.readInts, row, before, after, readPair, PokerGroupOrder.row]
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.sort_counts_source
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.counts_key_source
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+open ProjectEulerSolutions
+set_option Elab.async false
+
+private abbrev program := P54Ast.module
+private abbrev number (value : Int) : Mutable.Value := .scalar (.int value)
+private abbrev numbers (values : List Int) : List Mutable.Value := values.map number
+private abbrev working := HeapCollection.working
+private abbrev Entry := sort_counts_source.Entry
+
+def segment (pair : Int × Int) : List Int := List.replicate pair.1.toNat pair.2
+def expanded (pairs : List (Int × Int)) : List Int := pairs.flatMap segment
+def temporary (pair : Int × Int) : Heap := [.list [number pair.2], .list (numbers (segment pair))]
+def temporaries (pairs : List (Int × Int)) : Heap := pairs.flatMap temporary
+
+def countEntries (values : List Int) (start : Nat) : List Int → List Entry
+  | [] => []
+  | rank :: rest => ⟨start, values.count rank, rank⟩ :: countEntries values (start+1) rest
+
+def countedRows (values : List Int) : List (Int × Int) :=
+  (PokerUnique.unique values).map fun rank => ((values.count rank : Int), rank)
+def orderedRows (values : List Int) : List (Int × Int) := PokerGroupOrder.sortedPairs true (countedRows values)
+
+def seed (heap : Heap) : Heap := heap ++ [.list []]
+def entries (heap : Heap) (values : List Int) : List Entry :=
+  countEntries values ((seed heap).length+2) (PokerUnique.unique values)
+def countGarbage (heap : Heap) (values : List Int) : Heap :=
+  [.list (numbers (PokerUnique.unique values)),
+   .list (counts_source.references ((seed heap).length+2) (PokerUnique.unique values))] ++
+    counts_source.scratch values (PokerUnique.unique values)
+def countedHeap (heap : Heap) (values : List Int) : Heap := seed heap ++ countGarbage heap values
+
+def preparedHeap (heap : Heap) (values : List Int) : Heap :=
+  sort_counts_source.finalHeap (countedHeap heap values) (entries heap values)
+def sourceAddress (heap : Heap) (values : List Int) : Nat :=
+  (countedHeap heap values ++ sort_counts_source.scratch (entries heap values)).length
+
+def baseGarbage (heap : Heap) (values : List Int) : Heap :=
+  countGarbage heap values ++ sort_counts_source.scratch (entries heap values) ++
+    [.list (sort_counts_source.sortedRefs (countedHeap heap values) (entries heap values))]
+def finalHeap (heap : Heap) (values : List Int) : Heap :=
+  working heap (numbers (expanded (orderedRows values)))
+    (baseGarbage heap values ++ temporaries (orderedRows values))
+
+private theorem found_append {heap : Heap} {address : Nat} {object : Mutable.Object}
+    (found : heap[address]? = some object) (extra : Heap) :
+    (heap ++ extra)[address]? = some object := HeapCollection.prefix_found heap extra address object found
+
+private theorem items_countEntries (values : List Int) (start : Nat) (keys : List Int) :
+    sort_counts_source.items (countEntries values start keys) = counts_source.references start keys := by
+  induction keys generalizing start with
+  | nil => rfl
+  | cons rank rest ih =>
+      change (.ref start :: sort_counts_source.items (countEntries values (start+1) rest)) =
+        (.ref start :: counts_source.references (start+1) rest)
+      exact congrArg (List.cons (.ref start)) (ih (start+1))
+
+private theorem pairs_countEntries (values : List Int) (start : Nat) (keys : List Int) :
+    (countEntries values start keys).map sort_counts_source.Entry.pair = keys.map fun rank => ((values.count rank : Int), rank) := by
+  induction keys generalizing start with
+  | nil => rfl
+  | cons rank rest ih => simp [countEntries, sort_counts_source.Entry.pair, ih]
+
+private theorem countEntries_found (values : List Int) (heap : Heap) (keys : List Int) :
+    sort_counts_source.Found (heap ++ counts_source.scratch values keys)
+      (countEntries values heap.length keys) := by
+  induction keys generalizing heap with
+  | nil => intro entry impossible; cases impossible
+  | cons rank rest ih =>
+      intro entry member
+      rcases List.mem_cons.mp member with rfl | member
+      · simp [counts_source.scratch, counts_source.row, sort_counts_source.row]
+      · have found := ih (heap ++ [counts_source.row values rank])
+        have remaining : entry ∈ countEntries values (heap ++ [counts_source.row values rank]).length rest := by
+          simpa only [List.length_append, List.length_singleton] using member
+        simpa [counts_source.scratch, List.append_assoc] using found entry remaining
+
+private theorem counted_known (heap : Heap) (values : List Int) :
+    sort_counts_source.Found (countedHeap heap values) (entries heap values) := by
+  have found := countEntries_found values
+    (seed heap ++ [.list (numbers (PokerUnique.unique values)),
+      .list (counts_source.references ((seed heap).length+2) (PokerUnique.unique values))])
+    (PokerUnique.unique values)
+  simpa [countedHeap, countGarbage, entries, List.append_assoc] using found
+
+private theorem prepared_shape (heap : Heap) (values : List Int) :
+    preparedHeap heap values = working heap [] (baseGarbage heap values) := by
+  simp [preparedHeap, sort_counts_source.finalHeap, countedHeap, seed, HeapCollection.working, baseGarbage, List.append_assoc]
+
+private theorem source_found (heap : Heap) (values : List Int) :
+    (preparedHeap heap values)[sourceAddress heap values]? =
+      some (.list (sort_counts_source.sortedRefs (countedHeap heap values) (entries heap values))) :=
+  sort_counts_source.returned_found (countedHeap heap values) (entries heap values)
+
+private theorem decode_items (heap : Heap) (originalEntries : List Entry)
+    (known : sort_counts_source.Found heap originalEntries) (groups : List Mutable.Value)
+    (members : ∀ group ∈ groups, group ∈ sort_counts_source.items originalEntries) :
+    ∃ chosen : List Entry, sort_counts_source.items chosen = groups ∧ sort_counts_source.Found heap chosen := by
+  induction groups with
+  | nil => exact ⟨[], rfl, by intro entry impossible; cases impossible⟩
+  | cons group rest ih =>
+      obtain ⟨entry, present, equal⟩ := List.mem_map.mp (members group List.mem_cons_self)
+      obtain ⟨chosen, shape, found⟩ := ih (fun value member => members value (List.mem_cons_of_mem _ member))
+      refine ⟨entry :: chosen, ?_, ?_⟩
+      · change sort_counts_source.original entry :: sort_counts_source.items chosen = group :: rest
+        rw [equal, shape]
+      · intro item member
+        rcases List.mem_cons.mp member with same | member
+        · subst item
+          exact known entry present
+        · exact found item member
+
+private theorem rows_of_found (heap : Heap) (chosen : List Entry) (known : sort_counts_source.Found heap chosen) :
+    (sort_counts_source.items chosen).map (TupleSorting.readInts heap) =
+      (chosen.map sort_counts_source.Entry.pair).map PokerGroupOrder.row := by
+  simp only [sort_counts_source.items, List.map_map, Function.comp_def]
+  apply List.map_congr_left
+  intro entry present
+  simp [sort_counts_source.original, TupleSorting.readInts, known entry present,
+    sort_counts_source.row, PokerGroupOrder.row, sort_counts_source.Entry.pair]
+
+private theorem row_injective : Function.Injective PokerGroupOrder.row := by
+  intro left right equal
+  have first := congrArg (fun row : List Int => row.getD 0 0) equal
+  have second := congrArg (fun row : List Int => row.getD 1 0) equal
+  exact Prod.ext (by simpa [PokerGroupOrder.row] using first) (by simpa [PokerGroupOrder.row] using second)
+
+/-- Choose descriptions of the sorted original tuple references without assuming their addresses are distinct. -/
+private theorem prepared_entries (heap : Heap) (values : List Int) :
+    ∃ chosen : List Entry,
+      sort_counts_source.items chosen = sort_counts_source.sortedRefs (countedHeap heap values) (entries heap values) ∧
+      sort_counts_source.Found (preparedHeap heap values) chosen ∧
+      chosen.map sort_counts_source.Entry.pair = orderedRows values := by
+  have originalKnown : sort_counts_source.Found (preparedHeap heap values) (entries heap values) := by
+    intro entry member
+    exact sort_counts_source.caller_found (countedHeap heap values) (entries heap values)
+      entry.address _ (counted_known heap values entry member)
+  obtain ⟨chosen, shape, known⟩ := decode_items (preparedHeap heap values) (entries heap values) originalKnown
+    (sort_counts_source.sortedRefs (countedHeap heap values) (entries heap values))
+    (fun group member => (sort_counts_source.sortedRefs_perm (countedHeap heap values) (entries heap values)).mem_iff.mp member)
+  refine ⟨chosen, shape, known, ?_⟩
+  have rows := sort_counts_source.sortedRefs_rows (countedHeap heap values) (entries heap values) (counted_known heap values)
+  rw [← shape] at rows
+  change (sort_counts_source.items chosen).map (TupleSorting.readInts (preparedHeap heap values)) = _ at rows
+  rw [rows_of_found _ chosen known] at rows
+  have mapped := (List.map_inj_right (f := PokerGroupOrder.row)
+    (fun _ _ same => row_injective same)).mp rows
+  simpa [entries, pairs_countEntries, orderedRows, countedRows] using mapped
+
+private abbrev chunkExpression : Expr := .binOp (.list [.name "value"]) .mult (.name "count")
+private abbrev loopBody : List Stmt := [.augAssign (.name "out") .add chunkExpression]
+
+private theorem chunk_eval (heap : Heap) (env : HeapCalls.Env) (count rank : Int) (globals : Mutable.Globals)
+    (getCount : env "count" = some (number count)) (getRank : env "value" = some (number rank)) :
+    Evaluates program env chunkExpression heap (.ref (heap.length+1)) (heap ++ temporary (count, rank)) globals := by
+  let fresh := heap ++ [Mutable.Object.list [number rank]]
+  apply Evaluates.binary (av := .ref heap.length) (bv := number count)
+    (middle := fresh) (afterRight := fresh)
+  · exact Evaluates.list (.cons (Evaluates.lookup getRank) .nil)
+  · exact Evaluates.lookup getCount
+  · simp [Mutable.binary, show (BinOp.mult == BinOp.mult) = true from rfl,
+      Mutable.array, Mutable.allocate, fresh, temporary, segment, numbers,
+      List.map_replicate, List.append_assoc, Except.map]
+
+private theorem append_chunk (heap : Heap) (out : List Int) (garbage : Heap) (env : HeapCalls.Env)
+    (count rank : Int) (globals : Mutable.Globals)
+    (getOut : env "out" = some (.ref heap.length))
+    (getCount : env "count" = some (number count)) (getRank : env "value" = some (number rank)) :
+    BlockContinues program env loopBody (working heap (numbers out) garbage)
+      (setLocal env "out" (.ref heap.length))
+      (working heap (numbers (out ++ segment (count, rank))) (garbage ++ temporary (count, rank))) globals := by
+  have evaluated := chunk_eval (working heap (numbers out) garbage) env count rank globals getCount getRank
+  have outFound := found_append (HeapCollection.found heap (numbers out) garbage) (temporary (count, rank))
+  have rightFound :
+      (working heap (numbers out) garbage ++ temporary (count, rank))[(working heap (numbers out) garbage).length+1]? =
+        some (.list (numbers (segment (count, rank)))) := by simp [temporary]
+  have appended := inplace_add_lists (working heap (numbers out) garbage ++ temporary (count, rank))
+    heap.length ((working heap (numbers out) garbage).length+1) (numbers out)
+    (numbers (segment (count, rank))) outFound rightFound
+  apply BlockContinues.augAssign getOut evaluated
+  simpa [HeapCollection.append, HeapCollection.store, numbers, List.map_append] using appended
+
+private theorem collect (heap : Heap) (initialGarbage : Heap) (address : Nat) (all remaining : List Entry)
+    (sourceFound : (working heap [] initialGarbage)[address]? = some (.list (sort_counts_source.items all)))
+    (different : heap.length ≠ address)
+    (known : sort_counts_source.Found (working heap [] initialGarbage) all)
+    (position : Nat) (suffix : all.drop position = remaining) (out : List Int) (extra : Heap)
+    (env : HeapCalls.Env) (globals : Mutable.Globals) (getOut : env "out" = some (.ref heap.length)) :
+    ∃ finalEnv, finalEnv "out" = some (.ref heap.length) ∧
+      BlockContinues program env [.unpackStepLoop ["count", "value"] (.ref address) position loopBody []]
+        (working heap (numbers out) (initialGarbage ++ extra)) finalEnv
+        (working heap (numbers (out ++ expanded (remaining.map sort_counts_source.Entry.pair)))
+          (initialGarbage ++ extra ++ temporaries (remaining.map sort_counts_source.Entry.pair))) globals := by
+  have sequence (collected : List Int) (more : Heap) :
+      Mutable.sequence (.ref address) (working heap (numbers collected) (initialGarbage ++ more)) =
+        some (.ok (sort_counts_source.items all), working heap (numbers collected) (initialGarbage ++ more)) := by
+    have preserved := HeapCollection.other_found heap [] (numbers collected) initialGarbage more address _ different sourceFound
+    simp [Mutable.sequence, preserved]
+  induction remaining generalizing position out extra env with
+  | nil =>
+      have missing : all[position]? = none := by simpa [suffix] using (List.head?_drop (l := all) (i := position)).symm
+      refine ⟨env, getOut, ?_⟩
+      apply BlockContinues.unpack_done (source := .ref address) (sequence out extra)
+        (by simp [sort_counts_source.items, List.getElem?_map, missing])
+      simpa [expanded, temporaries] using (BlockContinues.nil (module := program) (env := env)
+        (heap := working heap (numbers out) (initialGarbage ++ extra)) (globals := globals))
+  | cons entry rest ih =>
+      have item : all[position]? = some entry := by simpa [suffix] using (List.head?_drop (l := all) (i := position)).symm
+      have member : entry ∈ all := List.mem_of_getElem? item
+      have pairFound := known entry member
+      have pairDifferent : heap.length ≠ entry.address := by
+        intro same
+        rw [← same, HeapCollection.found] at pairFound
+        cases pairFound
+      have fields (collected : List Int) (more : Heap) :
+          Mutable.sequence (sort_counts_source.original entry) (working heap (numbers collected) (initialGarbage ++ more)) =
+            some (.ok [number entry.count, number entry.rank], working heap (numbers collected) (initialGarbage ++ more)) := by
+        have preserved := HeapCollection.other_found heap [] (numbers collected) initialGarbage more
+          entry.address _ pairDifferent pairFound
+        simp [sort_counts_source.original, Mutable.sequence, preserved, sort_counts_source.row]
+      let bound := assignNames env ["count", "value"] [number entry.count, number entry.rank]
+      have boundOut : bound "out" = some (.ref heap.length) := by simpa [bound, assignNames, setLocal] using getOut
+      have countBound : bound "count" = some (number entry.count) := by simp [bound, assignNames, setLocal]
+      have rankBound : bound "value" = some (number entry.rank) := by simp [bound, assignNames, setLocal]
+      have appended := append_chunk heap out (initialGarbage ++ extra) bound entry.count entry.rank globals boundOut countBound rankBound
+      let after := setLocal bound "out" (.ref heap.length)
+      obtain ⟨finalEnv, finalOut, continued⟩ := ih (position+1)
+        (by simp [List.drop_add_one_eq_tail_drop, suffix]) (out ++ segment entry.pair)
+        (extra ++ temporary entry.pair) after rfl
+      refine ⟨finalEnv, finalOut, ?_⟩
+      apply BlockContinues.unpack_step (source := .ref address) (value := sort_counts_source.original entry)
+        (values := [number entry.count, number entry.rank]) (sequence out extra)
+        (by simp [sort_counts_source.items, List.getElem?_map, item]) (fields out extra) rfl
+      have joined := appended.append (by
+        simpa only [List.append_assoc, sort_counts_source.Entry.pair] using continued)
+      simpa [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, expanded, temporaries,
+        List.append_assoc, sort_counts_source.Entry.pair] using joined
+
+private abbrev params := ((findFunctionIn program.body "counts_key").getD ([], [])).1
+private abbrev body := ((findFunctionIn program.body "counts_key").getD ([], [])).2
+private abbrev initial (globals : Mutable.Globals) (address : Nat) : HeapCalls.Env :=
+  functionEnv params body [.ref address] globals
+private theorem get_rs (globals : Mutable.Globals) (address : Nat) : initial globals address "rs" = some (.ref address) := by
+  cases globals <;> rfl
+
+/-- The original source composes counting, keyed sorting and repeated-value list concatenation. -/
+theorem result (heap : Heap) (address : Nat) (values : List Int) (globals : Mutable.Globals)
+    (found : heap[address]? = some (.list (numbers values))) :
+    ReturnsValue program "counts_key" [.ref address] heap (.ref heap.length) (finalHeap heap values) globals := by
+  let ready := setLocal (initial globals address) "out" (.ref heap.length)
+  have getRs : ready "rs" = some (.ref address) := by simpa [ready, setLocal] using get_rs globals address
+  have seedFound := found_append found [.list []]
+  have counted := counts_source.result values (seed heap) address globals seedFound
+  have countedRun : Evaluates program ready (.call (.name "rank_counts") [.name "rs"])
+      (seed heap) (.ref ((seed heap).length+1)) (countedHeap heap values) globals := by
+    apply Evaluates.call (.cons (Evaluates.lookup getRs) .nil)
+    simpa [countedHeap, countGarbage, List.append_assoc] using counted
+  have countList : (countedHeap heap values)[(seed heap).length+1]? =
+      some (.list (sort_counts_source.items (entries heap values))) := by
+    simp [countedHeap, countGarbage, entries, items_countEntries]
+  have sorted := sort_counts_source.result (countedHeap heap values) ((seed heap).length+1)
+    (entries heap values) globals countList (counted_known heap values)
+  have sortedRun : Evaluates program ready
+      (.call (.name "sort_counts") [.call (.name "rank_counts") [.name "rs"]])
+      (seed heap) (.ref (sourceAddress heap values)) (preparedHeap heap values) globals :=
+    Evaluates.call (.cons countedRun .nil) sorted
+  obtain ⟨chosen, chosenItems, chosenKnown, chosenPairs⟩ := prepared_entries heap values
+  have listFound : (working heap [] (baseGarbage heap values))[sourceAddress heap values]? =
+      some (.list (sort_counts_source.items chosen)) := by
+    simpa [prepared_shape, chosenItems] using source_found heap values
+  have different : heap.length ≠ sourceAddress heap values := by
+    have larger : heap.length < sourceAddress heap values := by
+      simp only [sourceAddress, countedHeap, countGarbage, seed, List.length_append, List.length_cons, List.length_nil]
+      omega
+    exact Nat.ne_of_lt larger
+  obtain ⟨finalEnv, getOut, loop⟩ := collect heap (baseGarbage heap values) (sourceAddress heap values)
+    chosen chosen listFound different (by simpa [prepared_shape] using chosenKnown)
+    0 rfl [] [] ready globals rfl
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.assign (Evaluates.list .nil)
+  apply BlockContinues.returns
+    (body := [.forIn (.tuple [.name "count", .name "value"])
+      (.call (.name "sort_counts") [.call (.name "rank_counts") [.name "rs"]]) loopBody []])
+    (following := [.return (.name "out")]) (middleEnv := finalEnv)
+  · apply BlockContinues.for_unpack (items := sort_counts_source.items chosen) (value := .ref (sourceAddress heap values))
+      (by
+        intro expressions equal
+        have functions := congrArg (fun expression => match expression with
+          | .call function _ => function
+          | _ => .constant .none) equal
+        have names := congrArg (fun expression => match expression with
+          | .name name => name
+          | _ => "") functions
+        have impossible : False := by simp at names
+        exact impossible.elim) rfl sortedRun
+      (by simp [Mutable.sequence, source_found, chosenItems])
+    simpa [prepared_shape, chosenPairs, finalHeap] using loop
+  · exact BlockReturns.return_value (Evaluates.lookup getOut)
+
+/-- The returned repetition key is a fresh integer list with the mathematical expanded group order. -/
+theorem returned_found (heap : Heap) (values : List Int) :
+    (finalHeap heap values)[heap.length]? = some (.list (numbers (expanded (orderedRows values)))) := by
+  simp [finalHeap, working]
+
+/-- Every caller object survives the helper unchanged. -/
+theorem caller_found (heap : Heap) (values : List Int) (address : Nat) (object : Mutable.Object)
+    (found : heap[address]? = some object) : (finalHeap heap values)[address]? = some object :=
+  found_append found _
+
+/-- Occurrence counts supply nonnegative repetition lengths without restricting source integer ranks. -/
+theorem counts_nonnegative (values : List Int) : ∀ pair ∈ countedRows values, 0 ≤ pair.1 := by
+  intro pair member
+  obtain ⟨rank, present, rfl⟩ := List.mem_map.mp member
+  exact Int.natCast_nonneg _
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.counts_key_source
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.hand_score_source
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+open ProjectEulerSolutions
+set_option Elab.async false
+
+private abbrev program := P54Ast.module
+private abbrev number (value : Int) : Mutable.Value := .scalar (.int value)
+private abbrev numbers (values : List Int) : List Mutable.Value := values.map number
+private abbrev flag (value : Bool) : Mutable.Value := .scalar (.bool value)
+private abbrev Card := flush_source.Card
+private abbrev params := ((findFunctionIn program.body "hand_score").getD ([], [])).1
+private abbrev body := ((findFunctionIn program.body "hand_score").getD ([], [])).2
+private abbrev code := executableBody body
+private abbrev initial (globals : Mutable.Globals) (address : Nat) : HeapCalls.Env :=
+  functionEnv params body [.ref address] globals
+
+structure Prepared where
+  heap : Heap
+  env : HeapCalls.Env
+  ranksAddress : Nat
+  sortedAddress : Nat
+  keysAddress : Nat
+
+structure Context (state : Prepared) (values : List Int) (suits : List String) : Prop where
+  getRanks : state.env "rs" = some (.ref state.ranksAddress)
+  getSorted : state.env "sorted_rs" = some (.ref state.sortedAddress)
+  getKeys : state.env "key_counts" = some (.ref state.keysAddress)
+  getFlush : state.env "flush" = some (flag (flush_source.flush suits))
+  getStraight : state.env "straight" = some (flag (PokerStraights.referenceStraight (ScalarSort.ints values)))
+  ranksFound : state.heap[state.ranksAddress]? = some (.list (numbers values))
+  sortedFound : state.heap[state.sortedAddress]? = some (.list (numbers (ScalarSort.ints values)))
+  keysFound : state.heap[state.keysAddress]? =
+    some (.list (numbers (counts_key_source.expanded (counts_key_source.orderedRows values))))
+
+private theorem found_append {heap : Heap} {address : Nat} {object : Mutable.Object}
+    (found : heap[address]? = some object) (extra : Heap) :
+    (heap ++ extra)[address]? = some object := by
+  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp found).1]
+  exact found
+
+private theorem get_hand (globals : Mutable.Globals) (address : Nat) :
+    initial globals address "hand" = some (.ref address) := by cases globals <;> rfl
+
+/-- All five preparation calls execute their original bodies, using the live rank_values dictionary. -/
+theorem prepare (heap : Heap) (address tableAddress : Nat) (cards : List Card) (valuation : Card → Int)
+    (table : List (Constant × Mutable.Value)) (globals : Mutable.Globals)
+    (found : heap[address]? = some (.list (flush_source.tokens cards)))
+    (tableFound : heap[tableAddress]? = some (.dict table))
+    (getTable : globals.lookup "rank_values" = some (.ref tableAddress))
+    (valued : ∀ card ∈ cards, ScalarDict.lookup table (.string (String.singleton card.rankChar)) =
+      some (number (valuation card))) :
+    ∃ state : Prepared, ∃ extra : Heap,
+      state.heap = heap ++ extra ∧
+      BlockContinues program (initial globals address) (code.take 5) heap state.env state.heap globals ∧
+      Context state (cards.map valuation) (flush_source.suits cards) := by
+  let values := cards.map valuation
+  let h1 := heap ++ [.list (numbers values)]
+  let e1 := setLocal (initial globals address) "rs" (.ref heap.length)
+  have ranked := rank_source.hand_ranks.result cards valuation heap address tableAddress table globals
+    found tableFound getTable valued
+  have rankedRun : Evaluates program (initial globals address) (.call (.name "hand_ranks") [.name "hand"])
+      heap (.ref heap.length) h1 globals := by
+    apply Evaluates.call (.cons (Evaluates.lookup (get_hand globals address)) .nil)
+    simpa [h1, values, rank_source.ranks, numbers, List.map_map] using ranked
+  have ranksFound : h1[heap.length]? = some (.list (numbers values)) := by simp [h1]
+  have originalHand : h1[address]? = some (.list (flush_source.tokens cards)) := found_append found _
+  obtain ⟨flushExtra, flushed⟩ := flush_source.is_flush.result cards h1 address globals originalHand
+  let h2 := h1 ++ flushExtra
+  let e2 := setLocal e1 "flush" (flag (flush_source.flush (flush_source.suits cards)))
+  have hand1 : e1 "hand" = some (.ref address) := by simpa [e1, setLocal] using get_hand globals address
+  have flushedRun : Evaluates program e1 (.call (.name "is_flush") [.name "hand"]) h1
+      (flag (flush_source.flush (flush_source.suits cards))) h2 globals :=
+    Evaluates.call (.cons (Evaluates.lookup hand1) .nil) flushed
+  have ranks2 : h2[heap.length]? = some (.list (numbers values)) := found_append ranksFound _
+  let h3 := h2 ++ [.list (numbers (ScalarSort.ints values)), .list (numbers PokerStraights.wheel)]
+  let e3 := setLocal e2 "straight" (flag (PokerStraights.referenceStraight (ScalarSort.ints values)))
+  have getRanks2 : e2 "rs" = some (.ref heap.length) := by simp [e2, e1, setLocal]
+  have straightRun : Evaluates program e2 (.call (.name "is_straight") [.name "rs"]) h2
+      (flag (PokerStraights.referenceStraight (ScalarSort.ints values))) h3 globals :=
+    Evaluates.call (.cons (Evaluates.lookup getRanks2) .nil) (is_straight.result values h2 heap.length globals ranks2)
+  let h4 := h3 ++ [.list (numbers (ScalarSort.ints values))]
+  let e4 := setLocal e3 "sorted_rs" (.ref h3.length)
+  have ranks3 : h3[heap.length]? = some (.list (numbers values)) := found_append ranks2 _
+  have getRanks3 : e3 "rs" = some (.ref heap.length) := by simp [e3, e2, e1, setLocal]
+  have sortedRun : Evaluates program e3 (.call (.name "sorted_ranks") [.name "rs"]) h3
+      (.ref h3.length) h4 globals :=
+    Evaluates.call (.cons (Evaluates.lookup getRanks3) .nil)
+      (sorted_ranks.result (globals := globals) values h3 heap.length ranks3)
+  let h5 := counts_key_source.finalHeap h4 values
+  let e5 := setLocal e4 "key_counts" (.ref h4.length)
+  have ranks4 : h4[heap.length]? = some (.list (numbers values)) := found_append ranks3 _
+  have getRanks4 : e4 "rs" = some (.ref heap.length) := by simp [e4, e3, e2, e1, setLocal]
+  have keyedRun : Evaluates program e4 (.call (.name "counts_key") [.name "rs"]) h4
+      (.ref h4.length) h5 globals :=
+    Evaluates.call (.cons (Evaluates.lookup getRanks4) .nil) (counts_key_source.result h4 heap.length values globals ranks4)
+  have prefixRun : BlockContinues program (initial globals address) (code.take 5) heap e5 h5 globals :=
+    (BlockContinues.assign rankedRun).append ((BlockContinues.assign flushedRun).append
+      ((BlockContinues.assign straightRun).append ((BlockContinues.assign sortedRun).append
+        (BlockContinues.assign keyedRun))))
+  let extra := [.list (numbers values)] ++ flushExtra ++
+    [.list (numbers (ScalarSort.ints values)), .list (numbers PokerStraights.wheel)] ++
+    [.list (numbers (ScalarSort.ints values))] ++
+    (.list (numbers (counts_key_source.expanded (counts_key_source.orderedRows values))) ::
+      (counts_key_source.baseGarbage h4 values ++ counts_key_source.temporaries (counts_key_source.orderedRows values)))
+  refine ⟨⟨h5, e5, heap.length, h3.length, h4.length⟩, extra, ?_, prefixRun, ?_⟩
+  · simp [h5, counts_key_source.finalHeap, ProjectEulerSolutions.HeapCollection.working,
+      extra, h4, h3, h2, h1, List.append_assoc]
+  · constructor
+    · simp [e5, e4, e3, e2, e1, setLocal]
+    · simp [e5, e4, setLocal]
+    · simp [e5, setLocal]
+    · simp [e5, e4, e3, e2, setLocal]
+    · simp [e5, e4, e3, setLocal, values]
+    · exact counts_key_source.caller_found h4 values heap.length _ ranks4
+    · have foundSorted : h4[h3.length]? = some (.list (numbers (ScalarSort.ints values))) := by simp [h4]
+      exact counts_key_source.caller_found h4 values h3.length _ foundSorted
+    · exact counts_key_source.returned_found h4 values
+
+/-- Attach a proved executable category suffix to the actual preparation source. -/
+theorem result_of_suffix (heap : Heap) (address : Nat) (state : Prepared) (answer : Mutable.Value)
+    (finalHeap : Heap) (globals : Mutable.Globals)
+    (prepared : BlockContinues program (initial globals address) (code.take 5) heap state.env state.heap globals)
+    (suffix : BlockReturns program state.env (code.drop 5) state.heap answer finalHeap globals) :
+    ReturnsValue program "hand_score" [.ref address] heap answer finalHeap globals := by
+  apply BlockReturns.function rfl rfl
+  simpa only [List.take_append_drop] using prepared.returns suffix
+
+/-- Reference scores contain a category integer and a reference to an ordinary integer LIST. -/
+def Represents (heap : Heap) (value : Mutable.Value) (category : Int) (key : List Int) : Prop :=
+  ∃ tupleAddress listAddress, value = .ref tupleAddress ∧
+    heap[tupleAddress]? = some (.tuple [number category, .ref listAddress]) ∧
+    heap[listAddress]? = some (.list (numbers key))
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.hand_score_source
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.hand_score_source
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+open ProjectEulerSolutions
+set_option Elab.async false
+
+private abbrev sfProgram := P54Ast.module
+private abbrev sfNumber (value : Int) : Mutable.Value := .scalar (.int value)
+private abbrev sfNumbers (values : List Int) : List Mutable.Value := values.map sfNumber
+private abbrev sfFlag (value : Bool) : Mutable.Value := .scalar (.bool value)
+private abbrev sfCode := executableBody ((findFunctionIn sfProgram.body "hand_score").getD ([], [])).2
+
+def royal : List Int := [10, 11, 12, 13, 14]
+def straightFlushCategory (values : List Int) : Int := if ScalarSort.ints values = royal then 9 else 8
+def straightFlushKey (values : List Int) : List Int :=
+  if ScalarSort.ints values = royal then [] else [straight_high.value values]
+
+private abbrev royalExpression : Expr := .list
+  [.constant (.int 10), .constant (.int 11), .constant (.int 12), .constant (.int 13), .constant (.int 14)]
+private abbrev royalTest : Expr := .compare (.name "sorted_rs") [(.eq, royalExpression)]
+private abbrev straightFlushTest : Expr := .boolOp .and [.name "straight", .name "flush"]
+private abbrev straightFlushReturn : Expr := .ifExp royalTest
+  (.tuple [.constant (.int 9), .list []])
+  (.tuple [.constant (.int 8), .list [.call (.name "straight_high") [.name "rs"]]])
+
+private theorem sf_found_append {heap : Heap} {address : Nat} {object : Mutable.Object}
+    (found : heap[address]? = some object) (extra : Heap) :
+    (heap ++ extra)[address]? = some object := by
+  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp found).1]
+  exact found
+
+private theorem royal_test (state : Prepared) (values : List Int) (suits : List String)
+    (context : Context state values suits) (globals : Mutable.Globals) :
+    Evaluates sfProgram state.env royalTest state.heap (sfFlag (decide (ScalarSort.ints values = royal)))
+      (state.heap ++ [.list (sfNumbers royal)]) globals := by
+  let afterRoyal := state.heap ++ [.list (sfNumbers royal)]
+  have different : state.sortedAddress ≠ state.heap.length := by
+    have inside := (List.getElem?_eq_some_iff.mp context.sortedFound).1
+    omega
+  have old : afterRoyal[state.sortedAddress]? = some (.list (sfNumbers (ScalarSort.ints values))) :=
+    sf_found_append context.sortedFound _
+  have literal : afterRoyal[state.heap.length]? = some (.list (sfNumbers royal)) := by simp [afterRoyal]
+  apply Evaluates.compare (av := .ref state.sortedAddress) (bv := .ref state.heap.length)
+    (middle := state.heap) (afterRight := afterRoyal) (Evaluates.lookup context.getSorted)
+  · exact Evaluates.list (.cons Evaluates.constant (.cons Evaluates.constant
+      (.cons Evaluates.constant (.cons Evaluates.constant (.cons Evaluates.constant .nil)))))
+  · simp [HeapCalls.compare, Mutable.array, old, literal, different, equalLists_ints, sfNumbers, sfFlag]
+    exact ⟨rfl, rfl⟩
+
+private theorem sf_test (state : Prepared) (values : List Int) (suits : List String)
+    (context : Context state values suits) (globals : Mutable.Globals)
+    (straight : PokerStraights.referenceStraight (ScalarSort.ints values) = true)
+    (flush : flush_source.flush suits = true) :
+    Evaluates sfProgram state.env straightFlushTest state.heap (sfFlag true) state.heap globals := by
+  have getStraight : state.env "straight" = some (sfFlag true) := by simpa [straight] using context.getStraight
+  have getFlush : state.env "flush" = some (sfFlag true) := by simpa [flush] using context.getFlush
+  exact Evaluates.boolean_next (flag := true) (Evaluates.lookup getStraight) rfl rfl
+    (Evaluates.boolean_last (flag := true) (Evaluates.lookup getFlush) rfl)
+
+/-- Royal and ordinary straight flushes execute the source's distinct category-9/category-8 returns. -/
+theorem straight_flush_suffix (state : Prepared) (values : List Int) (suits : List String)
+    (context : Context state values suits) (globals : Mutable.Globals)
+    (straight : PokerStraights.referenceStraight (ScalarSort.ints values) = true)
+    (flush : flush_source.flush suits = true) :
+    ∃ extra : Heap, ∃ answer : Mutable.Value,
+      BlockReturns sfProgram state.env (sfCode.drop 5) state.heap answer (state.heap ++ extra) globals ∧
+      Represents (state.heap ++ extra) answer (straightFlushCategory values) (straightFlushKey values) := by
+  let afterRoyal := state.heap ++ [.list (sfNumbers royal)]
+  have tested := royal_test state values suits context globals
+  have straightFlush := sf_test state values suits context globals straight flush
+  by_cases isRoyal : ScalarSort.ints values = royal
+  · let afterKey := afterRoyal ++ [.list []]
+    let finished := afterKey ++ [.tuple [sfNumber 9, .ref afterRoyal.length]]
+    have key : Evaluates sfProgram state.env (.list []) afterRoyal (.ref afterRoyal.length) afterKey globals :=
+      Evaluates.list .nil
+    have tuple : Evaluates sfProgram state.env (.tuple [.constant (.int 9), .list []]) afterRoyal
+        (.ref afterKey.length) finished globals :=
+      Evaluates.tuple (.cons Evaluates.constant (.cons key .nil)) (by simp)
+    have returned : BlockReturns sfProgram state.env (sfCode.drop 5) state.heap (.ref afterKey.length) finished globals := by
+      apply BlockReturns.branch (flag := true) straightFlush rfl
+      apply BlockReturns.return_value
+      exact Evaluates.conditional (flag := true) (value := sfFlag true) (middle := afterRoyal)
+        (by simpa [isRoyal] using tested) rfl tuple
+    refine ⟨[.list (sfNumbers royal), .list [], .tuple [sfNumber 9, .ref afterRoyal.length]], .ref afterKey.length,
+      by simpa [finished, afterKey, afterRoyal, List.append_assoc] using returned, ?_⟩
+    refine ⟨afterKey.length, afterRoyal.length, rfl, ?_, ?_⟩
+    · simp [straightFlushCategory, isRoyal, afterKey, afterRoyal]
+    · simp [straightFlushKey, isRoyal, afterRoyal]
+  · let afterHigh := afterRoyal ++ [.list (sfNumbers (ScalarSort.ints values)), .list (sfNumbers straight_high.wheel)]
+    let afterKey := afterHigh ++ [.list [sfNumber (straight_high.value values)]]
+    let finished := afterKey ++ [.tuple [sfNumber 8, .ref afterHigh.length]]
+    have original : afterRoyal[state.ranksAddress]? = some (.list (sfNumbers values)) :=
+      sf_found_append context.ranksFound _
+    have high : Evaluates sfProgram state.env (.call (.name "straight_high") [.name "rs"])
+        afterRoyal (sfNumber (straight_high.value values)) afterHigh globals :=
+      Evaluates.call (.cons (Evaluates.lookup context.getRanks) .nil)
+        (straight_high.result (globals := globals) values afterRoyal state.ranksAddress original)
+    have key : Evaluates sfProgram state.env (.list [.call (.name "straight_high") [.name "rs"]]) afterRoyal
+        (.ref afterHigh.length) afterKey globals := Evaluates.list (.cons high .nil)
+    have tuple : Evaluates sfProgram state.env
+        (.tuple [.constant (.int 8), .list [.call (.name "straight_high") [.name "rs"]]]) afterRoyal
+        (.ref afterKey.length) finished globals :=
+      Evaluates.tuple (.cons Evaluates.constant (.cons key .nil)) (by simp)
+    have returned : BlockReturns sfProgram state.env (sfCode.drop 5) state.heap (.ref afterKey.length) finished globals := by
+      apply BlockReturns.branch (flag := true) straightFlush rfl
+      apply BlockReturns.return_value
+      exact Evaluates.conditional (flag := false) (value := sfFlag false) (middle := afterRoyal)
+        (by simpa [isRoyal] using tested) rfl tuple
+    refine ⟨[.list (sfNumbers royal), .list (sfNumbers (ScalarSort.ints values)), .list (sfNumbers straight_high.wheel),
+      .list [sfNumber (straight_high.value values)], .tuple [sfNumber 8, .ref afterHigh.length]], .ref afterKey.length,
+      by simpa [finished, afterKey, afterHigh, afterRoyal, List.append_assoc] using returned, ?_⟩
+    refine ⟨afterKey.length, afterHigh.length, rfl, ?_, ?_⟩
+    · simp [straightFlushCategory, isRoyal, afterKey, afterHigh, afterRoyal]
+    · simp [straightFlushKey, isRoyal, afterHigh, afterRoyal]
+
+/-- This complete hand_score source theorem has no assumed callee executions or fixed rank table. -/
+theorem straight_flush_result (heap : Heap) (address tableAddress : Nat) (cards : List flush_source.Card)
+    (valuation : flush_source.Card → Int) (table : List (Constant × Mutable.Value)) (globals : Mutable.Globals)
+    (found : heap[address]? = some (.list (flush_source.tokens cards)))
+    (tableFound : heap[tableAddress]? = some (.dict table))
+    (getTable : globals.lookup "rank_values" = some (.ref tableAddress))
+    (valued : ∀ card ∈ cards, ScalarDict.lookup table (.string (String.singleton card.rankChar)) =
+      some (sfNumber (valuation card)))
+    (straight : PokerStraights.referenceStraight (ScalarSort.ints (cards.map valuation)) = true)
+    (flush : flush_source.flush (flush_source.suits cards) = true) :
+    ∃ extra : Heap, ∃ answer : Mutable.Value,
+      ReturnsValue sfProgram "hand_score" [.ref address] heap answer (heap ++ extra) globals ∧
+      Represents (heap ++ extra) answer (straightFlushCategory (cards.map valuation)) (straightFlushKey (cards.map valuation)) := by
+  obtain ⟨state, prefixExtra, shape, prepared, context⟩ := prepare heap address tableAddress cards valuation table globals
+    found tableFound getTable valued
+  obtain ⟨suffixExtra, answer, suffix, represented⟩ := straight_flush_suffix state (cards.map valuation)
+    (flush_source.suits cards) context globals straight flush
+  refine ⟨prefixExtra ++ suffixExtra, answer, ?_, ?_⟩
+  · simpa only [shape, List.append_assoc] using
+      result_of_suffix heap address state answer (state.heap ++ suffixExtra) globals prepared suffix
+  · simpa only [shape, List.append_assoc] using represented
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.hand_score_source
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.counts_key
+open FormalSW.PyAst
+
+theorem «Returns» (heap : Mutable.Heap) (address : Nat) (_valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call P54Ast.module "counts_key" [.ref address] heap).Returns := by
+  obtain ⟨values, found⟩ := Mutable.Value.ints_of_hasType typed
+  exact (counts_key_source.result heap address values [] found).returns
+
+theorem «Supported» (heap : Mutable.Heap) (address : Nat) (valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call P54Ast.module "counts_key" [.ref address] heap).Supported :=
+  («Returns» heap address valid typed).supported
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.counts_key
