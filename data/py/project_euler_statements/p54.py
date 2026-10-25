@@ -79,7 +79,11 @@ def hand_score(hand):
     return (0, list(reversed(sorted_rs)))
 
 
-def lex_gt(a, b) -> bool:
+def lex_gt(a: list[int], b: list[int]) -> bool:
+    """
+    @formalsw: Returns
+    @formalsw: ReturnType
+    """
     if not a or not b:
         return False
     return lex_gt(a[1:], b[1:]) if a[0] == b[0] else a[0] > b[0]
