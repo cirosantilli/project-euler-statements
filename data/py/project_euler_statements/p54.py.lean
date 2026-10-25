@@ -1,3 +1,4 @@
+import lang.py.FormalSW.DictionaryCalls
 import data.«project-euler-statements».«.formalsw».data.py.project_euler_statements.«p54.py.ast»
 import ProjectEulerSolutions.Lib.PokerTiebreaks
 import ProjectEulerSolutions.Lib.PokerStraights
@@ -557,3 +558,393 @@ theorem «Supported» (heap : Mutable.Heap) (address : Nat) (valid : heap.Valid)
   («Returns» heap address valid typed).supported
 
 end data.«project-euler-statements».data.py.project_euler_statements.p54.is_straight
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.flush_source
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+set_option Elab.async false
+
+private abbrev program := P54Ast.module
+private abbrev number (value : Int) : Mutable.Value := .scalar (.int value)
+private abbrev text (value : String) : Mutable.Value := .scalar (.string value)
+private abbrev texts (values : List String) : List Mutable.Value := values.map text
+private abbrev flag (value : Bool) : Mutable.Value := .scalar (.bool value)
+
+/-- Only the two indexed Unicode characters are constrained; suffixes are arbitrary. -/
+structure Card where
+  token : String
+  rankChar : Char
+  suitChar : Char
+  suffix : List Char
+  shape : token.toList = rankChar :: suitChar :: suffix
+
+def tokens (cards : List Card) : List Mutable.Value := cards.map (fun card => text card.token)
+def suits (cards : List Card) : List String := cards.map (fun card => String.singleton card.suitChar)
+
+private theorem found_append {heap : Heap} {address : Nat} {object : Mutable.Object}
+    (found : heap[address]? = some object) (extra : Heap) :
+    (heap ++ extra)[address]? = some object := by
+  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp found).1]
+  exact found
+
+private theorem suit_item (card : Card) (heap : Heap) :
+    Mutable.getItem (text card.token) (number 1) heap =
+      some (.ok (text (String.singleton card.suitChar)), heap) := by
+  have inside : ¬ (card.suffix.length : Int)+1+1 ≤ 1 := by omega
+  simp [Mutable.getItem, Strings.get, FormalSW.Py.Builtin.Sequence.get?,
+    FormalSW.Py.Builtin.Sequence.normalizeIndex, card.shape, text, inside]
+
+private abbrev suitExpression : Expr := .subscript (.name "c") (.constant (.int 1))
+
+private theorem suit_eval (heap : Heap) (env : HeapCalls.Env) (card : Card) (globals : Mutable.Globals)
+    (bound : env "c" = some (text card.token)) :
+    Evaluates program env suitExpression heap (text (String.singleton card.suitChar)) heap globals := by
+  exact Evaluates.subscript (by intros; simp) (Evaluates.lookup bound) Evaluates.constant (suit_item card heap)
+
+private theorem collect_suits (heap : Heap) (address : Nat) (cards remaining : List Card)
+    (found : heap[address]? = some (.list (tokens cards))) (position : Nat)
+    (suffix : cards.drop position = remaining) (collected : List Mutable.Value)
+    (env : HeapCalls.Env) (globals : Mutable.Globals) :
+    ∃ finalEnv, BlockContinues program env
+      [.sequenceStepLoop "c" (.ref address) position [.comprehensionAppend heap.length suitExpression] []]
+      (heap ++ [.list collected]) finalEnv (heap ++ [.list (collected ++ texts (suits remaining))]) globals := by
+  have sequence (done : List Mutable.Value) :
+      Mutable.sequence (.ref address) (heap ++ [.list done]) = some (.ok (tokens cards), heap ++ [.list done]) := by
+    have original := found_append found [.list done]
+    simp [Mutable.sequence, original]
+  induction remaining generalizing position env collected with
+  | nil =>
+      have missing : cards[position]? = none := by
+        simpa [suffix] using (List.head?_drop (l := cards) (i := position)).symm
+      have absent : (tokens cards)[position]? = none := by
+        simp only [tokens, List.getElem?_map, missing, Option.map_none]
+      refine ⟨env, ?_⟩
+      apply BlockContinues.sequence_done (source := .ref address) (sequence collected) absent
+      simpa only [suits, List.map_nil, texts, List.append_nil] using
+        (BlockContinues.nil (module := program) (env := env) (heap := heap ++ [.list collected]) (globals := globals))
+  | cons card rest ih =>
+      have item : cards[position]? = some card := by
+        simpa [suffix] using (List.head?_drop (l := cards) (i := position)).symm
+      let ready := setLocal env "c" (text card.token)
+      have emitted : BlockContinues program ready [.comprehensionAppend heap.length suitExpression]
+          (heap ++ [.list collected]) ready
+          (heap ++ [.list (collected ++ [text (String.singleton card.suitChar)])]) globals := by
+        have appended := BlockContinues.comprehension_append (module := program) (env := ready) (globals := globals)
+          (address := heap.length) (heap := heap ++ [.list collected]) (items := collected)
+          (suit_eval (heap ++ [.list collected]) ready card globals rfl) (by simp)
+        simpa using appended
+      obtain ⟨finalEnv, continued⟩ := ih (position+1)
+        (by simp [List.drop_add_one_eq_tail_drop, suffix])
+        (collected ++ [text (String.singleton card.suitChar)]) ready
+      refine ⟨finalEnv, ?_⟩
+      apply BlockContinues.sequence_step (source := .ref address) (value := text card.token) (sequence collected)
+        (by simp only [tokens, List.getElem?_map, item, Option.map_some])
+      simpa [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, suits, texts, List.append_assoc] using
+        emitted.append continued
+
+namespace hand_suits
+private abbrev params := ((findFunctionIn program.body "hand_suits").getD ([], [])).1
+private abbrev body := ((findFunctionIn program.body "hand_suits").getD ([], [])).2
+private abbrev initial (globals : Mutable.Globals) (address : Nat) : HeapCalls.Env := functionEnv params body [.ref address] globals
+private theorem get_hand (globals : Mutable.Globals) (address : Nat) : initial globals address "hand" = some (.ref address) := by
+  cases globals <;> rfl
+
+/-- The original c[1] comprehension creates one fresh suit list and preserves its input. -/
+theorem result (cards : List Card) (heap : Heap) (address : Nat) (globals : Mutable.Globals)
+    (found : heap[address]? = some (.list (tokens cards))) :
+    ReturnsValue program "hand_suits" [.ref address] heap (.ref heap.length)
+      (heap ++ [.list (texts (suits cards))]) globals := by
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  obtain ⟨finalEnv, collected⟩ := collect_suits heap address cards cards found 0 rfl []
+    (comprehensionEnv (initial globals address) [("c", .name "hand", [])]) globals
+  apply Evaluates.list_comp_sequence (name := "c") (iterable := .name "hand") (filters := []) (generators := [])
+    (finalEnv := finalEnv) (items := tokens cards) (value := .ref address) (middle := heap)
+    (by intro expressions impossible; cases impossible) (Evaluates.lookup (get_hand globals address))
+    (by simp [Mutable.sequence, found])
+  simpa only [List.nil_append, comprehensionFilters, comprehensionBody, List.foldr_nil] using collected
+end hand_suits
+
+private abbrev firstSuit : Expr := .subscript (.name "suits") (.constant (.int 0))
+private abbrev tailSuits : Expr := .subscript (.name "suits") (.slice (some (.constant (.int 1))) none none)
+private abbrev equalSuit : Expr := .compare (.name "s") [(.eq, firstSuit)]
+private abbrev allSuits : Expr := .consumeGenerator (.builtinCall .all []) equalSuit [(.name "s", tailSuits, [])]
+private abbrev boolSuits : Expr := .unaryOp .not (.unaryOp .not (.name "suits"))
+
+private theorem equal_eval (heap : Heap) (env : HeapCalls.Env) (address : Nat) (first value : String)
+    (tail : List String) (globals : Mutable.Globals)
+    (bound : env "suits" = some (.ref address)) (found : heap[address]? = some (.list (texts (first :: tail))))
+    (getValue : env "s" = some (text value)) :
+    Evaluates program env equalSuit heap (flag (decide (value = first))) heap globals := by
+  apply Evaluates.compare (av := text value) (bv := text first) (middle := heap) (afterRight := heap)
+    (Evaluates.lookup getValue)
+  · apply Evaluates.subscript (by intros; simp) (Evaluates.lookup bound) Evaluates.constant
+    simpa only [texts, List.map_cons] using Mutable.getItem_list heap address 0 (texts (first :: tail)) found (by simp [texts])
+  · simp [HeapCalls.compare, scalarCompare, flag]
+
+private theorem all_loop (heap : Heap) (suitsAddress tailAddress : Nat) (first : String) (tail remaining : List String)
+    (original : heap[suitsAddress]? = some (.list (texts (first :: tail))))
+    (sliceFound : heap[tailAddress]? = some (.list (texts tail))) (position : Nat)
+    (suffix : tail.drop position = remaining) (env : HeapCalls.Env) (globals : Mutable.Globals)
+    (bound : env "suits" = some (.ref suitsAddress)) :
+    BlockReturns program env
+      [.sequenceStepLoop "s" (.ref tailAddress) position (truthBody true equalSuit) [], .return (.constant (.bool true))]
+      heap (flag (remaining.all (fun value => decide (value = first)))) heap globals := by
+  have sequence : Mutable.sequence (.ref tailAddress) heap = some (.ok (texts tail), heap) := by
+    simp [Mutable.sequence, sliceFound]
+  induction remaining generalizing position env with
+  | nil =>
+      have missing : tail[position]? = none := by simpa [suffix] using (List.head?_drop (l := tail) (i := position)).symm
+      apply BlockReturns.sequence_done (source := .ref tailAddress) sequence
+        (by simp only [texts, List.getElem?_map, missing, Option.map_none])
+      exact BlockReturns.return_value Evaluates.constant
+  | cons value rest ih =>
+      have item : tail[position]? = some value := by simpa [suffix] using (List.head?_drop (l := tail) (i := position)).symm
+      let ready := setLocal env "s" (text value)
+      have captured : ready "suits" = some (.ref suitsAddress) := by simpa [ready, setLocal] using bound
+      have tested := equal_eval heap ready suitsAddress first value tail globals captured original rfl
+      apply BlockReturns.sequence_step (source := .ref tailAddress) (value := text value) sequence
+        (by simp only [texts, List.getElem?_map, item, Option.map_some])
+      cases accepted : decide (value = first) with
+      | false =>
+          simp only [List.all_cons, accepted, Bool.false_and]
+          apply BlockReturns.branch (flag := false) (by simpa only [accepted] using tested) rfl
+          exact BlockReturns.return_value Evaluates.constant
+      | true =>
+          simp only [List.all_cons, accepted, Bool.true_and]
+          apply BlockReturns.branch (flag := true) (by simpa only [accepted] using tested) rfl
+          have continued := ih (position+1) (by simp [List.drop_add_one_eq_tail_drop, suffix]) ready captured
+          simpa [truthBody, Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt] using continued
+
+private theorem all_eval (heap : Heap) (env : HeapCalls.Env) (address : Nat) (first : String) (tail : List String)
+    (globals : Mutable.Globals) (bound : env "suits" = some (.ref address))
+    (found : heap[address]? = some (.list (texts (first :: tail)))) :
+    Evaluates program env allSuits heap (flag (tail.all (fun value => decide (value = first))))
+      (heap ++ [.list (texts tail)]) globals := by
+  have sliced : Evaluates program env tailSuits heap (.ref heap.length) (heap ++ [.list (texts tail)]) globals := by
+    apply Evaluates.slice (.cons (Evaluates.lookup bound) (.cons Evaluates.constant
+      (.cons Evaluates.constant (.cons Evaluates.constant .nil))))
+    simpa only [texts, List.map_cons] using Mutable.getSlice_list_suffix heap address (texts (first :: tail)) 1 found
+  let afterSlice := heap ++ [Mutable.Object.list (texts tail)]
+  let inside := comprehensionTargetsEnv env [(.name "s", tailSuits, [])]
+  have captured : inside "suits" = some (.ref address) := by
+    simpa [inside, comprehensionTargetsEnv, targetLocals] using bound
+  have retained : afterSlice[address]? = some (.list (texts (first :: tail))) := found_append found _
+  have sliceFound : afterSlice[heap.length]? = some (.list (texts tail)) := by simp [afterSlice]
+  have executed := all_loop afterSlice address heap.length first tail tail retained sliceFound 0 rfl inside globals captured
+  apply Evaluates.truth_generator_sequence (universal := true) (target := .name "s") (iterable := tailSuits)
+    (filters := []) (generators := []) (items := texts tail) (source := .ref heap.length) (middle := afterSlice)
+    (by intro expressions impossible; cases impossible) (by intro expressions impossible; cases impossible)
+    (by intro expressions impossible; cases impossible) sliced (by simp [Mutable.sequence, sliceFound])
+  exact executed
+
+def flush (values : List String) : Bool :=
+  match values with | [] => false | first :: tail => tail.all (fun value => decide (value = first))
+
+namespace is_flush
+private abbrev params := ((findFunctionIn program.body "is_flush").getD ([], [])).1
+private abbrev body := ((findFunctionIn program.body "is_flush").getD ([], [])).2
+private abbrev initial (globals : Mutable.Globals) (address : Nat) : HeapCalls.Env := functionEnv params body [.ref address] globals
+private theorem get_hand (globals : Mutable.Globals) (address : Nat) : initial globals address "hand" = some (.ref address) := by
+  cases globals <;> rfl
+
+private theorem bool_eval (heap : Heap) (env : HeapCalls.Env) (address : Nat) (values : List String)
+    (globals : Mutable.Globals) (bound : env "suits" = some (.ref address))
+    (found : heap[address]? = some (.list (texts values))) :
+    Evaluates program env boolSuits heap (flag (!values.isEmpty)) heap globals := by
+  apply Evaluates.unary (value := flag values.isEmpty) (middle := heap)
+  · apply Evaluates.unary (Evaluates.lookup bound)
+    simp [HeapCalls.unary, Mutable.truth, found, texts, flag]
+  · rfl
+
+/-- The original source short circuits empty hands and checks the sliced suit suffix lazily. -/
+theorem result (cards : List Card) (heap : Heap) (address : Nat) (globals : Mutable.Globals)
+    (found : heap[address]? = some (.list (tokens cards))) :
+    ∃ extra : Heap, ReturnsValue program "is_flush" [.ref address] heap (flag (flush (suits cards))) (heap ++ extra) globals := by
+  let afterSuits := heap ++ [Mutable.Object.list (texts (suits cards))]
+  let ready := setLocal (initial globals address) "suits" (.ref heap.length)
+  have suitsFound : afterSuits[heap.length]? = some (.list (texts (suits cards))) := by simp [afterSuits]
+  cases shape : suits cards with
+  | nil =>
+      refine ⟨[.list []], ?_⟩
+      have returned : ReturnsValue program "is_flush" [.ref address] heap (flag false) afterSuits globals := by
+        apply BlockReturns.function rfl rfl
+        apply BlockReturns.assign (Evaluates.call (.cons (Evaluates.lookup (get_hand globals address)) .nil)
+          (hand_suits.result cards heap address globals found))
+        apply BlockReturns.return_value
+        exact Evaluates.boolean_stop (flag := false) (value := flag false) (middle := afterSuits)
+          (by simpa only [afterSuits, shape, List.isEmpty_nil, Bool.not_true] using bool_eval afterSuits ready heap.length (suits cards) globals rfl suitsFound) rfl rfl
+      simpa only [flush, shape, afterSuits, texts, List.map_nil] using returned
+  | cons first tail =>
+      refine ⟨[.list (texts (first :: tail)), .list (texts tail)], ?_⟩
+      have returned : ReturnsValue program "is_flush" [.ref address] heap
+          (flag (tail.all (fun value => decide (value = first)))) (afterSuits ++ [.list (texts tail)]) globals := by
+        apply BlockReturns.function rfl rfl
+        apply BlockReturns.assign (Evaluates.call (.cons (Evaluates.lookup (get_hand globals address)) .nil)
+          (hand_suits.result cards heap address globals found))
+        apply BlockReturns.return_value
+        apply Evaluates.boolean_next (flag := true) (value := flag true) (middle := afterSuits)
+          (by simpa only [afterSuits, shape, List.isEmpty_cons, Bool.not_false] using bool_eval afterSuits ready heap.length (suits cards) globals rfl suitsFound) rfl rfl
+        exact Evaluates.boolean_last (flag := tail.all (fun value => decide (value = first)))
+          (all_eval afterSuits ready heap.length first tail globals rfl (by simpa only [shape] using suitsFound)) rfl
+      simpa only [flush, shape, afterSuits, List.append_assoc] using returned
+end is_flush
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.flush_source
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p54.rank_source
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+set_option Elab.async false
+
+private abbrev program := P54Ast.module
+private abbrev number (value : Int) : Mutable.Value := .scalar (.int value)
+private abbrev text (value : String) : Mutable.Value := .scalar (.string value)
+private abbrev flag (value : Bool) : Mutable.Value := .scalar (.bool value)
+
+private theorem found_append {heap : Heap} {address : Nat} {object : Mutable.Object}
+    (found : heap[address]? = some object) (extra : Heap) :
+    (heap ++ extra)[address]? = some object := by
+  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp found).1]
+  exact found
+
+namespace rank_value
+private abbrev params := ((findFunctionIn program.body "rank_value").getD ([], [])).1
+private abbrev body := ((findFunctionIn program.body "rank_value").getD ([], [])).2
+private abbrev initial (globals : Mutable.Globals) (value : Mutable.Value) : HeapCalls.Env :=
+  functionEnv params body [value] globals
+private theorem get_rank (globals : Mutable.Globals) (value : Mutable.Value) :
+    initial globals value "rank" = some value := by cases globals <;> rfl
+
+/-- The actual isinstance(..., int) branch returns its integer argument without reading the table. -/
+theorem result_int (rank : Int) (heap : Heap) (globals : Mutable.Globals) :
+    ReturnsValue program "rank_value" [number rank] heap (number rank) heap globals := by
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  apply Evaluates.conditional (flag := true) (value := flag true) (middle := heap)
+  · exact Evaluates.builtin (.cons (Evaluates.lookup (get_rank globals (number rank))) .nil) rfl
+  · rfl
+  · exact Evaluates.lookup (get_rank globals (number rank))
+
+/-- The string branch reads the live caller-provided rank_values dictionary. -/
+theorem result_lookup (rank : String) (heap : Heap) (globals : Mutable.Globals) (address : Nat)
+    (entries : List (Constant × Mutable.Value)) (value : Mutable.Value)
+    (getTable : globals.lookup "rank_values" = some (.ref address))
+    (found : heap[address]? = some (.dict entries))
+    (present : ScalarDict.lookup entries (.string rank) = some value) :
+    ReturnsValue program "rank_value" [text rank] heap value heap globals := by
+  have table : initial globals (text rank) "rank_values" = some (.ref address) := by
+    cases globals with
+    | nil => simp at getTable
+    | cons first rest => exact getTable
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  apply Evaluates.conditional (flag := false) (value := flag false) (middle := heap)
+  · exact Evaluates.builtin (.cons (Evaluates.lookup (get_rank globals (text rank))) .nil) rfl
+  · rfl
+  · apply Evaluates.subscript (by intros; simp) (Evaluates.lookup table)
+      (Evaluates.lookup (get_rank globals (text rank)))
+    exact Mutable.getItem_dictionary heap address entries found (.string rank) present
+end rank_value
+
+private abbrev Card := flush_source.Card
+
+def ranks (cards : List Card) (valuation : Card → Int) : List Mutable.Value :=
+  cards.map (fun card => number (valuation card))
+
+private theorem first_item (card : Card) (heap : Heap) :
+    Mutable.getItem (text card.token) (number 0) heap =
+      some (.ok (text (String.singleton card.rankChar)), heap) := by
+  have inside : ¬ (card.suffix.length : Int)+1+1 ≤ 0 := by omega
+  simp [Mutable.getItem, Strings.get, FormalSW.Py.Builtin.Sequence.get?,
+    FormalSW.Py.Builtin.Sequence.normalizeIndex, card.shape, text, inside]
+
+private abbrev rankExpression : Expr :=
+  .call (.name "rank_value") [.subscript (.name "c") (.constant (.int 0))]
+
+private theorem rank_eval (heap : Heap) (env : HeapCalls.Env) (card : Card) (value : Int)
+    (globals : Mutable.Globals) (tableAddress : Nat) (entries : List (Constant × Mutable.Value))
+    (bound : env "c" = some (text card.token))
+    (getTable : globals.lookup "rank_values" = some (.ref tableAddress))
+    (found : heap[tableAddress]? = some (.dict entries))
+    (present : ScalarDict.lookup entries (.string (String.singleton card.rankChar)) = some (number value)) :
+    Evaluates program env rankExpression heap (number value) heap globals := by
+  have indexed : Evaluates program env (.subscript (.name "c") (.constant (.int 0))) heap
+      (text (String.singleton card.rankChar)) heap globals :=
+    Evaluates.subscript (by intros; simp) (Evaluates.lookup bound) Evaluates.constant (first_item card heap)
+  exact Evaluates.call (.cons indexed .nil)
+    (rank_value.result_lookup (String.singleton card.rankChar) heap globals tableAddress entries (number value) getTable found present)
+
+private theorem collect_ranks (heap : Heap) (address tableAddress : Nat) (cards remaining : List Card)
+    (valuation : Card → Int) (entries : List (Constant × Mutable.Value))
+    (found : heap[address]? = some (.list (flush_source.tokens cards)))
+    (tableFound : heap[tableAddress]? = some (.dict entries))
+    (position : Nat) (suffix : cards.drop position = remaining) (collected : List Mutable.Value)
+    (env : HeapCalls.Env) (globals : Mutable.Globals)
+    (getTable : globals.lookup "rank_values" = some (.ref tableAddress))
+    (present : ∀ card ∈ cards, ScalarDict.lookup entries (.string (String.singleton card.rankChar)) = some (number (valuation card))) :
+    ∃ finalEnv, BlockContinues program env
+      [.sequenceStepLoop "c" (.ref address) position [.comprehensionAppend heap.length rankExpression] []]
+      (heap ++ [.list collected]) finalEnv (heap ++ [.list (collected ++ ranks remaining valuation)]) globals := by
+  have sequence (done : List Mutable.Value) :
+      Mutable.sequence (.ref address) (heap ++ [.list done]) =
+        some (.ok (flush_source.tokens cards), heap ++ [.list done]) := by
+    have original := found_append found [.list done]
+    simp [Mutable.sequence, original]
+  induction remaining generalizing position env collected with
+  | nil =>
+      have missing : cards[position]? = none := by
+        simpa [suffix] using (List.head?_drop (l := cards) (i := position)).symm
+      have absent : (flush_source.tokens cards)[position]? = none := by
+        simp only [flush_source.tokens, List.getElem?_map, missing, Option.map_none]
+      refine ⟨env, ?_⟩
+      apply BlockContinues.sequence_done (source := .ref address) (sequence collected) absent
+      simpa only [ranks, List.map_nil, List.append_nil] using
+        (BlockContinues.nil (module := program) (env := env) (heap := heap ++ [.list collected]) (globals := globals))
+  | cons card rest ih =>
+      have item : cards[position]? = some card := by
+        simpa [suffix] using (List.head?_drop (l := cards) (i := position)).symm
+      let ready := setLocal env "c" (text card.token)
+      have extendedTable : (heap ++ [.list collected])[tableAddress]? = some (.dict entries) := found_append tableFound _
+      have valued := rank_eval (heap ++ [.list collected]) ready card (valuation card) globals tableAddress entries rfl
+        getTable extendedTable (present card (List.mem_of_getElem? item))
+      have emitted : BlockContinues program ready [.comprehensionAppend heap.length rankExpression]
+          (heap ++ [.list collected]) ready (heap ++ [.list (collected ++ [number (valuation card)])]) globals := by
+        have appended := BlockContinues.comprehension_append (module := program) (env := ready) (globals := globals)
+          (address := heap.length) (heap := heap ++ [.list collected]) (items := collected) valued (by simp)
+        simpa using appended
+      obtain ⟨finalEnv, continued⟩ := ih (position+1)
+        (by simp [List.drop_add_one_eq_tail_drop, suffix]) (collected ++ [number (valuation card)]) ready
+      refine ⟨finalEnv, ?_⟩
+      apply BlockContinues.sequence_step (source := .ref address) (value := text card.token) (sequence collected)
+        (by simp only [flush_source.tokens, List.getElem?_map, item, Option.map_some])
+      simpa [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, ranks, List.append_assoc] using
+        emitted.append continued
+
+namespace hand_ranks
+private abbrev params := ((findFunctionIn program.body "hand_ranks").getD ([], [])).1
+private abbrev body := ((findFunctionIn program.body "hand_ranks").getD ([], [])).2
+private abbrev initial (globals : Mutable.Globals) (address : Nat) : HeapCalls.Env :=
+  functionEnv params body [.ref address] globals
+private theorem get_hand (globals : Mutable.Globals) (address : Nat) : initial globals address "hand" = some (.ref address) := by
+  cases globals <;> rfl
+
+/-- The original c[0]/rank_value comprehension uses the live rank dictionary and creates one fresh list. -/
+theorem result (cards : List Card) (valuation : Card → Int) (heap : Heap) (address tableAddress : Nat)
+    (entries : List (Constant × Mutable.Value)) (globals : Mutable.Globals)
+    (found : heap[address]? = some (.list (flush_source.tokens cards)))
+    (tableFound : heap[tableAddress]? = some (.dict entries))
+    (getTable : globals.lookup "rank_values" = some (.ref tableAddress))
+    (present : ∀ card ∈ cards, ScalarDict.lookup entries (.string (String.singleton card.rankChar)) = some (number (valuation card))) :
+    ReturnsValue program "hand_ranks" [.ref address] heap (.ref heap.length)
+      (heap ++ [.list (ranks cards valuation)]) globals := by
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  obtain ⟨finalEnv, collected⟩ := collect_ranks heap address tableAddress cards cards valuation entries found tableFound
+    0 rfl [] (comprehensionEnv (initial globals address) [("c", .name "hand", [])]) globals getTable present
+  apply Evaluates.list_comp_sequence (name := "c") (iterable := .name "hand") (filters := []) (generators := [])
+    (finalEnv := finalEnv) (items := flush_source.tokens cards) (value := .ref address) (middle := heap)
+    (by intro expressions impossible; cases impossible) (Evaluates.lookup (get_hand globals address))
+    (by simp [Mutable.sequence, found])
+  simpa only [List.nil_append, comprehensionFilters, comprehensionBody, List.foldr_nil] using collected
+end hand_ranks
+
+end data.«project-euler-statements».data.py.project_euler_statements.p54.rank_source
