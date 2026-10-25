@@ -4,6 +4,7 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Linarith
 import ProjectEulerSolutions.Lib.PolygonalCycle
 import ProjectEulerSolutions.Lib.HeapCollection
+import ProjectEulerSolutions.Lib.HeapLoop
 
 namespace data.«project-euler-statements».data.py.project_euler_statements.p61.polygonal
 open FormalSW.PyAst
@@ -413,6 +414,314 @@ theorem closed_result (values : List Int) (nonempty : values ≠ []) (heap : Mut
       simp only [if_true]
       apply BlockReturns.branch (flag := true) (by simpa only [selected] using tested) rfl
       exact BlockReturns.return_value summed
+
+def familyExpression : Expr := .subscript
+  (.subscript (.name "__formalsw_cell_naive_families") (.constant (.int 0))) (.name "kind")
+def unusedFilter : Expr := .compare (.name "other") [(.notEq, .name "kind")]
+def unusedExpression : Expr := .listComp (.name "other") [("other", .name "remaining", [unusedFilter])]
+def extendedPath : Expr := .binOp (.name "path") .add (.list [.name "value"])
+def childArguments : List Expr := [extendedPath, .name "unused", .name "__formalsw_cell_naive_families"]
+def childCall : Expr := .call (.name "__formalsw_local_naive_extend") childArguments
+def innerBody : List Stmt :=
+  [.ifThen (.membership (.name "value") (.name "path") false) [.continueLoop] [],
+   .ifThen (.unaryOp .not (.call (.name "is_cyclic_pair")
+     [.subscript (.name "path") (.unaryOp .uSub (.constant (.int 1))), .name "value"])) [.continueLoop] [],
+   .assign [.name "best"] (.builtinCall .max [.name "best", childCall])]
+def outerBody : List Stmt :=
+  [.assign [.name "unused"] unusedExpression, .forIn (.name "value") familyExpression innerBody []]
+def code : List Stmt :=
+  [.ifThen exhausted baseBody [], .assign [.name "best"] (.constant (.int 0)),
+   .forIn (.name "kind") (.name "remaining") outerBody [], .return (.name "best")]
+
+theorem code_source :
+    executableBody ((findFunctionIn program.body "__formalsw_local_naive_extend").getD ([], [])).2 = code := rfl
+
+/-- Read-only captured family lists, indexed by the reference's six type numbers. -/
+structure World (heap : Mutable.Heap) (familiesCell : Nat) (limit : Int) where
+  table : Nat
+  target : Nat → Nat
+  cellFound : heap[familiesCell]? = some (.list [.ref table])
+  tableFound : heap[table]? = some (.list ((List.range 6).map (fun kind => .ref (target kind))))
+  familyFound : ∀ kind, kind < 6 → heap[target kind]? =
+    some (.list (numbers (ProjectEulerSolutions.PolygonalCycle.fourDigit limit (3 + (kind : Int)))))
+
+variable {heap : Mutable.Heap} {familiesCell : Nat} {limit : Int}
+
+def World.append (world : World heap familiesCell limit) (extra : Mutable.Heap) :
+    World (heap ++ extra) familiesCell limit where
+  table := world.table
+  target := world.target
+  cellFound := HeapCollection.prefix_found _ _ _ _ world.cellFound
+  tableFound := HeapCollection.prefix_found _ _ _ _ world.tableFound
+  familyFound := fun kind valid => HeapCollection.prefix_found _ _ _ _ (world.familyFound kind valid)
+
+def World.of_setup (caller : Mutable.Heap) (limit : Int) :
+    World (families.setupHeap caller limit) (families.tableHeap caller limit (List.range' 3 6)).length limit where
+  table := caller.length
+  target := fun kind => caller.length + 1 + kind
+  cellFound := by simp [families.setupHeap]
+  tableFound := by
+    simp [families.setupHeap, families.tableHeap, HeapCollection.working, families.references]
+  familyFound := by
+    intro kind valid
+    have cases : kind = 0 ∨ kind = 1 ∨ kind = 2 ∨ kind = 3 ∨ kind = 4 ∨ kind = 5 := by omega
+    rcases cases with rfl | rfl | rfl | rfl | rfl | rfl <;>
+      simp [families.setupHeap, families.tableHeap, HeapCollection.working, families.objects, List.range',
+        numbers, families.numbers, List.append_assoc, Nat.add_assoc]
+
+theorem family_evaluate (world : World heap familiesCell limit) (kind : Nat) (valid : kind < 6)
+    (env : HeapCalls.Env) (getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell))
+    (getKind : env "kind" = some (number kind)) (globals : Mutable.Globals := []) :
+    Evaluates program env familyExpression heap (.ref (world.target kind)) heap globals := by
+  have table : Evaluates program env
+      (.subscript (.name "__formalsw_cell_naive_families") (.constant (.int 0))) heap (.ref world.table) heap globals := by
+    apply Evaluates.subscript (middle := heap) (afterIndex := heap) (finalHeap := heap)
+      (by intros; intro impossible; cases impossible) (Evaluates.lookup getCell) Evaluates.constant
+    exact Mutable.getItem_list _ _ 0 [.ref world.table] world.cellFound (by simp)
+  apply Evaluates.subscript (middle := heap) (afterIndex := heap) (finalHeap := heap)
+    (by intros; intro impossible; cases impossible) table (Evaluates.lookup getKind)
+  have found := Mutable.getItem_list heap world.table kind ((List.range 6).map (fun kind => .ref (world.target kind)))
+    world.tableFound (by simpa using valid)
+  simpa using found
+
+private def kinds (values : List Nat) : List Mutable.Value := values.map (fun value : Nat => number value)
+private def unusedBody (collector : Nat) : List Stmt :=
+  [.ifThen unusedFilter [.comprehensionAppend collector (.name "other")] []]
+
+private theorem unused_loop (all remaining : List Nat) (position : Nat) (suffix : all.drop position = remaining)
+    (kind : Nat) (base : Mutable.Heap) (address : Nat) (found : base[address]? = some (.list (kinds all)))
+    (before : List Nat) (env : HeapCalls.Env) (getKind : env "kind" = some (number kind)) (globals : Mutable.Globals) :
+    ∃ finalEnv, BlockContinues program env [.sequenceStepLoop "other" (.ref address) position (unusedBody base.length) []]
+      (HeapCollection.working base (kinds before) []) finalEnv
+      (HeapCollection.working base (kinds (before ++ remaining.filter (fun other => decide (other ≠ kind)))) []) globals := by
+  have sequence (collected : List Nat) :
+      Mutable.sequence (sequenceValue (.ref address)) (HeapCollection.working base (kinds collected) []) =
+        some (.ok (kinds all), HeapCollection.working base (kinds collected) []) := by
+    have kept := HeapCollection.prefix_found base [.list (kinds collected)] address _ found
+    simpa only [HeapCollection.working, List.append_nil] using
+      (show Mutable.sequence (.ref address) (base ++ [.list (kinds collected)]) =
+        some (.ok (kinds all), base ++ [.list (kinds collected)]) by simp [Mutable.sequence, kept])
+  induction remaining generalizing position before env with
+  | nil =>
+      refine ⟨env, ?_⟩
+      simp only [List.filter_nil, List.append_nil]
+      apply BlockContinues.sequence_done (sequence before)
+      · have missing : all[position]? = none := by rw [← List.head?_drop, suffix]; rfl
+        simp [kinds, List.getElem?_map, missing]
+      · exact BlockContinues.nil
+  | cons other rest ih =>
+      have selected : all[position]? = some other := by rw [← List.head?_drop, suffix]; rfl
+      let bound := setLocal env "other" (number other)
+      have boundKind : bound "kind" = some (number kind) := by simpa [bound, setLocal] using getKind
+      have tested : Evaluates program bound unusedFilter (HeapCollection.working base (kinds before) [])
+          (flag (decide (other ≠ kind))) (HeapCollection.working base (kinds before) []) globals := by
+        apply Evaluates.compare (middle := HeapCollection.working base (kinds before) [])
+          (afterRight := HeapCollection.working base (kinds before) [])
+          (finalHeap := HeapCollection.working base (kinds before) [])
+          (Evaluates.lookup (by rfl)) (Evaluates.lookup boundKind)
+        simp [HeapCalls.compare, scalarCompare, evalCmpOp, flag]
+      have nextSuffix : all.drop (position + 1) = rest := by
+        simp only [List.drop_add_one_eq_tail_drop, suffix, List.tail_cons]
+      by_cases different : other ≠ kind
+      · rw [show decide (other ≠ kind) = true from decide_eq_true different] at tested
+        have emitted : BlockContinues program bound (unusedBody base.length)
+            (HeapCollection.working base (kinds before) []) bound
+            (HeapCollection.working base (kinds (before ++ [other])) []) globals := by
+          apply BlockContinues.branch (flag := true) tested rfl
+          have stored := HeapCollection.emit (program := program) base (kinds before) [] [] (number other)
+            (by simpa only [List.append_nil] using
+              (Evaluates.lookup (module := program) (globals := globals)
+                (heap := HeapCollection.working base (kinds before) []) (show bound "other" = some (number other) from rfl)))
+          simpa only [kinds, List.map_append, List.map_cons, List.map_nil, List.append_nil] using stored
+        obtain ⟨finalEnv, continued⟩ := ih (position + 1) nextSuffix (before ++ [other]) bound boundKind
+        refine ⟨finalEnv, ?_⟩
+        apply BlockContinues.sequence_step (value := number other) (sequence before) (by simp [kinds, List.getElem?_map, selected])
+        simpa [unusedBody, Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt,
+          List.filter_cons, different, List.append_assoc] using emitted.append continued
+      · rw [show decide (other ≠ kind) = false from decide_eq_false different] at tested
+        have skipped : BlockContinues program bound (unusedBody base.length)
+            (HeapCollection.working base (kinds before) []) bound (HeapCollection.working base (kinds before) []) globals :=
+          BlockContinues.branch (flag := false) tested rfl .nil
+        obtain ⟨finalEnv, continued⟩ := ih (position + 1) nextSuffix before bound boundKind
+        refine ⟨finalEnv, ?_⟩
+        apply BlockContinues.sequence_step (value := number other) (sequence before) (by simp [kinds, List.getElem?_map, selected])
+        simpa [unusedBody, Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt,
+          List.filter_cons, different] using skipped.append continued
+
+/-- Filtering the remaining types creates one fresh list and preserves every old object. -/
+theorem unused_evaluate (all : List Nat) (kind : Nat) (heap : Mutable.Heap) (address : Nat)
+    (found : heap[address]? = some (.list (kinds all))) (env : HeapCalls.Env)
+    (getRemaining : env "remaining" = some (.ref address)) (getKind : env "kind" = some (number kind))
+    (globals : Mutable.Globals := []) :
+    Evaluates program env unusedExpression heap (.ref heap.length)
+      (heap ++ [.list (kinds (all.filter (fun other => decide (other ≠ kind))))]) globals := by
+  let masked := comprehensionEnv env [("other", .name "remaining", [unusedFilter])]
+  have maskedKind : masked "kind" = some (number kind) := by
+    simpa [masked, comprehensionEnv, setLocal] using getKind
+  obtain ⟨finalEnv, executed⟩ := unused_loop all all 0 rfl kind heap address found [] masked maskedKind globals
+  apply Evaluates.list_comp_sequence (items := kinds all) (finalEnv := finalEnv)
+    (by intro expressions impossible; cases impossible) (Evaluates.lookup getRemaining)
+    (by simp [Mutable.sequence, found])
+  simpa only [masked, comprehensionFilters, comprehensionBody, unusedBody, HeapCollection.working,
+    kinds, List.map_nil, List.nil_append, List.append_nil] using executed
+
+def childHeap (heap : Mutable.Heap) (values : List Int) (value : Int) : Mutable.Heap :=
+  heap ++ [.list [number value], .list (numbers (values ++ [value]))]
+
+theorem path_argument_evaluate (values : List Int) (heap : Mutable.Heap) (path : Nat)
+    (found : heap[path]? = some (.list (numbers values))) (value : Int) (env : HeapCalls.Env)
+    (getPath : env "path" = some (.ref path)) (getValue : env "value" = some (number value))
+    (globals : Mutable.Globals := []) :
+    Evaluates program env extendedPath heap (.ref (heap.length + 1)) (childHeap heap values value) globals := by
+  have singleton : Evaluates program env (.list [.name "value"]) heap (.ref heap.length)
+      (heap ++ [.list [number value]]) globals := Evaluates.list (.cons (Evaluates.lookup getValue) .nil)
+  have kept := HeapCollection.prefix_found heap [.list [number value]] path _ found
+  apply Evaluates.binary (middle := heap) (afterRight := heap ++ [.list [number value]])
+    (Evaluates.lookup getPath) singleton
+  simp [Mutable.binary, show (BinOp.add == BinOp.add) = true from rfl, Mutable.array, kept,
+    Mutable.allocate, Except.map, childHeap, numbers, List.append_assoc]
+
+theorem child_arguments_evaluate (values : List Int) (heap : Mutable.Heap) (path unused familiesCell : Nat)
+    (found : heap[path]? = some (.list (numbers values))) (value : Int) (env : HeapCalls.Env)
+    (getPath : env "path" = some (.ref path)) (getValue : env "value" = some (number value))
+    (getUnused : env "unused" = some (.ref unused))
+    (getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell)) (globals : Mutable.Globals := []) :
+    Evaluates.Arguments program env childArguments heap [.ref (heap.length + 1), .ref unused, .ref familiesCell]
+      (childHeap heap values value) globals :=
+  .cons (path_argument_evaluate values heap path found value env getPath getValue globals)
+    (.cons (Evaluates.lookup getUnused) (.cons (Evaluates.lookup getCell) .nil))
+
+/-- Source parameters and captured tables describe the same logical reference search. -/
+structure SearchState (heap : Mutable.Heap) (path remainingAddress familiesCell : Nat) (limit : Int)
+    (values : List Int) (remaining : List Nat) where
+  world : World heap familiesCell limit
+  pathFound : heap[path]? = some (.list (numbers values))
+  remainingFound : heap[remainingAddress]? = some (.list (kinds remaining))
+  validKinds : ∀ kind ∈ remaining, kind < 6
+
+def SearchState.append (state : SearchState heap path remainingAddress familiesCell limit values remaining)
+    (extra : Mutable.Heap) :
+    SearchState (heap ++ extra) path remainingAddress familiesCell limit values remaining where
+  world := state.world.append extra
+  pathFound := HeapCollection.prefix_found _ _ _ _ state.pathFound
+  remainingFound := HeapCollection.prefix_found _ _ _ _ state.remainingFound
+  validKinds := state.validKinds
+
+def SearchState.child (state : SearchState heap path remainingAddress familiesCell limit values remaining)
+    (kind : Nat) (value : Int) (unused : Nat)
+    (unusedFound : heap[unused]? = some (.list (kinds (remaining.filter (fun other => decide (other ≠ kind)))))) :
+    SearchState (childHeap heap values value) (heap.length + 1) unused familiesCell limit (values ++ [value])
+      (remaining.filter (fun other => decide (other ≠ kind))) where
+  world := state.world.append [.list [number value], .list (numbers (values ++ [value]))]
+  pathFound := by simp [childHeap]
+  remainingFound := HeapCollection.prefix_found _ _ _ _ unusedFound
+  validKinds := by
+    intro other member
+    exact state.validKinds other (List.mem_filter.mp member).1
+
+theorem membership_evaluate (values : List Int) (heap : Mutable.Heap) (path : Nat)
+    (found : heap[path]? = some (.list (numbers values))) (value : Int) (env : HeapCalls.Env)
+    (getPath : env "path" = some (.ref path)) (getValue : env "value" = some (number value))
+    (globals : Mutable.Globals := []) :
+    Evaluates program env (.membership (.name "value") (.name "path") false) heap
+      (flag (decide (value ∈ values))) heap globals := by
+  apply Evaluates.membership (.cons (Evaluates.lookup getValue) (.cons (Evaluates.lookup getPath) .nil))
+  exact HeapCalls.membership_list_ints heap path value values found false
+
+def lastExpression : Expr := .subscript (.name "path") (.unaryOp .uSub (.constant (.int 1)))
+
+theorem last_evaluate (values : List Int) (last : Int) (atEnd : values.getLast? = some last)
+    (heap : Mutable.Heap) (path : Nat) (found : heap[path]? = some (.list (numbers values)))
+    (env : HeapCalls.Env) (getPath : env "path" = some (.ref path)) (globals : Mutable.Globals := []) :
+    Evaluates program env lastExpression heap (number last) heap globals := by
+  have nonempty : values ≠ [] := by intro empty; simp [empty] at atEnd
+  have positive : 0 < values.length := List.length_pos_iff.mpr nonempty
+  have tail : values[values.length - 1]? = some last := by rw [← List.getLast?_eq_getElem?]; exact atEnd
+  apply Evaluates.subscript (middle := heap) (afterIndex := heap) (finalHeap := heap)
+    (by intros; intro impossible; cases impossible) (Evaluates.lookup getPath)
+    (Evaluates.unary (middle := heap) (finalHeap := heap) (value := number 1) Evaluates.constant rfl)
+  have offset : ((-1 : Int) + values.length).toNat = values.length - 1 := by omega
+  have indexed : Mutable.index (numbers values) (number (-1)) heap = some (.ok (values.length - 1), heap) := by
+    simp [Mutable.index, numbers, nonempty, offset]
+  have mapped : (numbers values)[values.length - 1]? = some (number last) := by simp [numbers, tail]
+  simp [Mutable.getItem, found, indexed, Except.map, mapped]
+
+theorem link_evaluate (values : List Int) (last : Int) (atEnd : values.getLast? = some last)
+    (heap : Mutable.Heap) (path : Nat) (found : heap[path]? = some (.list (numbers values)))
+    (value : Int) (env : HeapCalls.Env) (getPath : env "path" = some (.ref path))
+    (getValue : env "value" = some (number value)) (globals : Mutable.Globals := []) :
+    Evaluates program env (.unaryOp .not (.call (.name "is_cyclic_pair") [lastExpression, .name "value"])) heap
+      (flag (!ProjectEulerSolutions.PolygonalCycle.links last value)) heap globals := by
+  apply Evaluates.unary (middle := heap) (finalHeap := heap)
+    (Evaluates.call (.cons (last_evaluate values last atEnd heap path found env getPath globals)
+      (.cons (Evaluates.lookup getValue) .nil)) (is_cyclic_pair.heap_result last value heap globals))
+  simp [HeapCalls.unary, Mutable.truth, scalarTruth, flag]
+
+theorem maximum_evaluate (values : List Int) (heap : Mutable.Heap) (path unused familiesCell : Nat)
+    (found : heap[path]? = some (.list (numbers values))) (value best child : Int) (env : HeapCalls.Env)
+    (getPath : env "path" = some (.ref path)) (getValue : env "value" = some (number value))
+    (getUnused : env "unused" = some (.ref unused)) (getBest : env "best" = some (number best))
+    (getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell))
+    (returned : ReturnsValue program "__formalsw_local_naive_extend"
+      [.ref (heap.length + 1), .ref unused, .ref familiesCell] (childHeap heap values value)
+      (number child) finalHeap globals) :
+    Evaluates program env (.builtinCall .max [.name "best", childCall]) heap (number (max best child)) finalHeap globals := by
+  apply Evaluates.builtin (.cons (Evaluates.lookup getBest)
+    (.cons (Evaluates.call
+      (child_arguments_evaluate values heap path unused familiesCell found value env getPath getValue getUnused getCell globals)
+      returned) .nil))
+  by_cases better : best < child
+  · simp [primitive, Calls.positionalMaximum, Calls.maximumFrom, scalarCompare, evalCmpOp, scalarResult,
+      better, Int.max_eq_right (by omega : best ≤ child)]
+  · simp [primitive, Calls.positionalMaximum, Calls.maximumFrom, scalarCompare, evalCmpOp, scalarResult,
+      better, Int.max_eq_left (by omega : child ≤ best)]
+
+theorem inner_used (values : List Int) (heap : Mutable.Heap) (path : Nat)
+    (found : heap[path]? = some (.list (numbers values))) (value : Int) (used : value ∈ values)
+    (env : HeapCalls.Env) (getPath : env "path" = some (.ref path)) (getValue : env "value" = some (number value))
+    (globals : Mutable.Globals := []) : HeapLoop.Continues program env innerBody heap env heap globals := by
+  have seen := membership_evaluate values heap path found value env getPath getValue globals
+  rw [show decide (value ∈ values) = true from decide_eq_true used] at seen
+  apply HeapLoop.branch (flag := true) seen rfl
+  apply HeapLoop.skip
+  intros
+  rfl
+
+theorem inner_unlinked (values : List Int) (last : Int) (atEnd : values.getLast? = some last)
+    (heap : Mutable.Heap) (path : Nat) (found : heap[path]? = some (.list (numbers values)))
+    (value : Int) (fresh : value ∉ values) (unlinked : ProjectEulerSolutions.PolygonalCycle.links last value = false)
+    (env : HeapCalls.Env) (getPath : env "path" = some (.ref path)) (getValue : env "value" = some (number value))
+    (globals : Mutable.Globals := []) : HeapLoop.Continues program env innerBody heap env heap globals := by
+  have seen := membership_evaluate values heap path found value env getPath getValue globals
+  rw [show decide (value ∈ values) = false from decide_eq_false fresh] at seen
+  apply HeapLoop.branch (flag := false) seen rfl
+  have tested := link_evaluate values last atEnd heap path found value env getPath getValue globals
+  rw [unlinked] at tested
+  apply HeapLoop.branch (flag := true) tested rfl
+  apply HeapLoop.skip
+  intros
+  rfl
+
+theorem inner_updated (values : List Int) (last : Int) (atEnd : values.getLast? = some last)
+    (heap : Mutable.Heap) (path unused familiesCell : Nat) (found : heap[path]? = some (.list (numbers values)))
+    (value best child : Int) (fresh : value ∉ values) (linked : ProjectEulerSolutions.PolygonalCycle.links last value = true)
+    (env : HeapCalls.Env) (getPath : env "path" = some (.ref path)) (getValue : env "value" = some (number value))
+    (getUnused : env "unused" = some (.ref unused)) (getBest : env "best" = some (number best))
+    (getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell))
+    (returned : ReturnsValue program "__formalsw_local_naive_extend"
+      [.ref (heap.length + 1), .ref unused, .ref familiesCell] (childHeap heap values value)
+      (number child) finalHeap globals) :
+    HeapLoop.Continues program env innerBody heap (setLocal env "best" (number (max best child))) finalHeap globals := by
+  have seen := membership_evaluate values heap path found value env getPath getValue globals
+  rw [show decide (value ∈ values) = false from decide_eq_false fresh] at seen
+  apply HeapLoop.branch (flag := false) seen rfl
+  have tested := link_evaluate values last atEnd heap path found value env getPath getValue globals
+  rw [linked] at tested
+  apply HeapLoop.branch (flag := false) tested rfl
+  have assigned := BlockContinues.assign (name := "best")
+    (maximum_evaluate values heap path unused familiesCell found value best child env getPath getValue getUnused getBest getCell returned)
+  have resumed := HeapLoop.prepend assigned (HeapLoop.nil program _ _ globals)
+  simpa only [List.append_nil] using resumed
 
 end extend
 
