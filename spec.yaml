@@ -246,10 +246,12 @@
     type: int
     desc: The number of combinations totaling target, with unlimited coins of each listed type.
 32:
-  args: {}
+  args:
+    width: int
   return:
     type: int
-    desc: The sum of distinct products whose multiplicand, multiplier, and product together use each decimal digit 1 through 9 exactly once.
+    desc: The sum of distinct products whose two positive factors and product together use each decimal digit 1 through width exactly once; zero if none exist, including widths below three or above nine.
+  comment: The target could also be an arbitrary subset of the nonzero decimal digits.
 33:
   args: {}
   return:
