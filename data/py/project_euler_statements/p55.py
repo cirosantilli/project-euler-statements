@@ -2,15 +2,27 @@ from .common import digits_le, of_digits_le
 
 
 def reverse_digits(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     return of_digits_le(list(reversed(digits_le(n))))
 
 
 def is_palindrome(n: int) -> bool:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     ds = digits_le(n)
     return ds == list(reversed(ds))
 
 
 def reverse_add(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     return n + reverse_digits(n)
 
 
@@ -33,10 +45,16 @@ def is_lychrel(n: int, max_iters: int) -> bool:
 
 
 def naive(n: int, max_iters: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(1 for x in range(1, n) if is_lychrel(x, max_iters))
 
 
 def naive_default(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return naive(n, 50)
 
 
