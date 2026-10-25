@@ -2,10 +2,16 @@ from .common import is_prime
 
 
 def primes_below(limit: int) -> list[int]:
+    """
+    @formalsw: Returns
+    """
     return [n for n in range(limit) if is_prime(n)]
 
 
 def prefix_sums(xs: list[int]) -> list[int]:
+    """
+    @formalsw: Returns
+    """
     acc = []
     for x in xs:
         acc.append(x + (acc[-1] if acc else 0))
@@ -13,6 +19,9 @@ def prefix_sums(xs: list[int]) -> list[int]:
 
 
 def sum_range(pref: list[int], i: int, j: int) -> int:
+    """
+    @formalsw: Returns
+    """
     if i == 0:
         return pref[j - 1] if 0 <= j - 1 < len(pref) else 0
     return (pref[j - 1] if 0 <= j - 1 < len(pref) else 0) - (pref[i - 1] if 0 <= i - 1 < len(pref) else 0)
