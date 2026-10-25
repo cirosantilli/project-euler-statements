@@ -24,6 +24,17 @@
   FormalSW.PyAst.HeapCalls.ReturnsValue P61Ast.module "__formalsw_local_naive_extend"
     [.ref path, .ref remaining, familiesCell] heap
     (.scalar (.int (if ProjectEulerSolutions.PolygonalCycle.closed values then values.sum else 0))) heap globals
+
+@formalsw: theorem extend_source_result
+  (fuel : Nat) (heap : FormalSW.PyAst.Mutable.Heap) (path remainingAddress familiesCell : Nat) (limit : Int)
+  (values : List Int) (remaining : List Nat)
+  (state : data.«project-euler-statements».data.py.project_euler_statements.p61.extend.SearchState
+    heap path remainingAddress familiesCell limit values remaining)
+  (globals : FormalSW.PyAst.Mutable.Globals) :
+  values ≠ [] → remaining.length ≤ fuel →
+  ∃ extra, FormalSW.PyAst.HeapCalls.ReturnsValue P61Ast.module "__formalsw_local_naive_extend"
+    [.ref path, .ref remainingAddress, .ref familiesCell] heap
+    (.scalar (.int (ProjectEulerSolutions.PolygonalCycle.extend limit fuel values remaining))) (heap ++ extra) globals
 """
 from __future__ import annotations
 

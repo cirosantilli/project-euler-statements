@@ -5,6 +5,7 @@ import Mathlib.Tactic.Linarith
 import ProjectEulerSolutions.Lib.PolygonalCycle
 import ProjectEulerSolutions.Lib.HeapCollection
 import ProjectEulerSolutions.Lib.HeapLoop
+import ProjectEulerSolutions.Lib.HeapSequenceFold
 
 namespace data.«project-euler-statements».data.py.project_euler_statements.p61.polygonal
 open FormalSW.PyAst
@@ -723,6 +724,255 @@ theorem inner_updated (values : List Int) (last : Int) (atEnd : values.getLast? 
   have resumed := HeapLoop.prepend assigned (HeapLoop.nil program _ _ globals)
   simpa only [List.append_nil] using resumed
 
+structure Bindings (env : HeapCalls.Env) (path remainingAddress familiesCell : Nat) : Prop where
+  getPath : env "path" = some (.ref path)
+  getRemaining : env "remaining" = some (.ref remainingAddress)
+  getCell : env "__formalsw_cell_naive_families" = some (.ref familiesCell)
+
+theorem Bindings.local (bound : Bindings env path remainingAddress familiesCell) (name : String) (value : Mutable.Value)
+    (fresh : name ∉ ["path", "remaining", "__formalsw_cell_naive_families"]) :
+    Bindings (setLocal env name value) path remainingAddress familiesCell := by
+  simp only [List.mem_cons, not_or] at fresh
+  refine ⟨?_, ?_, ?_⟩ <;> simp_all [setLocal, eq_comm, bound.getPath, bound.getRemaining, bound.getCell]
+
+theorem Bindings.function (path remainingAddress familiesCell : Nat) (globals : Mutable.Globals) :
+    Bindings (functionEnv
+      ((findFunctionIn program.body "__formalsw_local_naive_extend").getD ([], [])).1
+      ((findFunctionIn program.body "__formalsw_local_naive_extend").getD ([], [])).2
+      [.ref path, .ref remainingAddress, .ref familiesCell] globals) path remainingAddress familiesCell := by
+  constructor <;> cases globals <;> rfl
+
+def advance (values : List Int) (last : Int) (visit : Int → Int) (best value : Int) : Int :=
+  if value ∈ values then best else
+    if ProjectEulerSolutions.PolygonalCycle.links last value then max best (visit value) else best
+
+/-- The actual candidate loop computes the guarded maximum and retains all child heap effects. -/
+theorem candidate_loop (state : SearchState heap path remainingAddress familiesCell limit values remaining)
+    (bound : Bindings env path remainingAddress familiesCell) (last : Int) (atEnd : values.getLast? = some last)
+    (kind unused : Nat)
+    (unusedFound : heap[unused]? = some (.list (kinds (remaining.filter (fun other => decide (other ≠ kind))))))
+    (getUnused : env "unused" = some (.ref unused)) (best : Int) (getBest : env "best" = some (number best))
+    (all : List Int) (source : Nat) (found : heap[source]? = some (.list (numbers all))) (visit : Int → Int)
+    (child : ∀ currentHeap value, SearchState currentHeap path remainingAddress familiesCell limit values remaining →
+      currentHeap[unused]? = some (.list (kinds (remaining.filter (fun other => decide (other ≠ kind))))) →
+      value ∈ all → value ∉ values → ProjectEulerSolutions.PolygonalCycle.links last value = true →
+      ∃ extra, ReturnsValue program "__formalsw_local_naive_extend"
+        [.ref (currentHeap.length + 1), .ref unused, .ref familiesCell] (childHeap currentHeap values value)
+        (number (visit value)) (childHeap currentHeap values value ++ extra) globals) :
+    ∃ extra finalEnv, BlockContinues program env [.sequenceStepLoop "value" (.ref source) 0 innerBody []]
+      heap finalEnv (heap ++ extra) globals ∧ Bindings finalEnv path remainingAddress familiesCell ∧
+      finalEnv "best" = some (number (all.foldl (advance values last visit) best)) ∧
+      HeapRangeFold.Frame ["value", "best"] env finalEnv := by
+  let invariant := fun currentHeap currentEnv currentBest =>
+    Nonempty (SearchState currentHeap path remainingAddress familiesCell limit values remaining) ∧
+      Bindings currentEnv path remainingAddress familiesCell ∧ currentEnv "unused" = some (.ref unused) ∧
+      currentHeap[unused]? = some (.list (kinds (remaining.filter (fun other => decide (other ≠ kind))))) ∧
+      currentEnv "best" = some (number currentBest)
+  have bindInvariant : ∀ currentHeap currentEnv currentBest value, invariant currentHeap currentEnv currentBest → value ∈ all →
+      invariant currentHeap (setLocal currentEnv "value" (number value)) currentBest := by
+    intro currentHeap currentEnv currentBest value good _
+    obtain ⟨ready, currentBound, currentUnused, currentFound, currentBestFound⟩ := good
+    refine ⟨ready, currentBound.local "value" (number value) (by decide), ?_, currentFound, ?_⟩
+    · simpa [setLocal] using currentUnused
+    · simpa [setLocal] using currentBestFound
+  have cell : ∀ currentHeap currentEnv currentBest value, invariant currentHeap currentEnv currentBest → value ∈ all →
+      currentEnv "value" = some (number value) →
+      ∃ extra finalEnv, HeapLoop.Continues program currentEnv innerBody currentHeap finalEnv (currentHeap ++ extra) globals ∧
+        invariant (currentHeap ++ extra) finalEnv (advance values last visit currentBest value) ∧
+        HeapRangeFold.Frame ["value", "best"] currentEnv finalEnv := by
+    intro currentHeap currentEnv currentBest value good member getValue
+    obtain ⟨⟨current⟩, currentBound, currentUnused, currentFound, currentBestFound⟩ := good
+    have unchanged : invariant currentHeap currentEnv currentBest :=
+      ⟨⟨current⟩, currentBound, currentUnused, currentFound, currentBestFound⟩
+    by_cases used : value ∈ values
+    · refine ⟨[], currentEnv, ?_, ?_, HeapRangeFold.Frame.refl _ _⟩
+      · simpa only [List.append_nil] using inner_used values currentHeap path current.pathFound value used currentEnv
+          currentBound.getPath getValue globals
+      · simpa only [advance, if_pos used, List.append_nil] using unchanged
+    · cases linked : ProjectEulerSolutions.PolygonalCycle.links last value with
+      | false =>
+          refine ⟨[], currentEnv, ?_, ?_, HeapRangeFold.Frame.refl _ _⟩
+          · simpa only [List.append_nil] using inner_unlinked values last atEnd currentHeap path current.pathFound value used linked
+              currentEnv currentBound.getPath getValue globals
+          · simpa only [advance, if_neg used, linked, Bool.false_eq_true, if_false, List.append_nil] using unchanged
+      | true =>
+          obtain ⟨extra, returned⟩ := child currentHeap value current currentFound member used linked
+          let total : Mutable.Heap := [.list [number value], .list (numbers (values ++ [value]))] ++ extra
+          have layout : childHeap currentHeap values value ++ extra = currentHeap ++ total := by
+            simp only [childHeap, total, List.append_assoc]
+          rw [layout] at returned
+          let finalEnv := setLocal currentEnv "best" (number (max currentBest (visit value)))
+          have finalGood : invariant (currentHeap ++ total) finalEnv (max currentBest (visit value)) := by
+            refine ⟨⟨current.append total⟩, currentBound.local "best" _ (by decide), ?_, ?_, rfl⟩
+            · simpa [finalEnv, setLocal] using currentUnused
+            · exact HeapCollection.prefix_found _ _ _ _ currentFound
+          refine ⟨total, finalEnv, ?_, ?_, HeapRangeFold.Frame.updated _ currentEnv "best" _ (by decide)⟩
+          · exact inner_updated values last atEnd currentHeap path unused familiesCell current.pathFound value currentBest
+              (visit value) used linked currentEnv currentBound.getPath getValue currentUnused currentBestFound currentBound.getCell returned
+          · simpa only [advance, if_neg used, linked, if_true] using finalGood
+  obtain ⟨extra, finalEnv, executed, good, frame⟩ := HeapLoop.fold program "value" innerBody rfl ["value", "best"] (by decide)
+    number (advance values last visit) invariant source all bindInvariant cell all 0 rfl heap env best
+    ⟨⟨state⟩, bound, getUnused, unusedFound, getBest⟩ found
+  exact ⟨extra, finalEnv, executed, good.2.1, good.2.2.2.2, frame⟩
+
+def advanceKind (limit : Int) (values : List Int) (last : Int) (visit : Nat → Int → Int) (best : Int) (kind : Nat) : Int :=
+  (ProjectEulerSolutions.PolygonalCycle.fourDigit limit (3 + (kind : Int))).foldl (advance values last (visit kind)) best
+
+/-- The source's type loop composes unused-type construction with the complete candidate fold. -/
+theorem type_loop (state : SearchState heap path remainingAddress familiesCell limit values remaining)
+    (bound : Bindings env path remainingAddress familiesCell) (last : Int) (atEnd : values.getLast? = some last)
+    (best : Int) (getBest : env "best" = some (number best)) (visit : Nat → Int → Int)
+    (child : ∀ currentHeap kind unused value, SearchState currentHeap path remainingAddress familiesCell limit values remaining →
+      kind ∈ remaining →
+      currentHeap[unused]? = some (.list (kinds (remaining.filter (fun other => decide (other ≠ kind))))) →
+      value ∈ ProjectEulerSolutions.PolygonalCycle.fourDigit limit (3 + (kind : Int)) → value ∉ values →
+      ProjectEulerSolutions.PolygonalCycle.links last value = true →
+      ∃ extra, ReturnsValue program "__formalsw_local_naive_extend"
+        [.ref (currentHeap.length + 1), .ref unused, .ref familiesCell] (childHeap currentHeap values value)
+        (number (visit kind value)) (childHeap currentHeap values value ++ extra) globals) :
+    ∃ extra finalEnv, BlockContinues program env [.forIn (.name "kind") (.name "remaining") outerBody []]
+      heap finalEnv (heap ++ extra) globals ∧ Bindings finalEnv path remainingAddress familiesCell ∧
+      finalEnv "best" = some (number (remaining.foldl (advanceKind limit values last visit) best)) ∧
+      HeapRangeFold.Frame ["kind", "unused", "value", "best"] env finalEnv := by
+  let invariant := fun currentHeap currentEnv currentBest =>
+    Nonempty (SearchState currentHeap path remainingAddress familiesCell limit values remaining) ∧
+      Bindings currentEnv path remainingAddress familiesCell ∧ currentEnv "best" = some (number currentBest)
+  have bindInvariant : ∀ currentHeap currentEnv currentBest kind, invariant currentHeap currentEnv currentBest → kind ∈ remaining →
+      invariant currentHeap (setLocal currentEnv "kind" (number kind)) currentBest := by
+    intro currentHeap currentEnv currentBest kind good _
+    obtain ⟨ready, currentBound, currentBestFound⟩ := good
+    exact ⟨ready, currentBound.local "kind" _ (by decide), by simpa [setLocal] using currentBestFound⟩
+  have cell : ∀ currentHeap currentEnv currentBest kind, invariant currentHeap currentEnv currentBest → kind ∈ remaining →
+      currentEnv "kind" = some (number kind) →
+      ∃ afterEnv finalHeap, BlockContinues program currentEnv outerBody currentHeap afterEnv finalHeap globals ∧
+        invariant finalHeap afterEnv (advanceKind limit values last visit currentBest kind) ∧
+        (∃ extra, finalHeap = currentHeap ++ extra) ∧
+        HeapRangeFold.Frame ["kind", "unused", "value", "best"] currentEnv afterEnv := by
+    intro currentHeap currentEnv currentBest kind good member getKind
+    obtain ⟨⟨current⟩, currentBound, currentBestFound⟩ := good
+    let filtered := remaining.filter (fun other => decide (other ≠ kind))
+    let middle := currentHeap ++ [.list (kinds filtered)]
+    let readyEnv := setLocal currentEnv "unused" (.ref currentHeap.length)
+    let ready := current.append [.list (kinds filtered)]
+    have readyBound : Bindings readyEnv path remainingAddress familiesCell := currentBound.local "unused" _ (by decide)
+    have readyBest : readyEnv "best" = some (number currentBest) := by simpa [readyEnv, setLocal] using currentBestFound
+    have readyKind : readyEnv "kind" = some (number kind) := by simpa [readyEnv, setLocal] using getKind
+    have made := unused_evaluate remaining kind currentHeap remainingAddress current.remainingFound currentEnv
+      currentBound.getRemaining getKind globals
+    have looked := family_evaluate ready.world kind (current.validKinds kind member) readyEnv readyBound.getCell readyKind globals
+    obtain ⟨extra, finalEnv, scanned, finalBound, finalBest, frame⟩ := candidate_loop ready readyBound last atEnd kind currentHeap.length
+      (by simp [filtered]) rfl currentBest readyBest
+      (ProjectEulerSolutions.PolygonalCycle.fourDigit limit (3 + (kind : Int))) (ready.world.target kind)
+      (ready.world.familyFound kind (current.validKinds kind member)) (visit kind)
+      (fun nextHeap value ready found inFamily fresh linked => child nextHeap kind currentHeap.length value ready member found inFamily fresh linked)
+    have header : BlockContinues program readyEnv [.forIn (.name "value") familyExpression innerBody []]
+        middle finalEnv (middle ++ extra) globals := by
+      apply BlockContinues.for_sequence (items := numbers (ProjectEulerSolutions.PolygonalCycle.fourDigit limit (3 + (kind : Int))))
+        (by intro expressions impossible; cases impossible) looked
+        (by simp [Mutable.sequence, ready.world.familyFound kind (current.validKinds kind member)])
+      exact scanned
+    have emitted := (BlockContinues.assign (name := "unused") made).append header
+    let total : Mutable.Heap := .list (kinds filtered) :: extra
+    have layout : middle ++ extra = currentHeap ++ total := by simp [middle, total, List.append_assoc]
+    rw [layout] at emitted
+    have widened : HeapRangeFold.Frame ["kind", "unused", "value", "best"] readyEnv finalEnv := by
+      intro name outside
+      exact frame name (fun member => outside (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ member)))
+    refine ⟨finalEnv, currentHeap ++ total, emitted, ⟨⟨current.append total⟩, finalBound, finalBest⟩,
+      ⟨total, rfl⟩, ?_⟩
+    exact (HeapRangeFold.Frame.updated _ currentEnv "unused" (.ref currentHeap.length) (by decide)).trans widened
+  obtain ⟨finalEnv, finalHeap, executed, good, ⟨extra, layout⟩, frame⟩ := HeapSequenceFold.for_list program "kind" outerBody rfl
+    ["kind", "unused", "value", "best"] (by decide) (fun kind : Nat => number kind)
+    (advanceKind limit values last visit) invariant remainingAddress remaining bindInvariant cell heap env best
+    ⟨⟨state⟩, bound, getBest⟩ (.name "remaining") (by intro expressions impossible; cases impossible)
+    (Evaluates.lookup bound.getRemaining) state.remainingFound
+  rw [layout] at executed
+  exact ⟨extra, finalEnv, executed, good.2.1, good.2.2, frame⟩
+
+theorem unused_shorter (remaining : List Nat) (kind : Nat) (member : kind ∈ remaining) :
+    (remaining.filter (fun other => decide (other ≠ kind))).length < remaining.length := by
+  have bound := List.length_filter_le (fun other : Nat => decide (other ≠ kind)) remaining
+  have different : (remaining.filter (fun other => decide (other ≠ kind))).length ≠ remaining.length := by
+    intro equal
+    have accepted := (List.length_filter_eq_length_iff.mp equal) kind member
+    simp at accepted
+  omega
+
+private theorem empty_result (fuel : Nat) (limit : Int) (values : List Int) (nonempty : values ≠ [])
+    (heap : Mutable.Heap) (path remainingAddress familiesCell : Nat)
+    (pathFound : heap[path]? = some (.list (numbers values))) (remainingFound : heap[remainingAddress]? = some (.list []))
+    (globals : Mutable.Globals) :
+    ∃ extra, ReturnsValue program "__formalsw_local_naive_extend" [.ref path, .ref remainingAddress, .ref familiesCell]
+      heap (number (ProjectEulerSolutions.PolygonalCycle.extend limit fuel values [])) (heap ++ extra) globals := by
+  have model : ProjectEulerSolutions.PolygonalCycle.extend limit fuel values [] =
+      (if ProjectEulerSolutions.PolygonalCycle.closed values then values.sum else 0) := by cases fuel <;> rfl
+  refine ⟨[], ?_⟩
+  rw [model]
+  simpa only [List.append_nil] using closed_result values nonempty heap path remainingAddress pathFound remainingFound (.ref familiesCell) globals
+
+/-- The full recursive reference search terminates and returns its exact maximum-search model. -/
+theorem search_result (fuel : Nat) (heap : Mutable.Heap) (path remainingAddress familiesCell : Nat) (limit : Int)
+    (values : List Int) (remaining : List Nat)
+    (state : SearchState heap path remainingAddress familiesCell limit values remaining)
+    (nonempty : values ≠ []) (depth : remaining.length ≤ fuel) (globals : Mutable.Globals := []) :
+    ∃ extra, ReturnsValue program "__formalsw_local_naive_extend" [.ref path, .ref remainingAddress, .ref familiesCell]
+      heap (number (ProjectEulerSolutions.PolygonalCycle.extend limit fuel values remaining)) (heap ++ extra) globals := by
+  induction fuel generalizing heap path remainingAddress familiesCell limit values remaining with
+  | zero =>
+      have empty : remaining = [] := List.eq_nil_of_length_eq_zero (by omega)
+      subst remaining
+      exact empty_result 0 limit values nonempty heap path remainingAddress familiesCell state.pathFound state.remainingFound globals
+  | succ fuel ih =>
+      by_cases empty : remaining = []
+      · subst remaining
+        exact empty_result (fuel + 1) limit values nonempty heap path remainingAddress familiesCell state.pathFound state.remainingFound globals
+      · obtain ⟨last, atEnd⟩ : ∃ last, values.getLast? = some last := by
+          cases found : values.getLast? with
+          | none => exact False.elim (nonempty (List.getLast?_eq_none_iff.mp found))
+          | some last => exact ⟨last, rfl⟩
+        have noTypes : remaining.isEmpty = false := by
+          cases remaining with
+          | nil => exact False.elim (empty rfl)
+          | cons _ _ => rfl
+        let params := ((findFunctionIn program.body "__formalsw_local_naive_extend").getD ([], [])).1
+        let sourceBody := ((findFunctionIn program.body "__formalsw_local_naive_extend").getD ([], [])).2
+        let env := functionEnv params sourceBody [.ref path, .ref remainingAddress, .ref familiesCell] globals
+        have bound : Bindings env path remainingAddress familiesCell := Bindings.function path remainingAddress familiesCell globals
+        let bestEnv := setLocal env "best" (number 0)
+        have bestBound : Bindings bestEnv path remainingAddress familiesCell := bound.local "best" _ (by decide)
+        let visit := fun kind value => ProjectEulerSolutions.PolygonalCycle.extend limit fuel (values ++ [value])
+          (remaining.filter (fun other => decide (other ≠ kind)))
+        have child : ∀ currentHeap kind unused value,
+            SearchState currentHeap path remainingAddress familiesCell limit values remaining → kind ∈ remaining →
+            currentHeap[unused]? = some (.list (kinds (remaining.filter (fun other => decide (other ≠ kind))))) →
+            value ∈ ProjectEulerSolutions.PolygonalCycle.fourDigit limit (3 + (kind : Int)) → value ∉ values →
+            ProjectEulerSolutions.PolygonalCycle.links last value = true →
+            ∃ extra, ReturnsValue program "__formalsw_local_naive_extend"
+              [.ref (currentHeap.length + 1), .ref unused, .ref familiesCell] (childHeap currentHeap values value)
+              (number (visit kind value)) (childHeap currentHeap values value ++ extra) globals := by
+          intro currentHeap kind unused value ready member unusedFound _ _ _
+          have smaller := unused_shorter remaining kind member
+          exact ih (childHeap currentHeap values value) (currentHeap.length + 1) unused familiesCell limit
+            (values ++ [value]) (remaining.filter (fun other => decide (other ≠ kind)))
+            (ready.child kind value unused unusedFound) (by simp) (by omega)
+        obtain ⟨extra, finalEnv, executed, finalBound, finalBest, frame⟩ :=
+          type_loop state bestBound last atEnd 0 rfl visit child
+        have model : ProjectEulerSolutions.PolygonalCycle.extend limit (fuel + 1) values remaining =
+            remaining.foldl (advanceKind limit values last visit) 0 := by
+          rw [ProjectEulerSolutions.PolygonalCycle.extend, noTypes]
+          simp only [Bool.false_eq_true, if_false, atEnd, Option.getD_some]
+          rfl
+        refine ⟨extra, ?_⟩
+        rw [model]
+        apply BlockReturns.function rfl rfl
+        change BlockReturns program env code heap _ (heap ++ extra) globals
+        have tested : Evaluates program env exhausted heap (flag false) heap globals := by
+          apply Evaluates.unary (middle := heap) (finalHeap := heap) (Evaluates.lookup bound.getRemaining)
+          simp [HeapCalls.unary, Mutable.truth, state.remainingFound, kinds, noTypes, flag]
+        apply BlockReturns.branch (flag := false) tested rfl
+        apply BlockReturns.assign Evaluates.constant
+        exact BlockContinues.returns executed (BlockReturns.return_value (Evaluates.lookup finalBest))
+
 end extend
 
 theorem is_cyclic_pair_source_result (left right : Int) (heap : Mutable.Heap) (globals : Mutable.Globals) :
@@ -743,5 +993,13 @@ theorem extend_base_source_result (values : List Int) (heap : Mutable.Heap) (pat
       (number (if ProjectEulerSolutions.PolygonalCycle.closed values then values.sum else 0)) heap globals :=
   fun nonempty pathFound remainingFound => extend.closed_result values nonempty heap path remaining
     pathFound remainingFound familiesCell globals
+
+theorem extend_source_result (fuel : Nat) (heap : Mutable.Heap) (path remainingAddress familiesCell : Nat) (limit : Int)
+    (values : List Int) (remaining : List Nat)
+    (state : extend.SearchState heap path remainingAddress familiesCell limit values remaining) (globals : Mutable.Globals) :
+    values ≠ [] → remaining.length ≤ fuel →
+    ∃ extra, ReturnsValue program "__formalsw_local_naive_extend" [.ref path, .ref remainingAddress, .ref familiesCell]
+      heap (number (ProjectEulerSolutions.PolygonalCycle.extend limit fuel values remaining)) (heap ++ extra) globals :=
+  fun nonempty depth => extend.search_result fuel heap path remainingAddress familiesCell limit values remaining state nonempty depth globals
 
 end data.«project-euler-statements».data.py.project_euler_statements.p61
