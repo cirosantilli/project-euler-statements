@@ -472,6 +472,14 @@
   return:
     type: int
     desc: The least positive cube having exactly k positive cube permutations of its full decimal digit multiset, if such a cube exists. Leading-zero permutations are not additional numbers of that width. There is no finite-search zero fallback.
+63:
+  args:
+    base: int
+  constraints:
+    - base >= 2
+  return:
+    type: int
+    desc: The number of pairs of positive integers a and n for which a**n has exactly n digits in the given numeral base.
 1014:
   args:
     v: int
