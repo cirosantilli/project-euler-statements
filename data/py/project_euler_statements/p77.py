@@ -22,13 +22,16 @@ def count_prime_sums(n: int) -> int:
     return go(n, primes_up_to(n))
 
 
-def naive(limit: int, target: int) -> int:
-    for n in range(limit + 1):
+def naive(target: int) -> int:
+    n = 2
+    while True:
         if count_prime_sums(n) > target:
             return n
-    return 0
+        n += 1
 
 
 if __name__ == '__main__':
     assert count_prime_sums(10) == 5
+    assert naive(0) == 2
+    assert naive(4) == 10
 

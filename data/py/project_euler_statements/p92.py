@@ -7,20 +7,20 @@ def next_term(n: int) -> int:
 
 def ends_at_89(n: int) -> bool:
     x = n
-    for _ in range(n + 1):
-        if x == 1:
-            return False
-        if x == 89:
-            return True
+    seen = []
+    while x not in (1, 89) and x not in seen:
+        seen.append(x)
         x = next_term(x)
-    return False
+    return x == 89
 
 
-def naive(limit: int) -> int:
-    return sum(1 for n in range(limit) if ends_at_89(n))
+def naive(limit_exclusive: int) -> int:
+    return sum(1 for n in range(1, limit_exclusive) if ends_at_89(n))
 
 
 if __name__ == '__main__':
     assert not ends_at_89(44)
     assert ends_at_89(85)
+    assert ends_at_89(2)
+    assert not ends_at_89(0)
 

@@ -23,8 +23,10 @@ def dfs(start, prod, summ, terms, k_max, limit, best):
 
 
 def naive(k_max: int) -> int:
+    if k_max < 2:
+        return 0
     limit = 2 * k_max
-    best = [10 ** 18] * (k_max + 1)
+    best = [limit + 1] * (k_max + 1)
     dfs(2, 1, 0, 0, k_max, limit, best)
     seen = [False] * (limit + 1)
     total = 0

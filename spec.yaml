@@ -486,6 +486,57 @@
   return:
     type: int
     desc: The number of nonsquare integers n with 2 <= n <= limit whose square-root continued fraction has an odd period; zero if limit is below two.
+66:
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The nonsquare D with 2 <= D <= limit whose least x among integer solutions of x*x - D*y*y == 1 with x > 0 and y > 0 is greatest; the least D on ties, or zero if there are no candidates.
+74:
+  args:
+    limit: int
+    target: int
+  return:
+    type: int
+    desc: The number of positive starting values below limit whose digit-factorial chain has exactly target distinct terms before the first repetition.
+77:
+  args:
+    target: int
+  return:
+    type: int
+    desc: The least integer n >= 2 having more than target unordered partitions into primes, allowing repeated primes and one-term partitions.
+78:
+  args:
+    mod: int
+  constraints:
+    - mod >= 1
+  return:
+    type: int
+    desc: The least positive integer n whose number of integer partitions is divisible by mod, if such an n exists.
+85:
+  args:
+    target: int
+  return:
+    type: int
+    desc: The area m*n of a positive grid whose number of axis-aligned subrectangles is closest to target; choose the least pair (m, n) in lexicographic order with 1 <= m <= n on ties.
+88:
+  args:
+    k_max: int
+  return:
+    type: int
+    desc: The sum of distinct least product-sum numbers for all multiset sizes k with 2 <= k <= k_max, using positive integer factors; zero if k_max is below two.
+92:
+  args:
+    limit_exclusive: int
+  return:
+    type: int
+    desc: The number of positive starting values below limit_exclusive whose repeated digit-square sums reach 89.
+100:
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The number of blue discs in the arrangement with least total t > limit and t >= 2 for which drawing two discs without replacement gives probability one half of both being blue.
 1014:
   args:
     v: int

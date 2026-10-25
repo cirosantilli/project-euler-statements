@@ -14,13 +14,17 @@ def partition(n: int) -> int:
     return partition_go(n, n)
 
 
-def naive(limit: int) -> int:
-    for n in range(limit + 1):
-        if partition(n) % 1000000 == 0:
+def naive(mod: int) -> int:
+    n = 1
+    while True:
+        if partition(n) % mod == 0:
             return n
-    return 0
+        n += 1
 
 
 if __name__ == '__main__':
     assert partition(5) == 7
+    assert naive(1) == 1
+    assert naive(5) == 4
+    assert naive(7) == 5
 

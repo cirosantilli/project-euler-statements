@@ -9,12 +9,13 @@ def is_square(n: int) -> bool:
 def minimal_x(d: int) -> int:
     if is_square(d):
         return 0
-    for y in range(1, d ** 4 + 2):
+    y = 1
+    while True:
         x2 = d * y * y + 1
         x = isqrt(x2)
         if x * x == x2:
             return x
-    return 0
+        y += 1
 
 
 def naive(limit: int) -> int:
