@@ -18,7 +18,11 @@ def is_flush(hand) -> bool:
     return bool(suits) and all(s == suits[0] for s in suits[1:])
 
 
-def sorted_ranks(rs):
+def sorted_ranks(rs: list[int]) -> list[int]:
+    """
+    @formalsw: Returns
+    @formalsw: ReturnType
+    """
     return sorted(rs)
 
 
@@ -29,7 +33,11 @@ def is_straight(rs) -> bool:
     return bool(rs) and all(r == rs[0] + i for i, r in enumerate(rs))
 
 
-def straight_high(rs) -> int:
+def straight_high(rs: list[int]) -> int:
+    """
+    @formalsw: Returns
+    @formalsw: ReturnType
+    """
     rs = sorted_ranks(rs)
     return 5 if rs == [2, 3, 4, 5, 14] else (rs[-1] if rs else 0)
 

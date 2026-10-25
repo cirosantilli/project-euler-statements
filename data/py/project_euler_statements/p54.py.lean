@@ -178,4 +178,164 @@ theorem lex_gt.«Supported» (heap : Mutable.Heap) (a b : Nat) (valid : heap.Val
     (HeapCalls.call program "lex_gt" [.ref a, .ref b] heap).Supported :=
   (lex_gt.«Returns» heap a b valid left right).supported
 
+namespace sorted_ranks
+
+private abbrev params := ((findFunctionIn program.body "sorted_ranks").getD ([], [])).1
+private abbrev sourceBody := ((findFunctionIn program.body "sorted_ranks").getD ([], [])).2
+private abbrev initial (context : Mutable.Globals) (address : Nat) : HeapCalls.Env :=
+  functionEnv params sourceBody [.ref address] context
+
+private theorem get_rs (context : Mutable.Globals) (address : Nat) :
+    initial context address "rs" = some (.ref address) := by
+  cases context <;> rfl
+
+/-- Sorting returns a fresh list and keeps the caller's original list and aliases intact. -/
+theorem result (input : List Int) (heap : Mutable.Heap) (address : Nat)
+    (found : heap[address]? = some (.list (numbers input))) :
+    ReturnsValue program "sorted_ranks" [.ref address] heap (.ref heap.length)
+      (heap ++ [.list (numbers (ScalarSort.ints input))]) globals := by
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  apply Evaluates.builtin (.cons (Evaluates.lookup (get_rs globals address)) .nil)
+  simpa [List.map_map, numbers, number, Function.comp_def] using
+    primitive_sorted_list heap address (input.map Constant.int) ((ScalarSort.ints input).map Constant.int)
+      (by simpa [List.map_map, numbers, number, Function.comp_def] using found) (ScalarSort.sort_ints input)
+
+theorem «Returns» (heap : Mutable.Heap) (address : Nat) (_valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call program "sorted_ranks" [.ref address] heap).Returns := by
+  obtain ⟨input, found⟩ := Mutable.Value.ints_of_hasType typed
+  exact (result (globals := []) input heap address found).returns
+
+theorem «ReturnType» (heap : Mutable.Heap) (address : Nat) (_valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call program "sorted_ranks" [.ref address] heap).ReturnType "list[int]" := by
+  obtain ⟨input, found⟩ := Mutable.Value.ints_of_hasType typed
+  refine .inr ⟨.ref heap.length, [], _, heap.length, (result (globals := []) input heap address found).finishes, ?_⟩
+  simp [Mutable.Value.HasType, numbers, number]
+  exact ⟨"int", rfl, by simp⟩
+
+theorem «Supported» (heap : Mutable.Heap) (address : Nat) (valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call program "sorted_ranks" [.ref address] heap).Supported :=
+  («Returns» heap address valid typed).supported
+
+end sorted_ranks
+
+namespace straight_high
+
+def wheel : List Int := [2, 3, 4, 5, 14]
+
+/-- The source's wheel exception and last-or-zero result, for arbitrary integer lists. -/
+def value (input : List Int) : Int :=
+  if ScalarSort.ints input = wheel then 5 else (ScalarSort.ints input).getLastD 0
+
+private abbrev params := ((findFunctionIn program.body "straight_high").getD ([], [])).1
+private abbrev sourceBody := ((findFunctionIn program.body "straight_high").getD ([], [])).2
+private abbrev initial (context : Mutable.Globals) (address : Nat) : HeapCalls.Env :=
+  functionEnv params sourceBody [.ref address] context
+private abbrev wheelExpression : Expr := .list
+  [.constant (.int 2), .constant (.int 3), .constant (.int 4), .constant (.int 5), .constant (.int 14)]
+private abbrev lastExpression : Expr := .subscript (.name "rs") (.unaryOp .uSub (.constant (.int 1)))
+private abbrev lastOrZero : Expr := .ifExp (.name "rs") lastExpression (.constant (.int 0))
+
+private theorem get_rs (context : Mutable.Globals) (address : Nat) :
+    initial context address "rs" = some (.ref address) := by
+  cases context <;> rfl
+
+private theorem wheel_test (heap : Mutable.Heap) (env : HeapCalls.Env) (address : Nat) (items : List Int)
+    (bound : env "rs" = some (.ref address)) (found : heap[address]? = some (.list (numbers items))) :
+    Evaluates program env (.compare (.name "rs") [(.eq, wheelExpression)]) heap
+      (flag (decide (items = wheel))) (heap ++ [.list (numbers wheel)]) globals := by
+  let afterWheel := heap ++ [Mutable.Object.list (numbers wheel)]
+  have inside := (List.getElem?_eq_some_iff.mp found).1
+  have different : address ≠ heap.length := by omega
+  have original : afterWheel[address]? = some (.list (numbers items)) := found_append found _
+  have literal : afterWheel[heap.length]? = some (.list (numbers wheel)) := by simp [afterWheel]
+  apply Evaluates.compare (av := .ref address) (bv := .ref heap.length) (middle := heap) (afterRight := afterWheel)
+  · exact Evaluates.lookup bound
+  · exact Evaluates.list (.cons Evaluates.constant (.cons Evaluates.constant
+      (.cons Evaluates.constant (.cons Evaluates.constant (.cons Evaluates.constant .nil)))))
+  · simp [HeapCalls.compare, Mutable.array, original, literal, different, equalLists_ints, numbers, flag]
+    exact ⟨rfl, rfl⟩
+
+private theorem last_item_result (values : List Int) (last : Int) (lastValue : values.getLast? = some last)
+    (heap : Mutable.Heap) (address : Nat) (found : heap[address]? = some (.list (numbers values))) :
+    Mutable.getItem (.ref address) (number (-1)) heap = some (.ok (number last), heap) := by
+  obtain ⟨before, rfl⟩ := List.getLast?_eq_some_iff.mp lastValue
+  have cancel : (-1 : Int) + ((before.length : Int) + 1) = (before.length : Int) := by omega
+  have low : ¬ (before.length : Int) < 0 := by omega
+  have high : ¬ (before.length : Int) + 1 ≤ (before.length : Int) := by omega
+  simp [Mutable.getItem, found, Mutable.index, numbers, number, cancel, low, high, Except.map]
+
+private theorem last_item (heap : Mutable.Heap) (address : Nat) (x : Int) (items : List Int)
+    (found : heap[address]? = some (.list (numbers (x :: items)))) :
+    Mutable.getItem (.ref address) (number (-1)) heap =
+      some (.ok (number ((x :: items).getLastD 0)), heap) := by
+  have originalLast : (x :: items).getLast? = some ((x :: items).getLastD 0) := by
+    simp only [List.getLastD_eq_getLast?, List.getLast?_cons, Option.getD_some]
+  exact last_item_result (x :: items) ((x :: items).getLastD 0) originalLast heap address found
+
+private theorem last_or_zero (heap : Mutable.Heap) (env : HeapCalls.Env) (address : Nat) (items : List Int)
+    (bound : env "rs" = some (.ref address)) (found : heap[address]? = some (.list (numbers items))) :
+    Evaluates program env lastOrZero heap (number (items.getLastD 0)) heap globals := by
+  cases items with
+  | nil =>
+      apply Evaluates.conditional (flag := false) (value := .ref address) (middle := heap)
+        (Evaluates.lookup bound)
+      · simp [Mutable.truth, found, numbers]
+      · exact Evaluates.constant
+  | cons x items =>
+      apply Evaluates.conditional (flag := true) (value := .ref address) (middle := heap)
+        (Evaluates.lookup bound)
+      · simp [Mutable.truth, found, numbers]
+      · apply Evaluates.subscript (by intros; simp) (Evaluates.lookup bound)
+          (Evaluates.unary Evaluates.constant rfl)
+        exact last_item heap address x items found
+
+/-- Both the sorted copy and the wheel literal are fresh, preserving every caller object. -/
+theorem result (input : List Int) (heap : Mutable.Heap) (address : Nat)
+    (found : heap[address]? = some (.list (numbers input))) :
+    ReturnsValue program "straight_high" [.ref address] heap (number (value input))
+      (heap ++ [.list (numbers (ScalarSort.ints input)), .list (numbers wheel)]) globals := by
+  let firstHeap := heap ++ [Mutable.Object.list (numbers (ScalarSort.ints input))]
+  let finalHeap := firstHeap ++ [Mutable.Object.list (numbers wheel)]
+  let ready := setLocal (initial globals address) "rs" (.ref heap.length)
+  have sortedFound : firstHeap[heap.length]? = some (.list (numbers (ScalarSort.ints input))) := by simp [firstHeap]
+  have retained : finalHeap[heap.length]? = some (.list (numbers (ScalarSort.ints input))) := found_append sortedFound _
+  have finished : ReturnsValue program "straight_high" [.ref address] heap (number (value input)) finalHeap globals := by
+    apply BlockReturns.function rfl rfl
+    apply BlockReturns.assign
+      (Evaluates.call (.cons (Evaluates.lookup (get_rs globals address)) .nil)
+        (sorted_ranks.result (globals := globals) input heap address found))
+    apply BlockReturns.return_value
+    apply Evaluates.conditional (flag := decide (ScalarSort.ints input = wheel))
+      (value := flag (decide (ScalarSort.ints input = wheel))) (middle := finalHeap)
+    · exact wheel_test firstHeap ready heap.length (ScalarSort.ints input) rfl sortedFound
+    · rfl
+    · by_cases same : ScalarSort.ints input = wheel
+      · simpa [value, same] using (Evaluates.constant :
+          Evaluates program ready (.constant (.int 5)) finalHeap (number 5) finalHeap globals)
+      · simpa [value, same] using last_or_zero (globals := globals) finalHeap ready heap.length (ScalarSort.ints input) rfl retained
+  simpa [firstHeap, finalHeap, List.append_assoc] using finished
+
+theorem «Returns» (heap : Mutable.Heap) (address : Nat) (_valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call program "straight_high" [.ref address] heap).Returns := by
+  obtain ⟨input, found⟩ := Mutable.Value.ints_of_hasType typed
+  exact (result (globals := []) input heap address found).returns
+
+theorem «ReturnType» (heap : Mutable.Heap) (address : Nat) (_valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call program "straight_high" [.ref address] heap).ReturnType "int" := by
+  obtain ⟨input, found⟩ := Mutable.Value.ints_of_hasType typed
+  exact .inr ⟨number (value input), [], _, heap.length, (result (globals := []) input heap address found).finishes, rfl⟩
+
+theorem «Supported» (heap : Mutable.Heap) (address : Nat) (valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.call program "straight_high" [.ref address] heap).Supported :=
+  («Returns» heap address valid typed).supported
+
+end straight_high
+
 end data.«project-euler-statements».data.py.project_euler_statements.p54
