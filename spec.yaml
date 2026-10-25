@@ -280,10 +280,13 @@
     type: int
     desc: The sum of numbers strictly below limit whose decimal and binary digits are both palindromes.
 37:
-  args: {}
+  args:
+    base: int
+  constraints:
+    - base >= 2
   return:
     type: int
-    desc: The sum of primes below one million that remain prime after every proper decimal truncation from either end, excluding single-digit primes.
+    desc: The sum of primes with at least two digits in the given base that remain prime after every proper truncation from either end. The search terminates when the right-truncatable-prime tree is exhausted, and diverges if that tree has arbitrarily long branches.
 38:
   args:
     width: int

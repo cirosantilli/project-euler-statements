@@ -1,30 +1,35 @@
 from .common import digits_be, of_digits_be, is_prime
 
 
-def truncations(n: int) -> list[int]:
-    ds = digits_be(n)
-    l = len(ds)
-    return [of_digits_be(ds[i + 1:]) for i in range(l - 1)] + [of_digits_be(ds[:l - i - 1]) for i in range(l - 1)]
+def truncations(n: int, base: int = 10) -> list[int]:
+    digits = digits_be(n, base)
+    width = len(digits)
+    return (
+        [of_digits_be(digits[i + 1:], base) for i in range(width - 1)]
+        + [of_digits_be(digits[:width - i - 1], base) for i in range(width - 1)]
+    )
 
 
-def is_truncatable_prime(n: int) -> bool:
-    return n > 7 and is_prime(n) and all(is_prime(x) for x in truncations(n))
+def is_truncatable_prime(n: int, base: int = 10) -> bool:
+    return n >= base and is_prime(n) and all(is_prime(x) for x in truncations(n, base))
 
 
-def naive() -> int:
+def naive(base: int = 10) -> int:
     """
     Exhaust the right-truncatable-prime tree, retaining primes truncatable from both ends.
+
+    @formalsw: Requires(base >= 2)
     """
-    frontier = [2, 3, 5, 7]
+    frontier = [n for n in range(2, base) if is_prime(n)]
     total = 0
     while frontier:
         following = []
         for prefix in frontier:
-            for digit in [1, 3, 7, 9]:
-                candidate = 10 * prefix + digit
+            for digit in range(1, base):
+                candidate = base * prefix + digit
                 if is_prime(candidate):
                     following.append(candidate)
-                    if is_truncatable_prime(candidate):
+                    if is_truncatable_prime(candidate, base):
                         total += candidate
         frontier = following
     return total
