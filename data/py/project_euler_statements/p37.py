@@ -19,6 +19,7 @@ def naive(base: int = 10) -> int:
     Exhaust the right-truncatable-prime tree, retaining primes truncatable from both ends.
 
     @formalsw: Requires(base >= 2)
+    @formalsw: theorem supported : (this_function base).Supported
     """
     frontier = [n for n in range(2, base) if is_prime(n)]
     total = 0
