@@ -1,28 +1,15 @@
-import Mathlib.Data.List.Basic
+import ProjectEulerStatements.Lib.FractionSearch
 
+/-! Exhaustive reduced-fraction search with a signed bound and a variable proper target. -/
 namespace ProjectEulerStatements.P71
 
-def betterFrac (a b c d : Nat) : Bool :=
-  a * d > c * b
+abbrev betterFrac (a b c d : Nat) : Bool := decide (a * d > c * b)
+abbrev isReduced (n d : Nat) : Bool := decide (Nat.Coprime n d)
 
-def isReduced (n d : Nat) : Bool :=
-  decide (Nat.gcd n d = 1)
+def leftOf (limit : Int) (num den : Nat) : Nat :=
+  (FractionSearch.exhaustive num den limit.toNat (0, 1)).1
 
-def leftOf (limit : Nat) (num den : Nat) : Nat :=
-  let rec go (d bestN bestD : Nat) : Nat :=
-    if d = 0 then bestN else
-    let (bestN', bestD') :=
-      (List.range d).foldl (fun acc n =>
-        if decide (n < d) && isReduced n d && decide (n * den < num * d) then
-          if betterFrac n d acc.1 acc.2 then (n, d) else acc
-        else acc) (bestN, bestD)
-    go (d - 1) bestN' bestD'
-  go limit 0 1
-
-def naive (limit : Nat) : Nat :=
-  leftOf limit 3 7
-
-example : naive 8 = 2 := by
-  native_decide
+def naive (limit : Int) (num : Int := 3) (den : Int := 7) : Nat :=
+  leftOf limit num.toNat den.toNat
 
 end ProjectEulerStatements.P71

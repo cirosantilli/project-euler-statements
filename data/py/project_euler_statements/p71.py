@@ -13,13 +13,23 @@ def left_of(limit: int, num: int, den: int) -> int:
     best_n, best_d = 0, 1
     for d in range(limit, 0, -1):
         for n in range(d):
-            if n < d and is_reduced(n, d) and n * den < num * d and better_frac(n, d, best_n, best_d):
+            if (
+                n < d
+                and is_reduced(n, d)
+                and n * den < num * d
+                and better_frac(n, d, best_n, best_d)
+            ):
                 best_n, best_d = n, d
     return best_n
 
 
-def naive(limit: int) -> int:
-    return left_of(limit, 3, 7)
+def naive(limit: int, num: int = 3, den: int = 7) -> int:
+    """
+    @formalsw: Requires(0 < num)
+    @formalsw: Requires(num < den)
+    @formalsw: Returns
+    """
+    return left_of(limit, num, den)
 
 
 if __name__ == '__main__':

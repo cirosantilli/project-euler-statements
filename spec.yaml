@@ -527,6 +527,16 @@
   return:
     type: int
     desc: The least integer n with 1 < n <= limit whose decimal digits are a permutation of those of phi(n), minimizing n/phi(n), where phi(n) counts the positive integers at most n coprime to n. Return zero if no candidate exists.
+71:
+  args:
+    limit: int
+    num: int
+    den: int
+  constraints:
+    - 0 < num < den
+  return:
+    type: int
+    desc: The numerator of the greatest reduced proper fraction strictly below num/den whose positive denominator is at most limit; zero if there is no positive candidate. The target need not be reduced.
 74:
   args:
     limit: int
