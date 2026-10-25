@@ -3,6 +3,7 @@ import data.«project-euler-statements».data.py.project_euler_statements.«comm
 import lang.py.FormalSW.ComprehensionCalls
 import lang.py.FormalSW.MembershipCalls
 import ProjectEulerSolutions.Lib.HeapCollection
+import ProjectEulerSolutions.Lib.FilteredSum
 import ProjectEulerStatements.P51
 
 set_option Elab.async false
@@ -385,5 +386,80 @@ theorem requires_family_numbers_0_supported (heap : Mutable.Heap) (n : Int) (_ad
     (_typed : Mutable.Value.HasType heap (.ref _address) "list[int]") :
     (HeapCalls.evaluate program (familyEnv n) P51Ast.requires_family_numbers_0 heap).Supported :=
   Execution.supported_of_finishes (family_condition n heap).finishes
+
+
+namespace prime_family_size
+private def naturals (items : List Nat) : List Mutable.Value := items.map (fun (item : Nat) => number item)
+private abbrev predicate : Expr := .call (.name "is_prime") [.name "m"]
+private abbrev iterable : Expr := .call (.name "family_numbers") [.name "n", .name "idxs"]
+private abbrev expression : Expr := .sumGenerator (.constant (.int 1)) [("m", iterable, [predicate])] (.constant (.int 0))
+
+private theorem count_fold (items : List Nat) (initial : Int) :
+    items.foldl (fun total item => if ProjectEulerStatements.P51.isPrime item then total + 1 else total) initial =
+      initial + ((items.filter ProjectEulerStatements.P51.isPrime).length : Nat) := by
+  induction items generalizing initial with
+  | nil => simp
+  | cons head tail ih =>
+      cases prime : ProjectEulerStatements.P51.isPrime head <;>
+        simp [List.foldl_cons, prime, ih, Int.add_comm, Int.add_left_comm]
+
+/-- Count the original lazy generator's prime tests without allocating any extra collector. -/
+theorem result (n : Nat) (indices : List Int) (heap : Mutable.Heap) (address : Nat)
+    (indicesFound : heap[address]? = some (.list (numbers indices))) :
+    ∃ extra, ReturnsValue program "prime_family_size" [number n, .ref address] heap
+      (number (ProjectEulerStatements.P51.primeFamilySize n (replace_at.positions indices))) (heap ++ extra) := by
+  obtain ⟨garbage, family⟩ := family_numbers.result n indices heap address indicesFound
+  let values := ProjectEulerStatements.P51.familyNumbers n (replace_at.positions indices)
+  let middle := working (heap ++ [.list (naturals (Nat.digits 10 n))]) (naturals values) garbage
+  let env := functionEnv ((findFunctionIn program.body "prime_family_size").getD ([], [])).1
+    ((findFunctionIn program.body "prime_family_size").getD ([], [])).2 [number n, .ref address] []
+  have found : middle[heap.length + 1]? = some (.list (naturals values)) := by simp [middle, working]
+  have family' : ReturnsValue program "family_numbers" [number n, .ref address] heap (.ref (heap.length + 1)) middle := family
+  let inner := setLocal (comprehensionEnv env [("m", iterable, [predicate])]) sumAccumulator (number 0)
+  have evaluated : Evaluates program env expression heap
+      (number (ProjectEulerStatements.P51.primeFamilySize n (replace_at.positions indices))) middle := by
+    apply Evaluates.sum_generator_sequence (items := naturals values) (by intros; simp)
+      (Evaluates.call (.cons (Evaluates.lookup rfl) (.cons (Evaluates.lookup rfl) .nil)) family')
+      (by simp [Mutable.sequence, found]) Evaluates.constant rfl
+    have summed := ProjectEulerSolutions.FilteredSum.loop (program := program) (values := values)
+      (encode := fun (item : Nat) => number item) (predicate := ProjectEulerStatements.P51.isPrime)
+      (number := fun _ => 1) (heap := middle) (name := "m") (source := .ref (heap.length + 1)) (position := 0) (env := inner)
+      (element := .constant (.int 1)) (test := predicate) (initial := 0) values (by decide)
+      (by simp [sequenceValue, Mutable.sequence, found]; rfl)
+      (fun env item getItem => Evaluates.call (.cons (Evaluates.lookup getItem) .nil)
+        ((common.is_prime.heap_result item middle).extend common_extension))
+      (fun _ _ _ _ => Evaluates.constant) rfl (by simp [inner, setLocal])
+    simpa only [count_fold, Int.zero_add, ProjectEulerStatements.P51.primeFamilySize, values] using summed
+  refine ⟨[.list (naturals (Nat.digits 10 n)), .list (naturals values)] ++ garbage, ?_⟩
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  simpa only [middle, working, List.append_assoc, List.cons_append, List.nil_append] using evaluated
+end prime_family_size
+
+private theorem size_condition (n : Int) (heap : Mutable.Heap) :
+    Evaluates program (familyEnv n) P51Ast.requires_prime_family_size_0 heap (flag (decide (0 ≤ n))) heap := by
+  apply Evaluates.compare (Evaluates.lookup rfl) Evaluates.constant
+  simp [HeapCalls.compare, scalarCompare, evalCmpOp]
+
+theorem prime_family_size.«Returns» (heap : Mutable.Heap) (n : Int) (address : Nat) (_valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]")
+    (condition : HeapCalls.Condition program (familyEnv n) P51Ast.requires_prime_family_size_0 heap) :
+    (HeapCalls.call program "prime_family_size" [number n, .ref address] heap).Returns := by
+  have nonnegative : 0 ≤ n := by
+    simpa [Mutable.truth, scalarTruth] using (size_condition n heap).condition_iff.mp condition
+  obtain ⟨items, found⟩ := Mutable.Value.ints_of_hasType typed
+  obtain ⟨garbage, returned⟩ := prime_family_size.result n.toNat items heap address found
+  simpa only [Int.toNat_of_nonneg nonnegative] using returned.returns
+
+theorem prime_family_size.«Supported» (heap : Mutable.Heap) (n : Int) (address : Nat) (valid : heap.Valid)
+    (typed : Mutable.Value.HasType heap (.ref address) "list[int]")
+    (condition : HeapCalls.Condition program (familyEnv n) P51Ast.requires_prime_family_size_0 heap) :
+    (HeapCalls.call program "prime_family_size" [number n, .ref address] heap).Supported :=
+  (prime_family_size.«Returns» heap n address valid typed condition).supported
+
+theorem requires_prime_family_size_0_supported (heap : Mutable.Heap) (n : Int) (address : Nat) (_valid : heap.Valid)
+    (_typed : Mutable.Value.HasType heap (.ref address) "list[int]") :
+    (HeapCalls.evaluate program (familyEnv n) P51Ast.requires_prime_family_size_0 heap).Supported :=
+  Execution.supported_of_finishes (size_condition n heap).finishes
 
 end data.«project-euler-statements».data.py.project_euler_statements.p51

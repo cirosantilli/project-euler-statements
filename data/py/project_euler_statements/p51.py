@@ -24,6 +24,10 @@ def family_numbers(n: int, idxs: list[int]) -> list[int]:
 
 
 def prime_family_size(n: int, idxs: list[int]) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     return sum(1 for m in family_numbers(n, idxs) if is_prime(m))
 
 
