@@ -14,6 +14,9 @@ def convergent(n: int) -> tuple[int, int]:
 
 
 def naive(k: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(1 for i in range(k) if len(digits_le(convergent(i)[0])) > len(digits_le(convergent(i)[1])))
 
 
