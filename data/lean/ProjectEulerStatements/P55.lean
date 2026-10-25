@@ -25,9 +25,9 @@ def iterate (f : Nat → Nat) : Nat → Nat → Nat
 def palAt (n k : Nat) : Bool :=
   isPalindrome (iterate reverseAdd k n)
 
-/-- Whether `n` reaches a palindrome within `maxIters` steps. -/
+/-- Whether `n` reaches a palindrome within `maxIters` positive reverse-and-add steps. -/
 def reachesPalindrome (n maxIters : Nat) : Bool :=
-  (List.range maxIters).any (fun k => palAt n k)
+  (List.range' 1 maxIters).any (fun k => palAt n k)
 
 /-- A number is Lychrel (under a `maxIters` rule) if it does not reach a palindrome. -/
 def isLychrel (n maxIters : Nat) : Bool :=
@@ -35,7 +35,7 @@ def isLychrel (n maxIters : Nat) : Bool :=
 
 /-- Count possibly-Lychrel numbers under `maxIters` iterations below `n`. -/
 def naive (n maxIters : Nat) : Nat :=
-  (List.range n).filter (fun x => isLychrel x maxIters) |>.length
+  (List.range' 1 (n - 1)).filter (fun x => isLychrel x maxIters) |>.length
 
 example : palAt 47 1 = true := by
   native_decide

@@ -25,7 +25,7 @@ def pal_at(n: int, k: int) -> bool:
 
 
 def reaches_palindrome(n: int, max_iters: int) -> bool:
-    return any(pal_at(n, k) for k in range(max_iters))
+    return any(pal_at(n, k) for k in range(1, max_iters + 1))
 
 
 def is_lychrel(n: int, max_iters: int) -> bool:
@@ -33,7 +33,11 @@ def is_lychrel(n: int, max_iters: int) -> bool:
 
 
 def naive(n: int, max_iters: int) -> int:
-    return sum(1 for x in range(n) if is_lychrel(x, max_iters))
+    return sum(1 for x in range(1, n) if is_lychrel(x, max_iters))
+
+
+def naive_default(n: int) -> int:
+    return naive(n, 50)
 
 
 if __name__ == '__main__':
