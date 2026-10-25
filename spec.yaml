@@ -388,7 +388,7 @@
     target: int
   return:
     type: int
-    desc: The least prime belonging to a family of at least target primes obtained by replacing a nonempty subset of equal digit positions by the same decimal digit, without leading zeros.
+    desc: The least prime belonging to a family of at least target primes obtained by replacing a nonempty subset of equal digit positions by the same decimal digit, without leading zeros. The search diverges if no such family exists, which always holds for target > 10.
 52:
   args:
     limit_mul: int
