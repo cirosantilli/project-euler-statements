@@ -515,6 +515,12 @@
   return:
     type: str
     desc: The lexicographically greatest decimal string of length digits for a magic n-gon using each label from 1 through 2*n once, with the inner labels repeated across adjacent triples. Start at the least outer label and read clockwise. Return an empty string for n < 3 or if no ring has the requested length.
+69:
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The least positive n at most limit maximizing n/phi(n), where phi(n) counts the positive integers at most n coprime to n; return one when limit is below one.
 74:
   args:
     limit: int

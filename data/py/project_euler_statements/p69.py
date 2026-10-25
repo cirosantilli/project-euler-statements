@@ -2,6 +2,9 @@ from math import gcd
 
 
 def phi(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(1 for k in range(1, n + 1) if gcd(k, n) == 1)
 
 
@@ -10,6 +13,11 @@ def better(a: int, b: int) -> bool:
 
 
 def naive(limit: int) -> int:
+    """
+    Keep the first strict ratio improvement, returning one for bounds below one.
+
+    @formalsw: Returns
+    """
     best = 1
     for n in range(limit + 1):
         if better(n, best):
