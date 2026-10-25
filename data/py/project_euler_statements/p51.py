@@ -21,7 +21,11 @@ def prime_family_size(n: int, idxs: list[int]) -> int:
 
 
 def has_prime_family(k: int, n: int) -> bool:
-    return is_prime(n) and any(prime_family_size(n, s) >= k for s in sublists(list(range(len(digits_le(n))))) if s)
+    return is_prime(n) and any(
+        n in family_numbers(n, s) and prime_family_size(n, s) >= k
+        for s in sublists(list(range(len(digits_le(n)))))
+        if s
+    )
 
 
 def naive(k: int) -> int:
@@ -35,4 +39,7 @@ def naive(k: int) -> int:
 if __name__ == '__main__':
     assert prime_family_size(13, [1]) == 6
     assert prime_family_size(56003, [1, 2]) == 7
+    assert prime_family_size(120383, [1, 3, 5]) == 8
+    assert not has_prime_family(8, 120383)
+    assert has_prime_family(8, 121313)
 

@@ -1,6 +1,7 @@
 import Mathlib.Data.List.Basic
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Data.Nat.Digits.Defs
+import Mathlib.Tactic.NormNum.Prime
 
 namespace ProjectEulerStatements.P51
 
@@ -37,7 +38,8 @@ def primeFamilySize (n : Nat) (idxs : List Nat) : Nat :=
 def hasPrimeFamily (k n : Nat) : Bool :=
   let digits := Nat.digits 10 n
   let idxs := (List.range digits.length).sublists.filter (fun s => s ≠ [])
-  (idxs.any (fun s => decide (primeFamilySize n s ≥ k))) && isPrime n
+  (idxs.any (fun s =>
+    decide (n ∈ familyNumbers n s) && decide (primeFamilySize n s ≥ k))) && isPrime n
 
 /-- Existence of a prime family of size `k`. -/
 theorem exists_prime_family (k : Nat) : ∃ n, hasPrimeFamily k n = true := by
@@ -52,5 +54,23 @@ example : primeFamilySize 13 [1] = 6 := by
 
 example : primeFamilySize 56003 [1, 2] = 7 := by
   native_decide
+
+example : 120383 ∉ familyNumbers 120383 [1, 3, 5] := by
+  decide +kernel
+
+theorem has_eight_prime_family : hasPrimeFamily 8 121313 = true := by
+  have family : familyNumbers 121313 [1, 3, 5] =
+      [121313, 222323, 323333, 424343, 525353, 626363, 727373, 828383, 929393] := by
+    decide +kernel
+  have score : 8 ≤ primeFamilySize 121313 [1, 3, 5] := by
+    rw [primeFamilySize, family]
+    norm_num [isPrime]
+  simp only [hasPrimeFamily, Bool.and_eq_true]
+  refine ⟨List.any_eq_true.mpr ?_, ?_⟩
+  · refine ⟨[1, 3, 5], ?_, ?_⟩
+    · decide +kernel
+    · simp only [Bool.and_eq_true, decide_eq_true_eq]
+      exact ⟨by simp [family], score⟩
+  · norm_num [isPrime]
 
 end ProjectEulerStatements.P51
