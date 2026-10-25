@@ -40,13 +40,13 @@ theorem is_cyclic_pair.heap_result (left right : Int) (heap : Mutable.Heap) (glo
   · simp [HeapCalls.compare, scalarCompare, evalCmpOp, ProjectEulerSolutions.PolygonalCycle.links, flag]
 
 namespace extend
-private def numbers (values : List Int) : List Mutable.Value := values.map number
-private def exhausted : Expr := .unaryOp .not (.name "remaining")
-private def closes : Expr := .call (.name "is_cyclic_pair")
+def numbers (values : List Int) : List Mutable.Value := values.map number
+def exhausted : Expr := .unaryOp .not (.name "remaining")
+def closes : Expr := .call (.name "is_cyclic_pair")
   [.subscript (.name "path") (.unaryOp .uSub (.constant (.int 1))),
    .subscript (.name "path") (.constant (.int 0))]
-private def sumPath : Expr := .sumSequence (.name "path") (.constant (.int 0))
-private def baseBody : List Stmt := [.ifThen closes [.return sumPath] [], .return (.constant (.int 0))]
+def sumPath : Expr := .sumSequence (.name "path") (.constant (.int 0))
+def baseBody : List Stmt := [.ifThen closes [.return sumPath] [], .return (.constant (.int 0))]
 
 theorem base_source :
     (executableBody ((findFunctionIn program.body "__formalsw_local_naive_extend").getD ([], [])).2)[0]? =
