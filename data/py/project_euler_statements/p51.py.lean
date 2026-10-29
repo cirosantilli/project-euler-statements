@@ -700,4 +700,289 @@ theorem result (items : List Int) (heap : Mutable.Heap) (address : Nat)
 
 end sublists
 
+
+namespace has_prime_family
+private def naturals (items : List Nat) : List Mutable.Value := items.map (fun (item : Nat) => number item)
+private def familyValues (n : Nat) (indices : List Int) : List Nat :=
+  ProjectEulerStatements.P51.familyNumbers n (replace_at.positions indices)
+private def good (k : Int) (n : Nat) (indices : List Int) : Bool :=
+  decide (n ∈ familyValues n indices) &&
+    decide (k ≤ (ProjectEulerStatements.P51.primeFamilySize n (replace_at.positions indices) : Int))
+private def element : Expr := .boolOp .and [
+  .membership (.name "n") (.call (.name "family_numbers") [.name "n", .name "s"]) false,
+  .compare (.call (.name "prime_family_size") [.name "n", .name "s"]) [(.gtE, .name "k")]]
+
+private theorem membership_result (n : Nat) (indices : List Int) (heap : Mutable.Heap) (address : Nat)
+    (found : heap[address]? = some (.list (numbers indices))) (env : HeapCalls.Env)
+    (getN : env "n" = some (number n)) (getSubset : env "s" = some (.ref address)) :
+    ∃ extra, Evaluates program env
+      (.membership (.name "n") (.call (.name "family_numbers") [.name "n", .name "s"]) false)
+      heap (flag (decide (n ∈ familyValues n indices))) (heap ++ extra) := by
+  obtain ⟨garbage, family⟩ := family_numbers.result n indices heap address found
+  let extra := .list (naturals (Nat.digits 10 n)) :: .list (naturals (familyValues n indices)) :: garbage
+  have family' : ReturnsValue program "family_numbers" [number n, .ref address] heap (.ref (heap.length + 1)) (heap ++ extra) := by
+    simpa only [extra, familyValues, naturals, family_numbers.naturals, working, List.append_assoc, List.cons_append, List.nil_append] using family
+  refine ⟨extra, ?_⟩
+  apply Evaluates.membership (needle := number n) (source := .ref (heap.length + 1))
+    (.cons (Evaluates.lookup getN)
+      (.cons (Evaluates.call (.cons (Evaluates.lookup getN) (.cons (Evaluates.lookup getSubset) .nil)) family') .nil))
+  have collection : (heap ++ extra)[heap.length + 1]? = some (.list (numbers ((familyValues n indices).map Int.ofNat))) := by
+    simp [extra, naturals, numbers, List.map_map, Function.comp_def]
+  simpa [List.mem_map, Int.natCast_inj] using
+    membership_list_ints (heap ++ extra) (heap.length + 1) n ((familyValues n indices).map Int.ofNat) collection false
+
+/-- The prime count runs only when the original number belongs to the generated family. -/
+private theorem element_result (k : Int) (n : Nat) (indices : List Int) (heap : Mutable.Heap) (address : Nat)
+    (found : heap[address]? = some (.list (numbers indices))) (env : HeapCalls.Env)
+    (getK : env "k" = some (number k)) (getN : env "n" = some (number n)) (getSubset : env "s" = some (.ref address)) :
+    ∃ extra, Evaluates program env element heap (flag (good k n indices)) (heap ++ extra) := by
+  obtain ⟨allocated, tested⟩ := membership_result n indices heap address found env getN getSubset
+  by_cases member : n ∈ familyValues n indices
+  · obtain ⟨extra, counted⟩ := prime_family_size.result n indices (heap ++ allocated) address (prefix_found heap allocated _ _ found)
+    have compared : Evaluates program env (.compare (.call (.name "prime_family_size") [.name "n", .name "s"]) [(.gtE, .name "k")])
+        (heap ++ allocated) (flag (decide (k ≤ (ProjectEulerStatements.P51.primeFamilySize n (replace_at.positions indices) : Int))))
+        ((heap ++ allocated) ++ extra) := by
+      exact Evaluates.compare
+        (Evaluates.call (.cons (Evaluates.lookup getN) (.cons (Evaluates.lookup getSubset) .nil)) counted)
+        (Evaluates.lookup getK) (by simp [HeapCalls.compare, scalarCompare, evalCmpOp])
+    refine ⟨allocated ++ extra, ?_⟩
+    simp only [good, member, decide_true, Bool.true_and]
+    apply Evaluates.boolean_next (flag := true) (by simpa only [member, decide_true] using tested) rfl rfl
+    apply Evaluates.boolean_last (flag := decide (k ≤ (ProjectEulerStatements.P51.primeFamilySize n (replace_at.positions indices) : Int)))
+    · simpa only [List.append_assoc] using compared
+    · rfl
+  · refine ⟨allocated, ?_⟩
+    simp only [good, member, decide_false, Bool.false_and]
+    exact Evaluates.boolean_stop (flag := false) (by simpa only [member, decide_false] using tested) rfl rfl
+
+private theorem replaceAt_reverse (items indices : List Nat) (digit : Nat) :
+    ProjectEulerStatements.P51.replaceAt items indices.reverse digit = ProjectEulerStatements.P51.replaceAt items indices digit := by
+  have loop (items : List Nat) (position : Nat) :
+      ProjectEulerStatements.P51.replaceAt.go indices.reverse digit items position =
+      ProjectEulerStatements.P51.replaceAt.go indices digit items position := by
+    induction items generalizing position with
+    | nil => rfl
+    | cons head tail ih => simp [ProjectEulerStatements.P51.replaceAt.go, List.mem_reverse, ih]
+  exact loop items 0
+
+private theorem family_reverse (n : Nat) (indices : List Nat) :
+    ProjectEulerStatements.P51.familyNumbers n indices.reverse = ProjectEulerStatements.P51.familyNumbers n indices := by
+  simp only [ProjectEulerStatements.P51.familyNumbers, replaceAt_reverse]
+
+private theorem good_natural (k : Int) (n : Nat) (indices : List Nat) :
+    good k n (indices.reverse.map Int.ofNat) =
+      (decide (n ∈ ProjectEulerStatements.P51.familyNumbers n indices) &&
+        decide (k.toNat ≤ ProjectEulerStatements.P51.primeFamilySize n indices)) := by
+  have ordered : k ≤ (ProjectEulerStatements.P51.primeFamilySize n indices : Int) ↔
+      k.toNat ≤ ProjectEulerStatements.P51.primeFamilySize n indices := by omega
+  have sizeReverse : ProjectEulerStatements.P51.primeFamilySize n indices.reverse =
+      ProjectEulerStatements.P51.primeFamilySize n indices := by
+    simp only [ProjectEulerStatements.P51.primeFamilySize, family_reverse]
+  simp only [good, familyValues, replace_at.positions_natural, family_reverse, sizeReverse, ordered]
+
+
+private def indices (n : Nat) : List Int := (List.range (Nat.digits 10 n).length).map Int.ofNat
+private def rowValues (n : Nat) : List (List Int) := sublists.values (indices n)
+private def lengthExpression : Expr := .builtinCall .len [.call (.name "digits_le") [.name "n"]]
+private def rangeExpression : Expr := .listComp (.name "$formalsw.range.item")
+  [("$formalsw.range.item", .call (.name "range") [lengthExpression], [])]
+private def iterable : Expr := .call (.name "sublists") [rangeExpression]
+
+private theorem iterator_result (n : Nat) (heap : Mutable.Heap) (env : HeapCalls.Env)
+    (getN : env "n" = some (number n)) :
+    ∃ extra address addresses, Evaluates program env iterable heap (.ref address) (heap ++ extra) ∧
+      (heap ++ extra)[address]? = some (.list (sublists.refs addresses)) ∧
+      sublists.Rows (heap ++ extra) [address] addresses (rowValues n) := by
+  let digitsHeap := heap ++ [.list (naturals (Nat.digits 10 n))]
+  have length : Evaluates program env lengthExpression heap (number (Nat.digits 10 n).length) digitsHeap := by
+    apply Evaluates.builtin (.cons (Evaluates.call (.cons (Evaluates.lookup getN) .nil)
+      ((common.digits_le.decimal n heap).extend common_extension)) .nil)
+    simp [primitive, Mutable.length, naturals, digitsHeap]
+  obtain ⟨rangeGarbage, collected⟩ := range_map_effectful program "$formalsw.range.item" (.name "$formalsw.range.item")
+    (fun (n : Nat) => number n)
+    (fun _ _ _ lookup => ⟨[], by simpa only [List.append_nil] using Evaluates.lookup lookup⟩)
+    heap digitsHeap env [lengthExpression] [number (Nat.digits 10 n).length] 0 (Nat.digits 10 n).length (.cons length .nil) (by simp only [Nat.cast_zero, zero_add]; rfl)
+  let rangeHeap := working digitsHeap (numbers (indices n)) rangeGarbage
+  have rangeEval : Evaluates program env rangeExpression heap (.ref digitsHeap.length) rangeHeap := by
+    simpa only [rangeExpression, rangeHeap, indices, numbers, naturals, List.range_eq_range', List.map_map, Function.comp_def] using collected
+  obtain ⟨subsetExtra, address, addresses, subsets, found, represented⟩ := sublists.result (indices n) rangeHeap digitsHeap.length (by simp [rangeHeap])
+  let extra := .list (naturals (Nat.digits 10 n)) :: .list (numbers (indices n)) :: (rangeGarbage ++ subsetExtra)
+  have finalShape : rangeHeap ++ subsetExtra = heap ++ extra := by
+    dsimp [rangeHeap, digitsHeap, working, extra]
+    simp only [List.append_assoc, List.cons_append, List.nil_append]
+  refine ⟨extra, address, addresses, ?_, ?_, ?_⟩
+  · simpa only [finalShape] using (Evaluates.call (module := program) (env := env) (.cons rangeEval .nil) subsets)
+  · simpa only [finalShape] using found
+  · simpa only [finalShape] using represented
+
+
+private def anyBody : List Stmt := comprehensionFilters [.name "s"] (truthBody false element)
+private def accepted (k : Int) (n : Nat) (rows : List (List Int)) : Bool :=
+  (rows.filter (fun row => !row.isEmpty)).any (good k n)
+
+private theorem any_loop (k : Int) (n : Nat) (allAddresses : List Nat) (sourceAddress : Nat) (remainingRows : List (List Int))
+    (heap : Mutable.Heap) (remainingAddresses : List Nat) (position : Nat)
+    (suffix : allAddresses.drop position = remainingAddresses)
+    (found : heap[sourceAddress]? = some (.list (sublists.refs allAddresses)))
+    (represented : sublists.Rows heap [sourceAddress] remainingAddresses remainingRows)
+    (env : HeapCalls.Env) (getK : env "k" = some (number k)) (getN : env "n" = some (number n)) :
+    ∃ extra, BlockReturns program env
+      [.sequenceStepLoop "s" (.ref sourceAddress) position anyBody [], .return (.constant (.bool false))]
+      heap (flag (accepted k n remainingRows)) (heap ++ extra) := by
+  induction remainingRows generalizing heap remainingAddresses position env with
+  | nil =>
+      cases remainingAddresses with
+      | cons address tail => cases represented
+      | nil =>
+          refine ⟨[], ?_⟩
+          simp only [List.append_nil]
+          apply BlockReturns.sequence_done (items := sublists.refs allAddresses)
+            (by simp [sequenceValue, Mutable.sequence, found])
+          · have missing : allAddresses[position]? = none := by
+              simpa [suffix] using (List.head?_drop (l := allAddresses) (i := position)).symm
+            simp [sublists.refs, missing]
+          · exact BlockReturns.return_value Evaluates.constant
+  | cons row tail ih =>
+      cases remainingAddresses with
+      | nil => cases represented
+      | cons address tailAddresses =>
+          cases represented with
+          | cons headFound tailRows =>
+              let bound := setLocal env "s" (.ref address)
+              have boundK : bound "k" = some (number k) := by simpa [bound, setLocal] using getK
+              have boundN : bound "n" = some (number n) := by simpa [bound, setLocal] using getN
+              have selected : allAddresses[position]? = some address := by
+                simpa [suffix] using (List.head?_drop (l := allAddresses) (i := position)).symm
+              have tailSuffix : allAddresses.drop (position + 1) = tailAddresses := by
+                simp [List.drop_add_one_eq_tail_drop, suffix]
+              cases row with
+              | nil =>
+                  obtain ⟨extra, rest⟩ := ih heap tailAddresses (position + 1) tailSuffix found tailRows bound boundK boundN
+                  refine ⟨extra, ?_⟩
+                  simp only [accepted, List.filter_cons, List.isEmpty_nil, Bool.not_true, Bool.false_eq_true, if_false]
+                  apply BlockReturns.sequence_step (items := sublists.refs allAddresses) (value := .ref address)
+                    (by simp [sequenceValue, Mutable.sequence, found]) (by simp [sublists.refs, selected])
+                  apply BlockReturns.branch (flag := false) (Evaluates.lookup (value := .ref address) (by simp [setLocal]))
+                    (by simp [Mutable.truth, headFound.2, numbers])
+                  simpa only [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, Bool.false_or,
+                    Bool.false_eq_true, if_false, List.nil_append] using rest
+              | cons first digits =>
+                  obtain ⟨allocated, tested⟩ := element_result k n (first :: digits) heap address headFound.2 bound boundK boundN
+                    (by simp [bound, setLocal])
+                  cases yes : good k n (first :: digits) with
+                  | true =>
+                      refine ⟨allocated, ?_⟩
+                      simp only [accepted, List.filter_cons, List.isEmpty_cons, Bool.not_false, if_true, List.any_cons, yes, Bool.true_or]
+                      apply BlockReturns.sequence_step (items := sublists.refs allAddresses) (value := .ref address)
+                        (by simp [sequenceValue, Mutable.sequence, found]) (by simp [sublists.refs, selected])
+                      apply BlockReturns.branch (flag := true) (Evaluates.lookup (value := .ref address) (by simp [setLocal]))
+                        (by simp [Mutable.truth, headFound.2, numbers])
+                      apply BlockReturns.branch (flag := true) (by simpa only [yes] using tested) rfl
+                      exact BlockReturns.return_value Evaluates.constant
+                  | false =>
+                      obtain ⟨extra, rest⟩ := ih (heap ++ allocated) tailAddresses (position + 1) tailSuffix
+                        (prefix_found heap allocated _ _ found) (sublists.Rows.extend tailRows allocated) bound boundK boundN
+                      refine ⟨allocated ++ extra, ?_⟩
+                      simp only [accepted, List.filter_cons, List.isEmpty_cons, Bool.not_false, if_true, List.any_cons, yes, Bool.false_or]
+                      apply BlockReturns.sequence_step (items := sublists.refs allAddresses) (value := .ref address)
+                        (by simp [sequenceValue, Mutable.sequence, found]) (by simp [sublists.refs, selected])
+                      apply BlockReturns.branch (flag := true) (Evaluates.lookup (value := .ref address) (by simp [setLocal]))
+                        (by simp [Mutable.truth, headFound.2, numbers])
+                      apply BlockReturns.branch (flag := false) (by simpa only [yes] using tested) rfl
+                      simpa only [Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt, Bool.false_or,
+                        Bool.false_eq_true, if_false, List.nil_append, List.append_assoc] using rest
+
+
+private def anyExpression : Expr := .consumeGenerator (.builtinCall .any []) element [(.name "s", iterable, [.name "s"])]
+
+private theorem any_result (k : Int) (n : Nat) (heap : Mutable.Heap) (env : HeapCalls.Env)
+    (getK : env "k" = some (number k)) (getN : env "n" = some (number n)) :
+    ∃ extra, Evaluates program env anyExpression heap (flag (accepted k n (rowValues n))) (heap ++ extra) := by
+  obtain ⟨allocated, address, addresses, iterator, found, represented⟩ := iterator_result n heap env getN
+  let inner := comprehensionTargetsEnv env [(.name "s", iterable, [.name "s"])]
+  obtain ⟨extra, scanned⟩ := any_loop k n addresses address (rowValues n) (heap ++ allocated) addresses 0 rfl found represented inner
+    (by simpa [inner, comprehensionTargetsEnv, targetLocals] using getK)
+    (by simpa [inner, comprehensionTargetsEnv, targetLocals] using getN)
+  refine ⟨allocated ++ extra, ?_⟩
+  apply Evaluates.truth_generator_sequence (universal := false) (items := sublists.refs addresses)
+    (by intros; simp [iterable]) (by intros; simp [iterable]) (by intros; simp [iterable]) iterator
+    (by simp [Mutable.sequence, found])
+  simpa only [List.append_assoc] using scanned
+
+private theorem accepted_native (k : Int) (n : Nat) :
+    accepted k n (rowValues n) =
+      (((List.range (Nat.digits 10 n).length).sublists.filter (fun row => row ≠ [])).any
+        (fun row => decide (n ∈ ProjectEulerStatements.P51.familyNumbers n row) &&
+          decide (k.toNat ≤ ProjectEulerStatements.P51.primeFamilySize n row))) := by
+  simp only [accepted, rowValues, indices, sublists.values, List.sublists_map, List.map_map,
+    List.any_filter, List.any_map, Function.comp_def]
+  apply List.any_congr rfl
+  intro row
+  rw [← List.map_reverse, good_natural]
+  simp only [List.isEmpty_map, List.isEmpty_reverse]
+  cases row <;> rfl
+
+private theorem native_value (k : Int) (n : Nat) :
+    ProjectEulerStatements.P51.hasPrimeFamily k.toNat n = (decide (Nat.Prime n) && accepted k n (rowValues n)) := by
+  rw [accepted_native]
+  exact Bool.and_comm _ _
+
+/-- The source short-circuits on primality, skips the empty subset, and tests every other subset in source order. -/
+theorem result (k : Int) (n : Nat) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "has_prime_family" [number k, number n] heap
+      (flag (ProjectEulerStatements.P51.hasPrimeFamily k.toNat n)) (heap ++ extra) := by
+  let env := functionEnv ((findFunctionIn program.body "has_prime_family").getD ([], [])).1
+    ((findFunctionIn program.body "has_prime_family").getD ([], [])).2 [number k, number n] []
+  have tested : Evaluates program env (.call (.name "is_prime") [.name "n"]) heap (flag (decide (Nat.Prime n))) heap :=
+    Evaluates.call (.cons (Evaluates.lookup rfl) .nil) ((common.is_prime.heap_result n heap).extend common_extension)
+  by_cases prime : Nat.Prime n
+  · obtain ⟨extra, families⟩ := any_result k n heap env rfl rfl
+    refine ⟨extra, ?_⟩
+    rw [native_value]
+    simp only [prime, decide_true, Bool.true_and]
+    apply BlockReturns.function rfl rfl
+    apply BlockReturns.return_value
+    apply Evaluates.boolean_next (flag := true) (by simpa only [prime, decide_true] using tested) rfl rfl
+    exact Evaluates.boolean_last (flag := accepted k n (rowValues n)) families rfl
+  · refine ⟨[], ?_⟩
+    rw [native_value]
+    simp only [prime, decide_false, Bool.false_and, List.append_nil]
+    apply BlockReturns.function rfl rfl
+    apply BlockReturns.return_value
+    exact Evaluates.boolean_stop (flag := false) (by simpa only [prime, decide_false] using tested) rfl rfl
+
+
+/-- Negative candidates short-circuit before decimal conversion; negative thresholds agree with zero. -/
+theorem signed_result (k n : Int) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "has_prime_family" [number k, number n] heap
+      (flag (ProjectEulerStatements.P51.hasPrimeFamily k.toNat n.toNat)) (heap ++ extra) := by
+  by_cases nonnegative : 0 ≤ n
+  · lift n to Nat using nonnegative
+    simpa only [Int.toNat_natCast] using result k n heap
+  · have small : ReturnsValue program "is_prime" [number n] heap (flag false) heap := by
+      apply BlockReturns.function rfl rfl
+      apply BlockReturns.branch (middle := heap) (flag := true) (value := flag true)
+        (Evaluates.compare (middle := heap) (afterRight := heap) (Evaluates.lookup rfl) Evaluates.constant
+          (by simp [HeapCalls.compare, scalarCompare, evalCmpOp]; omega)) rfl
+      exact BlockReturns.return_value Evaluates.constant
+    have missing : n.toNat = 0 := by omega
+    have rejected : ProjectEulerStatements.P51.hasPrimeFamily k.toNat n.toNat = false := by
+      simp only [missing, ProjectEulerStatements.P51.hasPrimeFamily, ProjectEulerStatements.P51.isPrime]
+      simp
+    refine ⟨[], ?_⟩
+    rw [rejected, List.append_nil]
+    apply BlockReturns.function rfl rfl
+    apply BlockReturns.return_value
+    apply Evaluates.boolean_stop (flag := false) (truth := rfl) (stop := rfl)
+    exact Evaluates.call (.cons (Evaluates.lookup rfl) .nil) small
+
+theorem «Returns» (k n : Int) : (HeapCalls.scalarFunction program "has_prime_family" [.int k, .int n]).Returns := by
+  obtain ⟨extra, returned⟩ := signed_result k n []
+  exact returned.scalar_returns
+
+theorem «Supported» (k n : Int) : (HeapCalls.scalarFunction program "has_prime_family" [.int k, .int n]).Supported :=
+  («Returns» k n).supported
+
+end has_prime_family
+
 end data.«project-euler-statements».data.py.project_euler_statements.p51

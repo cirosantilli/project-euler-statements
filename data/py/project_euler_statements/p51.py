@@ -32,6 +32,9 @@ def prime_family_size(n: int, idxs: list[int]) -> int:
 
 
 def has_prime_family(k: int, n: int) -> bool:
+    """
+    @formalsw: Returns
+    """
     return is_prime(n) and any(
         n in family_numbers(n, s) and prime_family_size(n, s) >= k
         for s in sublists(list(range(len(digits_le(n)))))
