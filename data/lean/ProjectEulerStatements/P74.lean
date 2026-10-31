@@ -10,16 +10,19 @@ abbrev chainLen := DigitFactorialChains.chainLen
 def countChains (limit target : Nat) : Nat :=
   ((List.range' 1 (limit - 1)).filter (fun n => decide (chainLen n = target))).length
 
-def naive (limit target : Nat) : Nat := countChains limit target
-
 /-- Signed source calls count the same positive starts, including empty and impossible requests. -/
 def result (limit target : Int) : Int :=
   ((List.range' 1 (limit - 1).toNat).filter
     (fun n => decide ((chainLen n : Int) = target))).length
 
-theorem result_nat (limit target : Nat) : result limit target = (naive limit target : Int) := by
+/-- Count positive starts below the signed bound whose distinct-term chain
+has the desired length. -/
+def naive (limit target : Int) : Int := result limit target
+
+theorem result_nat (limit target : Nat) :
+    result limit target = (countChains limit target : Int) := by
   have same : ((limit : Int) - 1).toNat = limit - 1 := by omega
-  simp [result, naive, countChains, same]
+  simp [result, countChains, same]
 
 theorem result_empty (limit target : Int) (empty : limit ≤ 1) : result limit target = 0 := by
   have size : (limit - 1).toNat = 0 := Int.toNat_eq_zero.mpr (by omega)
