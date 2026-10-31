@@ -1,6 +1,7 @@
 import data.«project-euler-statements».data.py.project_euler_statements.«p79.validation.source»
 import lang.py.FormalSW.IteratorRules
 import lang.py.FormalSW.RuntimeEffects
+import lang.py.FormalSW.IteratorOperationRelocation
 
 /-! Reference validation consumes actual iterator methods and preserves their shared effects. -/
 namespace data.«project-euler-statements».data.py.project_euler_statements.p79
@@ -282,5 +283,76 @@ theorem iterator_exhausted (context : Module) (choices : ChoiceSchedule) (anchor
       (.running ⟨⟨.block following env, stack, after⟩, finalUsed⟩ resumes) :=
   IteratorCalls.advance_exhausted (loop := validationIteratorLoop env following stack)
     isObject bound executed
+
+/-- One logical advancement supplies the reference consumer's actual call and yielded string. -/
+theorem iterator_next_relocated (context : Module)
+    (source : IteratorCalls.Relocation.ModuleSource context) (choices : ChoiceSchedule)
+    (anchors used : Nat) (logical physical after : Mutable.Heap) (rename : Nat → Nat)
+    (layout : Mutable.Relocation.ExecutionLayout logical physical rename)
+    (iterator : Mutable.Value) (inside : iterator.edge.Within logical.length) (operation : Operation)
+    (isObject : IteratorCalls.isInstance logical iterator = true)
+    (bound : ProtocolCalls.nextMethod context iterator logical = some (.ok (some operation), logical))
+    (s : String) (executed : IteratorCalls.OperationCompletes context choices used operation logical (.ok (text s)) after)
+    (env : HeapCalls.Env) (following : List Stmt) (stack : List HeapCalls.Frame)
+    (resumes : List IteratorCalls.Resume) :
+    ∃ other nextMap finalUsed,
+      IteratorCalls.Relocation.ExtendedLayout logical.length physical.length rename after other nextMap ∧
+      IteratorCalls.Reaches context anchors choices []
+        (.running ⟨⟨.block (validationLoop
+          (sequenceSource (Mutable.Relocation.relocateValue rename iterator)) 0 :: following) env,
+          stack, physical⟩, used⟩ resumes)
+        (.running ⟨⟨.block (validationBody ++
+          [Calls.loopContinuation validationBody
+            (validationLoop (sequenceSource (Mutable.Relocation.relocateValue rename iterator)) 0)] ++ following)
+          (setLocal env "attempt" (text s)), stack, other⟩, finalUsed⟩ resumes) := by
+  obtain ⟨finalUsed, logicalRun⟩ := executed logical.length []
+  obtain ⟨other, nextMap, extended, called⟩ := IteratorCalls.Relocation.advance_completion_relocates context choices
+    logical physical rename logical.length anchors used finalUsed iterator operation (.ok (text s)) after []
+    source layout inside (by simp [HeapCalls.Relocation.GlobalsWithin]) isObject bound logicalRun
+  refine ⟨other, nextMap, finalUsed, extended, ?_⟩
+  have calledRun := called (validationIteratorLoop env following stack) resumes
+  have completion : IteratorCalls.Reaches context anchors choices []
+      (.running ⟨⟨.block (validationLoop
+        (sequenceSource (Mutable.Relocation.relocateValue rename iterator)) 0 :: following) env,
+        stack, physical⟩, used⟩ resumes)
+      (.completed (.ok ⟨.ok (text s), [], other, anchors⟩) finalUsed
+        (.advance (validationIteratorLoop env following stack) (Mutable.Relocation.relocateValue rename iterator) :: resumes)) := by
+    simpa only [HeapCalls.Relocation.relocateGlobals, List.map_nil, Except.map,
+      text, Mutable.Relocation.relocateValue] using calledRun
+  exact IteratorCalls.advanced completion
+
+/-- Exhaustion transports its final mutations before the reference loop exits. -/
+theorem iterator_exhausted_relocated (context : Module)
+    (source : IteratorCalls.Relocation.ModuleSource context) (choices : ChoiceSchedule)
+    (anchors used : Nat) (logical physical after : Mutable.Heap) (rename : Nat → Nat)
+    (layout : Mutable.Relocation.ExecutionLayout logical physical rename)
+    (iterator : Mutable.Value) (inside : iterator.edge.Within logical.length) (operation : Operation)
+    (isObject : IteratorCalls.isInstance logical iterator = true)
+    (bound : ProtocolCalls.nextMethod context iterator logical = some (.ok (some operation), logical))
+    (args : List Constant) (executed : IteratorCalls.OperationCompletes context choices used operation logical
+      (.error ⟨"StopIteration", args⟩) after)
+    (env : HeapCalls.Env) (following : List Stmt) (stack : List HeapCalls.Frame)
+    (resumes : List IteratorCalls.Resume) :
+    ∃ other nextMap finalUsed,
+      IteratorCalls.Relocation.ExtendedLayout logical.length physical.length rename after other nextMap ∧
+      IteratorCalls.Reaches context anchors choices []
+        (.running ⟨⟨.block (validationLoop
+          (sequenceSource (Mutable.Relocation.relocateValue rename iterator)) 0 :: following) env,
+          stack, physical⟩, used⟩ resumes)
+        (.running ⟨⟨.block following env, stack, other⟩, finalUsed⟩ resumes) := by
+  obtain ⟨finalUsed, logicalRun⟩ := executed logical.length []
+  obtain ⟨other, nextMap, extended, called⟩ := IteratorCalls.Relocation.advance_completion_relocates context choices
+    logical physical rename logical.length anchors used finalUsed iterator operation (.error ⟨"StopIteration", args⟩) after []
+    source layout inside (by simp [HeapCalls.Relocation.GlobalsWithin]) isObject bound logicalRun
+  refine ⟨other, nextMap, finalUsed, extended, ?_⟩
+  have completion : IteratorCalls.Reaches context anchors choices []
+      (.running ⟨⟨.block (validationLoop
+        (sequenceSource (Mutable.Relocation.relocateValue rename iterator)) 0 :: following) env,
+        stack, physical⟩, used⟩ resumes)
+      (.completed (.ok ⟨.error ⟨"StopIteration", args⟩, [], other, anchors⟩) finalUsed
+        (.advance (validationIteratorLoop env following stack) (Mutable.Relocation.relocateValue rename iterator) :: resumes)) := by
+    simpa only [HeapCalls.Relocation.relocateGlobals, List.map_nil, Except.map] using
+      called (validationIteratorLoop env following stack) resumes
+  exact IteratorCalls.exhausted completion
 
 end data.«project-euler-statements».data.py.project_euler_statements.p79
