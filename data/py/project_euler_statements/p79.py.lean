@@ -1,3 +1,4 @@
+import data.«project-euler-statements».data.py.project_euler_statements.«p79.py.lean.d».AllocationTerminal
 import data.«project-euler-statements».data.py.project_euler_statements.«p79.py.lean.d».AllocationResult
 import data.«project-euler-statements».data.py.project_euler_statements.«p79.py.lean.d».Terminal
 import lang.py.FormalSW.IteratorAcquisitionFailure
