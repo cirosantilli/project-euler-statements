@@ -14,8 +14,8 @@ def bigVal (matrix : List (List Int)) : Int :=
 def initDist (matrix : List (List Int)) : List (List Int) :=
   let (rows, cols) := dims matrix
   let big := bigVal matrix
-  (List.range rows).map (fun r =>
-    (List.range cols).map (fun c =>
+  (List.range rows).map (fun (r : Nat) =>
+    (List.range cols).map (fun (c : Nat) =>
       if r = 0 ∧ c = 0 then getD2 matrix 0 0 else big))
 
 def neighbors (r c : Int) (rows cols : Nat) : List (Int × Int) :=
@@ -24,8 +24,8 @@ def neighbors (r c : Int) (rows cols : Nat) : List (Int × Int) :=
 
 def relaxStep (matrix dist : List (List Int)) : List (List Int) :=
   let (rows, cols) := dims matrix
-  (List.range rows).map (fun r =>
-    (List.range cols).map (fun c =>
+  (List.range rows).map (fun (r : Nat) =>
+    (List.range cols).map (fun (c : Nat) =>
       let cur := getD2 dist r c
       let minNb := (neighbors r c rows cols).foldl (fun acc p => min acc (getD2 dist p.1 p.2)) cur
       min cur (getD2 matrix r c + minNb)))
