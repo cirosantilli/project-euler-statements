@@ -658,6 +658,15 @@
   return:
     type: int
     desc: The sum of distinct least product-sum numbers for all multiset sizes k with 2 <= k <= k_max, using positive integer factors; zero if k_max is below two.
+89:
+  args:
+    lines: list[str]
+  constraints:
+    - all(len(s) > 0 and all(c in "IVXLCDM" for c in s) for s in lines)
+  return:
+    type: int
+    desc: The sum of each input string's length minus the length of the standard minimal Roman representation of its value, parsing adjacent increasing symbols as subtractive pairs and all other symbols additively.
+  comment: Valid Roman numerals are included in the broader domain of nonempty Roman-symbol strings. Outside the valid Roman grammar, the character difference can be negative. Values and string lengths are unbounded.
 92:
   args:
     limit_exclusive: int

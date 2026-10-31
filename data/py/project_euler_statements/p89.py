@@ -1,8 +1,22 @@
 def value(c: str) -> int:
-    return {'I':1,'V':5,'X':10,'L':50,'C':100,'D':500,'M':1000}.get(c, 0)
+    """
+    @formalsw: Returns
+    """
+    return {
+        "I": 1,
+        "V": 5,
+        "X": 10,
+        "L": 50,
+        "C": 100,
+        "D": 500,
+        "M": 1000,
+    }.get(c, 0)
 
 
 def roman_to_int(chars: list[str]) -> int:
+    """
+    @formalsw: Returns
+    """
     if not chars:
         return 0
     if len(chars) == 1:
@@ -14,7 +28,21 @@ def roman_to_int(chars: list[str]) -> int:
 
 
 def int_to_roman_aux(n: int) -> list[str]:
-    table = [(1000,['M']),(900,['C','M']),(500,['D']),(400,['C','D']),(100,['C']),(90,['X','C']),(50,['L']),(40,['X','L']),(10,['X']),(9,['I','X']),(5,['V']),(4,['I','V']),(1,['I'])]
+    table = [
+        (1000, ["M"]),
+        (900, ["C", "M"]),
+        (500, ["D"]),
+        (400, ["C", "D"]),
+        (100, ["C"]),
+        (90, ["X", "C"]),
+        (50, ["L"]),
+        (40, ["X", "L"]),
+        (10, ["X"]),
+        (9, ["I", "X"]),
+        (5, ["V"]),
+        (4, ["I", "V"]),
+        (1, ["I"]),
+    ]
     out = []
     for v, cs in table:
         while n >= v:
@@ -31,8 +59,8 @@ def saved_chars(s: str) -> int:
     return len(s) - len(minimal_roman(s))
 
 
-def naive(list_: list[str]) -> int:
-    return sum(saved_chars(s) for s in list_)
+def naive(lines: list[str]) -> int:
+    return sum(saved_chars(s) for s in lines)
 
 
 if __name__ == '__main__':
