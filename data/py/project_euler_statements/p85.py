@@ -3,6 +3,9 @@ def rect_count(m: int, n: int) -> int:
 
 
 def naive(target: int) -> int:
+    """
+    @formalsw: Returns
+    """
     best_area = 1
     best_diff = abs(1 - target)
     m = 1
