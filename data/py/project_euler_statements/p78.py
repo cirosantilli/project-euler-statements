@@ -3,6 +3,11 @@ from functools import lru_cache
 
 @lru_cache(None)
 def partition_go(n: int, max_: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Requires(max_ >= 0)
+    @formalsw: Returns
+    """
     if n == 0:
         return 1
     if max_ == 0:
@@ -11,6 +16,10 @@ def partition_go(n: int, max_: int) -> int:
 
 
 def partition(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     return partition_go(n, n)
 
 
