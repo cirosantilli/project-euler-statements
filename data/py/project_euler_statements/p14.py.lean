@@ -43,7 +43,7 @@ namespace Cached
 open MemoCalls ProjectEulerStatements.P14
 
 private def cacheSpec (key : Key) (value : Constant) : Prop :=
-  ∃ n : Nat, key = ⟨"collatz_len", [n]⟩ ∧ value = .int (collatzLen n)
+  ∃ n : Nat, key = ⟨"collatz_len", [n], none⟩ ∧ value = .int (collatzLen n)
 
 private theorem step_result (n : Int) :
     ReturnsValue program ["collatz_len"] cacheSpec "collatz_step" [.int n]

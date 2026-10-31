@@ -40,18 +40,18 @@ theorem baseExpression_eq : baseExpression = HeapMemoCalls.pooledTuple baseIdent
 
 /-- Cached function results and the compiler's shared base tuple coexist without conflating their keys. -/
 def spec (heap : Mutable.Heap) (key : HeapMemoCalls.Key) (value : Mutable.Value) : Prop :=
-  (∃ n : Nat, key = ⟨"convergent", [(n : Int)]⟩ ∧ nativePair heap value n) ∨
+  (∃ n : Nat, key = ⟨"convergent", [(n : Int)], none⟩ ∧ nativePair heap value n) ∨
     (key = baseKey ∧ HasPair heap value 3 2)
 
 private theorem convergent_key_ne_base (n : Nat) :
-    (⟨"convergent", [(n : Int)]⟩ : HeapMemoCalls.Key) ≠ baseKey := by
+    (⟨"convergent", [(n : Int)], none⟩ : HeapMemoCalls.Key) ≠ baseKey := by
   intro same
   have arguments := congrArg MemoCalls.Key.arguments same
   change [(n : Int)] = [] at arguments
   simp at arguments
 
 theorem spec_convergent (heap : Mutable.Heap) (n : Nat) (value : Mutable.Value) :
-    spec heap ⟨"convergent", [(n : Int)]⟩ value ↔ nativePair heap value n := by
+    spec heap ⟨"convergent", [(n : Int)], none⟩ value ↔ nativePair heap value n := by
   constructor
   · rintro (⟨index, same, pair⟩ | ⟨same, _⟩)
     · have arguments := congrArg MemoCalls.Key.arguments same

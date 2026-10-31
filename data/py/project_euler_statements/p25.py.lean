@@ -11,9 +11,9 @@ private abbrev program := P25Ast.module
 
 /-- Every cached entry contains the exact Fibonacci value at its nonnegative key. -/
 def fibSpec (key : Key) (value : Constant) : Prop :=
-  ∃ n : Nat, key = ⟨"fib", [n]⟩ ∧ value = .int (Nat.fib n)
+  ∃ n : Nat, key = ⟨"fib", [n], none⟩ ∧ value = .int (Nat.fib n)
 
-private theorem fibSpec_unique (n : Nat) (value : Constant) (correct : fibSpec ⟨"fib", [n]⟩ value) :
+private theorem fibSpec_unique (n : Nat) (value : Constant) (correct : fibSpec ⟨"fib", [n], none⟩ value) :
     value = .int (Nat.fib n) := by
   obtain ⟨index, same, rfl⟩ := correct
   have equalInt : (n : Int) = index := by simpa [Key.mk.injEq] using same

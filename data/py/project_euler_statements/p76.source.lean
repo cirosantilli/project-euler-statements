@@ -12,10 +12,10 @@ set_option Elab.async false
 abbrev program := P76Ast.module
 
 def cacheSpec (key : Key) (value : Constant) : Prop :=
-  ∃ n max : Int, key = ⟨"count_ways", [n, max]⟩ ∧ value = .int (bounded n max)
+  ∃ n max : Int, key = ⟨"count_ways", [n, max], none⟩ ∧ value = .int (bounded n max)
 
 theorem cache_unique (n max : Int) (value : Constant)
-    (correct : cacheSpec ⟨"count_ways", [n, max]⟩ value) : value = .int (bounded n max) := by
+    (correct : cacheSpec ⟨"count_ways", [n, max], none⟩ value) : value = .int (bounded n max) := by
   obtain ⟨otherN, otherMax, same, rfl⟩ := correct
   have equal : n = otherN ∧ max = otherMax := by simpa [Key.mk.injEq] using same
   rcases equal with ⟨rfl, rfl⟩

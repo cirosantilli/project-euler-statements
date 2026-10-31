@@ -58,7 +58,7 @@ private def encode (items : List Nat) : List Mutable.Value := items.map fun item
 
 /-- Cached diagonal counts are scalar values independent of heap allocation. -/
 def spec (_heap : Mutable.Heap) (key : MemoCalls.Key) (value : Mutable.Value) : Prop :=
-  ∃ layer : Nat, key = ⟨"diag_prime_count", [layer]⟩ ∧ value = number (SpiralPrimes.count layer)
+  ∃ layer : Nat, key = ⟨"diag_prime_count", [layer], none⟩ ∧ value = number (SpiralPrimes.count layer)
 
 private theorem preserves (before after : Mutable.Heap) : Cache.Preserves spec before after :=
   fun _ valid => valid
@@ -273,7 +273,7 @@ private theorem finish (layer : Nat) (env : Mutable.Env) (heap : Mutable.Heap) (
         some (.ok (number ((SpiralPrimes.count layer : Int) + SpiralPrimes.primeCount (SpiralPrimes.allCorners (layer + 1)))), heap ++ extra) from rfl)
 
 private theorem hit (layer : Nat) (heap : Mutable.Heap) (value : Mutable.Value)
-    (valid : spec heap ⟨"diag_prime_count", [layer]⟩ value) :
+    (valid : spec heap ⟨"diag_prime_count", [layer], none⟩ value) :
     value = number (SpiralPrimes.count layer) ∧ ∃ extra, heap = heap ++ extra := by
   obtain ⟨other, equalKey, equalValue⟩ := valid
   have equalCast : (layer : Int) = (other : Int) := by simpa [MemoCalls.Key.mk.injEq] using equalKey
