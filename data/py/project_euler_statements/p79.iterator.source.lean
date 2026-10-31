@@ -1,6 +1,6 @@
 import data.«project-euler-statements».data.py.project_euler_statements.«p79.validation.source»
 import lang.py.FormalSW.IteratorRules
-import lang.py.FormalSW.RuntimeRelocation
+import lang.py.FormalSW.TupleRelocation
 
 /-! Reference validation consumes actual iterator methods and preserves their shared effects. -/
 namespace data.«project-euler-statements».data.py.project_euler_statements.p79
@@ -59,6 +59,15 @@ theorem iterator_accepted_preserves (heap : Mutable.Heap) (address observed : Na
     (heap.set address (.list ((checked ++ [s]).map text)))[observed]? = heap[observed]? := by
   simp [separate]
 
+/-- Reference validation cannot alter the empty-tuple identity seen by the iterator. -/
+theorem iterator_accepted_emptyTuple (heap : Mutable.Heap) (address : Nat)
+    (checked : List String) (s : String)
+    (found : heap[address]? = some (.list (checked.map text))) :
+    Mutable.Relocation.emptyTupleAddress
+      (heap.set address (.list ((checked ++ [s]).map text))) =
+      Mutable.Relocation.emptyTupleAddress heap :=
+  Mutable.Relocation.emptyTupleAddress_set _ _ _ _ found (by simp) (by simp)
+
 /-- Appending a validated string preserves every relocated caller object. -/
 theorem iterator_accepted_layout (logical heap : Mutable.Heap) (rename : Nat → Nat)
     (address : Nat) (checked : List String) (s : String)
@@ -95,12 +104,15 @@ theorem iterator_accepted_attempt_layout (context : Module) (extension : Extends
           (setLocal env "attempt" (text s)), stack,
           yielded.set address (.list ((checked ++ [s]).map text))⟩, finalUsed⟩ resumes) ∧
       Mutable.Relocation.HeapLayout logical
-        (yielded.set address (.list ((checked ++ [s]).map text))) rename := by
+        (yielded.set address (.list ((checked ++ [s]).map text))) rename ∧
+      Mutable.Relocation.emptyTupleAddress
+        (yielded.set address (.list ((checked ++ [s]).map text))) =
+        Mutable.Relocation.emptyTupleAddress yielded := by
   obtain ⟨finalUsed, run⟩ := iterator_accepted_attempt context extension choices anchors used
     before yielded iterator operation address checked env s length digits isObject bound executed
     found getChecked following stack resumes
   exact ⟨finalUsed, run, iterator_accepted_layout logical yielded rename address checked s
-    layout separate⟩
+    layout separate, iterator_accepted_emptyTuple yielded address checked s found⟩
 
 /-- Appending a validated string retains the exact runtime objects used by the iterator. -/
 theorem iterator_accepted_runtime (logical heap : Mutable.Heap) (rename : Nat → Nat)
@@ -138,12 +150,15 @@ theorem iterator_accepted_attempt_runtime (context : Module) (extension : Extend
           (setLocal env "attempt" (text s)), stack,
           yielded.set address (.list ((checked ++ [s]).map text))⟩, finalUsed⟩ resumes) ∧
       Mutable.Relocation.RuntimeLayout logical
-        (yielded.set address (.list ((checked ++ [s]).map text))) rename := by
+        (yielded.set address (.list ((checked ++ [s]).map text))) rename ∧
+      Mutable.Relocation.emptyTupleAddress
+        (yielded.set address (.list ((checked ++ [s]).map text))) =
+        Mutable.Relocation.emptyTupleAddress yielded := by
   obtain ⟨finalUsed, run⟩ := iterator_accepted_attempt context extension choices anchors used
     before yielded iterator operation address checked env s length digits isObject bound executed
     found getChecked following stack resumes
   exact ⟨finalUsed, run, iterator_accepted_runtime logical yielded rename address checked s
-    layout separate⟩
+    layout separate, iterator_accepted_emptyTuple yielded address checked s found⟩
 
 theorem iterator_rejected_attempt (context : Module) (extension : Extends context program)
     (choices : ChoiceSchedule) (anchors used : Nat) (before yielded : Mutable.Heap)
