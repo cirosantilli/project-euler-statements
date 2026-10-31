@@ -52,6 +52,38 @@ theorem prepared_bindings (heap : Mutable.Heap) (edgesAddress : Nat) (env : Heap
   · simp [preparedRoots, preparedEnv, setLocal]
 
 /-- Node enumeration order is irrelevant; every original heap cell is preserved. -/
+theorem reference_body_context (heap : Mutable.Heap) (nodesAddress edgesAddress : Nat)
+    (nodes : List String) (entries : List Edge)
+    (found : heap[nodesAddress]? = some (.list (nodes.map text)))
+    (edges : Edges heap edgesAddress entries) (unique : nodes.Nodup)
+    (env : HeapCalls.Env) (getNodes : env "ns" = some (.ref nodesAddress))
+    (getEdges : env "es" = some (.ref edgesAddress)) :
+    ∃ after finalOutput,
+      SourceResult (.block topoCode env) heap
+        (referenceOutcome (heap.length + 1) (order nodes (entries.map Prod.snd))) after ∧
+      after[heap.length + 1]? = some (.list (finalOutput.map text)) ∧
+      (∀ result, order nodes (entries.map Prod.snd) = some result → finalOutput = result) ∧
+      (∀ address < heap.length, after[address]? = heap[address]?) := by
+  obtain ⟨after, finalOutput, completed, outputFound, agrees, untouched⟩ :=
+    reference_loop_context (preparedHeap heap nodes) (preparedRoots heap edgesAddress)
+      (ScalarSort.strings nodes) entries []
+      (prepared_state heap edgesAddress nodes entries edges unique)
+      (preparedEnv heap env) (prepared_bindings heap edgesAddress env getEdges)
+  have same : order (ScalarSort.strings nodes) (entries.map Prod.snd) =
+      order nodes (entries.map Prod.snd) :=
+    order_nodes_perm _ _ _ (ScalarSort.strings_perm nodes)
+  refine ⟨after, finalOutput, ?_, outputFound, ?_, ?_⟩
+  · have combined := SourceResult.before _ _ heap (preparedHeap heap nodes) after _
+      (fun anchors stack => initialize_reference heap nodesAddress nodes found env getNodes
+        [referenceLoop, .return (.name "out")] anchors stack) completed
+    simpa only [same] using combined
+  · intro result ordered
+    simpa only [List.nil_append] using agrees result (same.trans ordered)
+  · intro address bounded
+    have saved := untouched address (by simp [preparedHeap]; omega)
+      (by simp [preparedRoots]; omega)
+    simpa [preparedHeap, List.getElem?_append_left, bounded] using saved
+
 theorem reference_body_result (heap : Mutable.Heap) (nodesAddress edgesAddress : Nat)
     (nodes : List String) (entries : List Edge)
     (found : heap[nodesAddress]? = some (.list (nodes.map text)))
@@ -65,25 +97,30 @@ theorem reference_body_result (heap : Mutable.Heap) (nodesAddress edgesAddress :
       after[heap.length + 1]? = some (.list (finalOutput.map text)) ∧
       (∀ result, order nodes (entries.map Prod.snd) = some result → finalOutput = result) ∧
       (∀ address < heap.length, after[address]? = heap[address]?) := by
-  obtain ⟨after, finalOutput, completed, outputFound, agrees, untouched⟩ :=
-    reference_loop_result (preparedHeap heap nodes) (preparedRoots heap edgesAddress)
-      (ScalarSort.strings nodes) entries []
-      (prepared_state heap edgesAddress nodes entries edges unique)
-      (preparedEnv heap env) (prepared_bindings heap edgesAddress env getEdges) anchors
-  have same : order (ScalarSort.strings nodes) (entries.map Prod.snd) =
-      order nodes (entries.map Prod.snd) :=
-    order_nodes_perm _ _ _ (ScalarSort.strings_perm nodes)
-  refine ⟨after, finalOutput, ?_, outputFound, ?_, ?_⟩
-  · have initialized := initialize_reference heap nodesAddress nodes found env getNodes
-      [referenceLoop, .return (.name "out")] anchors []
-    have combined := initialized.finishes completed
-    simpa only [same] using combined
-  · intro result ordered
-    simpa only [List.nil_append] using agrees result (same.trans ordered)
-  · intro address bounded
-    have saved := untouched address (by simp [preparedHeap]; omega)
-      (by simp [preparedRoots]; omega)
-    simpa [preparedHeap, List.getElem?_append_left, bounded] using saved
+  obtain ⟨after, finalOutput, result, contents, agrees, preserved⟩ :=
+    reference_body_context heap nodesAddress edgesAddress nodes entries found edges unique
+      env getNodes getEdges
+  exact ⟨after, finalOutput, SourceResult.finishes _ _ _ _ result anchors,
+    contents, agrees, preserved⟩
+
+/-- The call result composes with an enclosing expression or statement in either outcome. -/
+theorem reference_call_context (heap : Mutable.Heap) (nodesAddress edgesAddress : Nat)
+    (nodes : List String) (entries : List Edge)
+    (found : heap[nodesAddress]? = some (.list (nodes.map text)))
+    (edges : Edges heap edgesAddress entries) (unique : nodes.Nodup) :
+    ∃ after finalOutput,
+      SourceResult (.operation (.call "topo") [.ref nodesAddress, .ref edgesAddress]) heap
+        (referenceOutcome (heap.length + 1) (order nodes (entries.map Prod.snd))) after ∧
+      after[heap.length + 1]? = some (.list (finalOutput.map text)) ∧
+      (∀ result, order nodes (entries.map Prod.snd) = some result → finalOutput = result) ∧
+      (∀ address < heap.length, after[address]? = heap[address]?) := by
+  let source := (findFunctionIn program.body "topo").getD ([], [])
+  let env := functionEnv source.1 source.2 [.ref nodesAddress, .ref edgesAddress] []
+  obtain ⟨after, output, completed, contents, agrees, preserved⟩ :=
+    reference_body_context heap nodesAddress edgesAddress nodes entries found edges unique
+      env rfl rfl
+  refine ⟨after, output, ?_, contents, agrees, preserved⟩
+  exact SourceResult.before _ _ heap heap after _ (fun _ _ => .next rfl .refl) completed
 
 /-- This is the source function call, including normal and exceptional completion. -/
 theorem reference_call_result (heap : Mutable.Heap) (nodesAddress edgesAddress : Nat)
