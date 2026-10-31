@@ -690,6 +690,13 @@
   return:
     type: int
     desc: The number of positive starting values below limit_exclusive whose repeated digit-square sums reach 89.
+93:
+  args:
+    max_digit: int
+  return:
+    type: tuple[int, ...]
+    desc: The increasing tuple of four distinct nonnegative integers at most max_digit that maximizes the length of the run 1..n expressible using each operand exactly once, addition, subtraction, multiplication, division by nonzero values, and arbitrary parentheses. Return the lexicographically least tuple on ties, or the empty tuple if max_digit is less than three. Intermediate values are exact rationals; concatenation is not permitted.
+  comment: The operand count is fixed at four; max_digit may exceed nine, generalizing decimal digits to integer operands.
 100:
   args:
     limit: int

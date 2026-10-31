@@ -1,65 +1,65 @@
 from itertools import combinations, permutations
 
 
-def eval_ops(a: int, b: int) -> list[int]:
-    out = [a + b, a - b, b - a, a * b]
-    if b != 0:
-        out.append(a // b)
-    if a != 0:
-        out.append(b // a)
+def eval_ops(a: tuple[int, int], b: tuple[int, int]) -> list[tuple[int, int]]:
+    numerator_a, denominator_a = a
+    numerator_b, denominator_b = b
+    denominator = denominator_a * denominator_b
+    out = [
+        (numerator_a * denominator_b + numerator_b * denominator_a, denominator),
+        (numerator_a * denominator_b - numerator_b * denominator_a, denominator),
+        (numerator_a * numerator_b, denominator),
+    ]
+    if numerator_b > 0:
+        out.append((numerator_a * denominator_b, denominator_a * numerator_b))
+    elif numerator_b < 0:
+        out.append((-numerator_a * denominator_b, -denominator_a * numerator_b))
     return out
 
 
-def all_results(nums: list[int]) -> list[int]:
+def all_results(nums: tuple[int, ...]) -> list[tuple[int, int]]:
     if not nums:
         return []
     if len(nums) == 1:
-        return nums[:]
-    a, b, *tl = nums
+        return [(nums[0], 1)]
     out = []
-    for v in eval_ops(a, b):
-        out += all_results([v] + tl)
+    for split in range(1, len(nums)):
+        left = all_results(nums[:split])
+        right = all_results(nums[split:])
+        for a in left:
+            for b in right:
+                out.extend(eval_ops(a, b))
     return out
 
 
-def positive_ints(xs):
-    return [x for x in xs if x > 0]
-
-
-def consecutive_count(xs):
-    s = set(xs)
+def consecutive_count(xs: list[int]) -> int:
     n = 1
-    for _ in range(len(s) + 2):
-        if n in s:
-            n += 1
-        else:
-            return n - 1
+    while n in xs:
+        n += 1
     return n - 1
 
 
-def consecutive_for_digits(digits: list[int]) -> int:
-    results = []
-    for p in permutations(digits):
-        results += all_results(list(p))
-    return consecutive_count(positive_ints(results))
+def consecutive_for_digits(digits: tuple[int, ...]) -> int:
+    integers = []
+    for order in permutations(digits):
+        for numerator, denominator in all_results(order):
+            if numerator > 0 and numerator % denominator == 0:
+                integers.append(numerator // denominator)
+    return consecutive_count(integers)
 
 
-def digits_to_nat(digits: list[int]) -> int:
-    acc = 0
-    for d in digits:
-        acc = acc * 10 + d
-    return acc
+def naive(max_digit: int = 9) -> tuple[int, ...]:
+    best_length = -1
+    best_digits = ()
+    for digits in combinations(range(max_digit + 1), 4):
+        length = consecutive_for_digits(digits)
+        if length > best_length:
+            best_length = length
+            best_digits = digits
+    return best_digits
 
 
-def naive() -> int:
-    best_len, best_digits = 0, []
-    for digits in combinations(range(10), 4):
-        l = consecutive_for_digits(list(digits))
-        if l > best_len:
-            best_len, best_digits = l, list(digits)
-    return digits_to_nat(best_digits)
-
-
-if __name__ == '__main__':
-    assert consecutive_for_digits([1, 2, 3, 4]) == 28
-
+if __name__ == "__main__":
+    assert consecutive_for_digits((1, 2, 3, 4)) == 28
+    assert consecutive_for_digits((1, 2, 5, 8)) == 51
+    print("".join(map(str, naive())))
