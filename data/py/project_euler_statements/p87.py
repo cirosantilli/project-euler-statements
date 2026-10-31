@@ -10,6 +10,9 @@ def primes_below(limit: int) -> list[int]:
 
 
 def naive(limit: int) -> int:
+    """
+    @formalsw: Returns
+    """
     if limit <= 0:
         return 0
     ps = primes_below(isqrt(limit) + 1)
