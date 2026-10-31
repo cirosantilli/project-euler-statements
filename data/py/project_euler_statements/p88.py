@@ -23,6 +23,9 @@ def dfs(start, prod, summ, terms, k_max, limit, best):
 
 
 def naive(k_max: int) -> int:
+    """
+    @formalsw: Returns
+    """
     if k_max < 2:
         return 0
     limit = 2 * k_max
