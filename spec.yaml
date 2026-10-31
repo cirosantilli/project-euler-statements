@@ -646,6 +646,12 @@
   return:
     type: int
     desc: The least nonnegative integer M for which the number of integer cuboids with 1 <= a <= b <= c <= M and an integer shortest surface path between opposite corners exceeds target; return zero for a negative target.
+87:
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The number of distinct integers strictly below limit expressible as p^2 + q^3 + r^4 with p, q, and r prime; zero for nonpositive limits.
 88:
   args:
     k_max: int

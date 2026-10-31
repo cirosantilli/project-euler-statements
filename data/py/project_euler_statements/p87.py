@@ -3,10 +3,15 @@ from .common import is_prime
 
 
 def primes_below(limit: int) -> list[int]:
+    """
+    @formalsw: Returns
+    """
     return [n for n in range(limit) if is_prime(n)]
 
 
 def naive(limit: int) -> int:
+    if limit <= 0:
+        return 0
     ps = primes_below(isqrt(limit) + 1)
     sums = []
     for p in ps:
