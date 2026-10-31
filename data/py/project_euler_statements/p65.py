@@ -20,10 +20,18 @@ def digit_sum(n: int) -> int:
     return sum(digits_le(n))
 
 
-def naive(n: int) -> int:
+def naive(n: int = 100) -> int:
+    """
+    Sum numerator digits after constructing the first n coefficients of e.
+
+    @formalsw: Requires(n >= 1)
+    @formalsw: Returns
+    """
     return digit_sum(convergent_num(n))
 
 
 if __name__ == '__main__':
     assert digit_sum(convergent_num(10)) == 17
+    assert naive(1) == 2
+    assert naive() == 272
 

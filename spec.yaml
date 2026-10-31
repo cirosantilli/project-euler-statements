@@ -486,6 +486,14 @@
   return:
     type: int
     desc: The number of nonsquare integers n with 2 <= n <= limit whose square-root continued fraction has an odd period; zero if limit is below two.
+65:
+  args:
+    n: int
+  constraints:
+    - n >= 1
+  return:
+    type: int
+    desc: The sum of decimal digits in the numerator of the nth continued-fraction convergent of e, reduced to lowest terms.
 66:
   args:
     limit: int
