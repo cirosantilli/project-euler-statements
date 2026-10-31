@@ -1,6 +1,6 @@
 import data.«project-euler-statements».data.py.project_euler_statements.«p79.validation.source»
 import lang.py.FormalSW.IteratorRules
-import lang.py.FormalSW.MutableRelocation
+import lang.py.FormalSW.RuntimeRelocation
 
 /-! Reference validation consumes actual iterator methods and preserves their shared effects. -/
 namespace data.«project-euler-statements».data.py.project_euler_statements.p79
@@ -100,6 +100,49 @@ theorem iterator_accepted_attempt_layout (context : Module) (extension : Extends
     before yielded iterator operation address checked env s length digits isObject bound executed
     found getChecked following stack resumes
   exact ⟨finalUsed, run, iterator_accepted_layout logical yielded rename address checked s
+    layout separate⟩
+
+/-- Appending a validated string retains the exact runtime objects used by the iterator. -/
+theorem iterator_accepted_runtime (logical heap : Mutable.Heap) (rename : Nat → Nat)
+    (address : Nat) (checked : List String) (s : String)
+    (layout : Mutable.Relocation.RuntimeLayout logical heap rename)
+    (separate : ∀ index < logical.length, address ≠ rename index) :
+    Mutable.Relocation.RuntimeLayout logical
+      (heap.set address (.list ((checked ++ [s]).map text))) rename := by
+  apply layout.preserves
+  intro index inside
+  exact iterator_accepted_preserves heap address (rename index) checked s (separate index inside)
+
+/-- Actual iterator execution followed by validation retains the complete runtime layout. -/
+theorem iterator_accepted_attempt_runtime (context : Module) (extension : Extends context program)
+    (choices : ChoiceSchedule) (anchors used : Nat) (before yielded : Mutable.Heap)
+    (iterator : Mutable.Value)
+    (operation : Operation) (address : Nat) (checked : List String) (env : HeapCalls.Env)
+    (s : String) (length : s.length = 3) (digits : Strings.isDigit s = true)
+    (isObject : IteratorCalls.isInstance before iterator = true)
+    (bound : ProtocolCalls.nextMethod context iterator before =
+      some (.ok (some operation), before))
+    (executed : IteratorCalls.OperationCompletes context choices used operation
+      before (.ok (text s)) yielded)
+    (found : yielded[address]? = some (.list (checked.map text)))
+    (getChecked : env "checked" = some (.ref address))
+    (logical : Mutable.Heap) (rename : Nat → Nat)
+    (layout : Mutable.Relocation.RuntimeLayout logical yielded rename)
+    (separate : ∀ index < logical.length, address ≠ rename index)
+    (following : List Stmt) (stack : List HeapCalls.Frame)
+    (resumes : List IteratorCalls.Resume) :
+    ∃ finalUsed, IteratorCalls.Reaches context anchors choices []
+      (.running ⟨⟨.block (validationLoop (sequenceSource iterator) 0 :: following) env,
+        stack, before⟩, used⟩ resumes)
+      (.running ⟨⟨.block (validationLoop (sequenceSource iterator) 0 :: following)
+          (setLocal env "attempt" (text s)), stack,
+          yielded.set address (.list ((checked ++ [s]).map text))⟩, finalUsed⟩ resumes) ∧
+      Mutable.Relocation.RuntimeLayout logical
+        (yielded.set address (.list ((checked ++ [s]).map text))) rename := by
+  obtain ⟨finalUsed, run⟩ := iterator_accepted_attempt context extension choices anchors used
+    before yielded iterator operation address checked env s length digits isObject bound executed
+    found getChecked following stack resumes
+  exact ⟨finalUsed, run, iterator_accepted_runtime logical yielded rename address checked s
     layout separate⟩
 
 theorem iterator_rejected_attempt (context : Module) (extension : Extends context program)
