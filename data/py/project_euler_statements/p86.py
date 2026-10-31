@@ -23,6 +23,9 @@ def count_cuboids(m: int) -> int:
 
 
 def naive(target: int) -> int:
+    """
+    @formalsw: Returns
+    """
     total = 0
     c = 0
     while total <= target:
