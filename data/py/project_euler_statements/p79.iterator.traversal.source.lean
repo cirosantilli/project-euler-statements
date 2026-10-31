@@ -1,5 +1,4 @@
-import data.«project-euler-statements».data.py.project_euler_statements.«p79.iterator.isolation.source»
-import lang.py.FormalSW.IteratorTraversal
+import data.«project-euler-statements».data.py.project_euler_statements.«p79.iterator.prefix.source»
 
 /-! Reference validation composes every valid yielded attempt and the final iterator exit. -/
 namespace data.«project-euler-statements».data.py.project_euler_statements.p79
@@ -24,37 +23,15 @@ theorem validated_iterator_traversal (context : Module) (extension : Extends con
         (.running ⟨⟨.block (validationLoop (sequenceSource (relocateValue rename iterator)) 0 :: following)
           env, stack, physical⟩, used⟩ resumes)
         (validationIteratorLoop finalEnv following stack) resumes after finalUsed outcome := by
-  induction trace generalizing physical checked env with
-  | exhausted ran =>
-      obtain ⟨after, _, kept, exited⟩ := ran.exit_isolated source physical rename layout.layout noGrowth anchors
-      refine ⟨after, env, ?_, getChecked, ?_⟩
-      · simpa only [List.append_nil] using kept address (.list (checked.map text)) layout
-      · simpa only [exitOutcome, ↓reduceIte] using exited (validationIteratorLoop env following stack) resumes
-  | failed ran notExhausted =>
-      obtain ⟨after, _, kept, exited⟩ := ran.exit_isolated source physical rename layout.layout noGrowth anchors
-      refine ⟨after, env, ?_, getChecked, ?_⟩
-      · simpa only [List.append_nil] using kept address (.list (checked.map text)) layout
-      · simpa only [exitOutcome, if_neg notExhausted] using exited (validationIteratorLoop env following stack) resumes
-  | @yielded before middle after used nextUsed finalUsed s rest outcome ran later ih =>
-      obtain ⟨middleClosed, firstGrows⟩ := ran.effects source layout.layout.closed
-      have laterGrows := (later.effects source middleClosed).2
-      have firstSize : middle.length = before.length := by omega
-      have laterSize : after.length = middle.length := by omega
-      obtain ⟨operation, inside, isObject, bound, executed⟩ := ran
-      have accepted := valid s (by simp)
-      obtain ⟨yieldedPhysical, nextMap, agrees, iteration, nextPrivate⟩ :=
-        iterator_accepted_from_logical context extension source choices anchors used nextUsed before physical middle
-          rename iterator operation address checked env s accepted.1 accepted.2 layout inside isObject bound
-          executed firstSize getChecked following stack resumes
-      have fixedMap : PrivateLayout middle
-          (yieldedPhysical.set address (.list ((checked ++ [s]).map text))) rename
-          address (.list ((checked ++ [s]).map text)) :=
-        nextPrivate.congr (fun index bounded => (agrees index (by omega)).symm)
-      obtain ⟨result, finalEnv, retained, finalChecked, exited⟩ := ih laterSize
-        (fun value member => valid value (List.mem_cons_of_mem _ member))
-        _ (checked ++ [s]) (setLocal env "attempt" (text s)) fixedMap
-        (by simpa [setLocal] using getChecked)
-      refine ⟨result, finalEnv, ?_, finalChecked, exited.before iteration⟩
-      simpa only [List.append_assoc, List.singleton_append] using retained
+  obtain ⟨middle, nextUsed, error, first, last, result⟩ := trace.decompose
+  obtain ⟨middleClosed, prefixGrows⟩ := first.effects source layout.layout.closed
+  have lastGrows := (last.effects source middleClosed).2
+  obtain ⟨middlePhysical, nextEnv, nextPrivate, nextChecked, accepted⟩ :=
+    validated_iterator_prefix context extension source choices iterator logical middle used nextUsed attempts
+      first (by omega) valid physical rename address checked env layout getChecked following anchors stack resumes
+  obtain ⟨after, _, kept, exited⟩ := last.exit_isolated source middlePhysical rename nextPrivate.layout (by omega) anchors
+  refine ⟨after, nextEnv, kept address _ nextPrivate, nextChecked, ?_⟩
+  rw [← result]
+  exact (exited (validationIteratorLoop nextEnv following stack) resumes).before accepted
 
 end data.«project-euler-statements».data.py.project_euler_statements.p79
