@@ -563,6 +563,12 @@
   return:
     type: int
     desc: The number of positive starting values below limit whose digit-factorial chain has exactly target distinct terms before the first repetition.
+75:
+  args:
+    limit: int
+  return:
+    type: int
+    desc: The number of positive perimeters at most limit that admit exactly one right triangle with positive integer side lengths, ignoring the order of the two legs; zero for negative bounds.
 77:
   args:
     target: int
