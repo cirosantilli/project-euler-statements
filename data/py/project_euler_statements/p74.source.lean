@@ -17,11 +17,11 @@ def picked (target : Int) (first count : Nat) : Nat :=
 
 theorem tested (start : Nat) (target : Int) (heap : Mutable.Heap) (env : HeapCalls.Env)
     (getN : env "n" = some (number start))
-    (getTarget : env "target" = some (integer target)) :
+    (getTarget : env "target" = some (integer target)) (globals : Mutable.Globals := []) :
     ∃ extra, Evaluates program env test heap
       (.scalar (.bool (decide ((ProjectEulerStatements.P74.chainLen start : Int) = target))))
-      (heap ++ extra) := by
-  obtain ⟨extra, returned⟩ := chain_len.result start heap
+      (heap ++ extra) globals := by
+  obtain ⟨extra, returned⟩ := chain_len.result start heap globals
   refine ⟨extra, ?_⟩
   exact Evaluates.compare (Evaluates.call (.cons (Evaluates.lookup getN) .nil) returned)
     (Evaluates.lookup getTarget) rfl
@@ -30,10 +30,10 @@ theorem scan (target stop : Int) (first count total : Nat)
     (length : (stop - (first : Int)).toNat = count)
     (heap : Mutable.Heap) (env : HeapCalls.Env)
     (getTarget : env "target" = some (integer target))
-    (getTotal : env sumAccumulator = some (number total)) :
+    (getTotal : env sumAccumulator = some (number total)) (globals : Mutable.Globals := []) :
     ∃ extra, BlockReturns program env
       [.rangeStepLoop "n" first stop 1 body [], .return (.name sumAccumulator)] heap
-      (number (total + picked target first count)) (heap ++ extra) := by
+      (number (total + picked target first count)) (heap ++ extra) globals := by
   induction count generalizing first total heap env with
   | zero =>
       refine ⟨[], ?_⟩
@@ -48,7 +48,7 @@ theorem scan (target stop : Int) (first count total : Nat)
       have currentTotal : entered sumAccumulator = some (number total) := by
         simpa [entered, setLocal, sumAccumulator] using getTotal
       obtain ⟨before, evaluated⟩ := tested first target heap entered (by simp [entered, setLocal])
-        captured
+        captured globals
       by_cases chosen : (ProjectEulerStatements.P74.chainLen first : Int) = target
       · let updated := setLocal entered sumAccumulator (number (total + 1))
         obtain ⟨extra, rest⟩ := ih (first + 1) (total + 1) (by omega) (heap ++ before) updated
@@ -77,24 +77,24 @@ theorem scan (target stop : Int) (first count total : Nat)
           Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt,
           entered, List.append_assoc] using rest
 
-theorem result (limit target : Int) (heap : Mutable.Heap) :
+theorem result (limit target : Int) (heap : Mutable.Heap) (globals : Mutable.Globals := []) :
     ∃ extra, ReturnsValue program "naive" [integer limit, integer target] heap
-      (integer (ProjectEulerStatements.P74.result limit target)) (heap ++ extra) := by
+      (integer (ProjectEulerStatements.P74.result limit target)) (heap ++ extra) globals := by
   let args := ((findFunctionIn program.body "naive").getD ([], [])).1
   let source := ((findFunctionIn program.body "naive").getD ([], [])).2
-  let entry := functionEnv args source [integer limit, integer target] []
+  let entry := functionEnv args source [integer limit, integer target] globals
   let generators : List (String × Expr × List Expr) :=
     [("n", .call (.name "range") [.constant (.int 1), .name "limit"], [test])]
   let summed := setLocal (comprehensionEnv entry generators) sumAccumulator (number 0)
   obtain ⟨extra, scanned⟩ := scan target limit 1 (limit - 1).toNat 0 (by rfl) heap summed
-    (by rfl) (by rfl)
+    (by cases globals <;> rfl) (by cases globals <;> rfl) globals
   refine ⟨extra, ?_⟩
   apply BlockReturns.function rfl rfl
   apply BlockReturns.return_value
   apply Evaluates.sum_range
   apply Evaluates.sum_generator_range (middle := heap) (afterStart := heap)
     (values := [number 1, integer limit])
-  · exact .cons Evaluates.constant (.cons (Evaluates.lookup (by rfl)) .nil)
+  · exact .cons Evaluates.constant (.cons (Evaluates.lookup (by cases globals <;> rfl)) .nil)
   · rfl
   · exact Evaluates.constant
   · rfl
