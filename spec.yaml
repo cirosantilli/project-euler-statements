@@ -640,6 +640,12 @@
   return:
     type: int
     desc: The area m*n of a positive grid whose number of axis-aligned subrectangles is closest to target; choose the least pair (m, n) in lexicographic order with 1 <= m <= n on ties.
+86:
+  args:
+    target: int
+  return:
+    type: int
+    desc: The least nonnegative integer M for which the number of integer cuboids with 1 <= a <= b <= c <= M and an integer shortest surface path between opposite corners exceeds target; return zero for a negative target.
 88:
   args:
     k_max: int
