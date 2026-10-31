@@ -1,0 +1,301 @@
+import data.«project-euler-statements».«.formalsw».data.py.project_euler_statements.«p62.py.ast»
+import data.«project-euler-statements».data.py.project_euler_statements.«common.py»
+import ProjectEulerSolutions.Lib.PrimePermutations
+import ProjectEulerSolutions.Lib.HeapCollection
+import lang.py.FormalSW.SumCalls
+
+/-! Source proofs for the finite cubic-permutation reference. -/
+set_option Elab.async false
+
+namespace data.«project-euler-statements».data.py.project_euler_statements.p62
+open FormalSW.PyAst FormalSW.PyAst.HeapCalls
+open ProjectEulerSolutions.PrimePermutations
+private abbrev program := P62Ast.module
+private abbrev number (n : Int) : Mutable.Value := .scalar (.int n)
+private abbrev flag (b : Bool) : Mutable.Value := .scalar (.bool b)
+private def numbers (values : List Int) : List Mutable.Value := values.map number
+
+private theorem common_extension : HeapCalls.Extends program CommonAst.module := by
+  apply HeapCalls.Extends.of_classless (classless := rfl)
+  change Calls.Extends { body := program.body.take 5 ++ CommonAst.module.body } CommonAst.module
+  apply Calls.Extends.prepend
+  · intro name member
+    change name ∈ ["digits_key", "cube_perm_count", "naive"] at member
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at member
+    rcases member with rfl | rfl | rfl <;> decide
+  · intro name member
+    change name ∈ ([] : List String) at member
+    simp at member
+
+def digitObjects (n : Nat) : Mutable.Heap :=
+  [.list (numbers (integerDigits n)), .list (numbers (sortedDigits n))]
+
+namespace digits_key
+/-- Digit conversion and stable sorting allocate two lists without changing caller objects. -/
+theorem result (n : Nat) (heap : Mutable.Heap) :
+    ReturnsValue program "digits_key" [number n] heap (.ref (heap.length + 1)) (heap ++ digitObjects n) := by
+  let middle := heap ++ [Mutable.Object.list (numbers (integerDigits n))]
+  have converted : ReturnsValue program "digits_le" [number n] heap (.ref heap.length) middle := by
+    simpa only [middle, numbers, integerDigits, List.map_map, Function.comp_def] using
+      (common.digits_le.decimal n heap).extend common_extension
+  have sorted := primitive_sorted_list middle heap.length ((integerDigits n).map Constant.int)
+    ((sortedDigits n).map Constant.int)
+    (by simp [middle, numbers, number, List.map_map]) (ScalarSort.sort_ints (integerDigits n))
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.return_value
+  apply Evaluates.builtin (.cons (Evaluates.call (.cons (Evaluates.lookup rfl) .nil) converted) .nil)
+  simpa [middle, digitObjects, numbers, number, List.map_map, List.append_assoc] using sorted
+
+theorem «Returns» (n : Int)
+    (condition : Calls.Condition program (fun name => if name = "n" then some (.int n) else none)
+      P62Ast.requires_digits_key_0) :
+    (HeapCalls.call program "digits_key" [number n] []).Returns := by
+  have nonnegative : 0 ≤ n := by
+    simpa [evalCmpOp] using Calls.Evaluates.condition_int_compare condition rfl
+  lift n to Nat using nonnegative
+  exact (result n []).returns
+
+theorem «Supported» (n : Int)
+    (condition : Calls.Condition program (fun name => if name = "n" then some (.int n) else none)
+      P62Ast.requires_digits_key_0) :
+    (HeapCalls.call program "digits_key" [number n] []).Supported := («Returns» n condition).supported
+end digits_key
+
+namespace cube_perm_count
+def accepts (n i : Nat) : Bool := decide (sortedDigits (i ^ 3) = sortedDigits (n ^ 3))
+theorem accepts_iff (n i : Nat) : accepts n i = true ↔
+    (Nat.digits 10 (i ^ 3)).Perm (Nat.digits 10 (n ^ 3)) := by
+  simp only [accepts, decide_eq_true_eq, sortedDigits_eq_iff]
+def selected (n first count : Nat) : Nat := ((List.range' first count).filter (accepts n)).length
+def answer (limit : Int) (n : Nat) : Nat := selected n 1 limit.toNat
+def cubeExpression (name : String) : Expr := .binOp (.name name) .pow (.constant (.int 3))
+def filterExpression : Expr := .compare (.call (.name "digits_key") [cubeExpression "i"]) [(.eq, .name "key")]
+def body : List Stmt := comprehensionFilters [filterExpression] (sumBody (.constant (.int 1)) [])
+
+theorem cube_evaluate (n : Nat) (name : String) (heap : Mutable.Heap) (env : HeapCalls.Env)
+    (found : env name = some (number n)) :
+    Evaluates program env (cubeExpression name) heap (number (n ^ 3 : Nat)) heap := by
+  apply Evaluates.binary (middle := heap) (afterRight := heap) (finalHeap := heap)
+    (Evaluates.lookup found) Evaluates.constant
+  simp [Mutable.binary, scalarBinary, number]
+
+theorem filter_evaluate (n i : Nat) (heap : Mutable.Heap) (env : HeapCalls.Env) (key : Nat)
+    (getI : env "i" = some (number i)) (getKey : env "key" = some (.ref key))
+    (keyFound : heap[key]? = some (.list (numbers (sortedDigits (n ^ 3))))) :
+    Evaluates program env filterExpression heap (flag (accepts n i)) (heap ++ digitObjects (i ^ 3)) := by
+  apply Evaluates.compare (av := .ref (heap.length + 1)) (bv := .ref key)
+    (middle := heap ++ digitObjects (i ^ 3)) (afterRight := heap ++ digitObjects (i ^ 3))
+  · exact Evaluates.call (.cons (cube_evaluate i "i" heap env getI) .nil) (digits_key.result (i ^ 3) heap)
+  · exact Evaluates.lookup getKey
+  · apply compare_int_lists (sortedDigits (i ^ 3)) (sortedDigits (n ^ 3))
+    · simp [digitObjects, numbers]
+    · exact ProjectEulerSolutions.HeapCollection.prefix_found heap _ key _ keyFound
+
+/-- The lazy filter allocates each candidate key and increments the accumulator exactly on a match. -/
+theorem loop (n first count total stop : Nat) (length : first + count = stop)
+    (heap : Mutable.Heap) (env : HeapCalls.Env) (key : Nat)
+    (getKey : env "key" = some (.ref key))
+    (keyFound : heap[key]? = some (.list (numbers (sortedDigits (n ^ 3)))))
+    (accumulator : env sumAccumulator = some (number total)) :
+    ∃ extra, BlockReturns program env
+      [.rangeStepLoop "i" first stop 1 body [], .return (.name sumAccumulator)] heap
+      (number (total + selected n first count)) (heap ++ extra) := by
+  induction count generalizing first total heap env with
+  | zero =>
+      refine ⟨[], ?_⟩
+      simp only [selected, List.range'_zero, List.filter_nil, List.length_nil, List.append_nil]
+      apply BlockReturns.range_done (by simp [Calls.rangeContinues]; omega)
+      exact BlockReturns.return_value (Evaluates.lookup accumulator)
+  | succ count ih =>
+      let bound := setLocal env "i" (number first)
+      have boundKey : bound "key" = some (.ref key) := by simpa [bound, setLocal] using getKey
+      have saved : bound sumAccumulator = some (number total) := by
+        simpa [bound, setLocal, sumAccumulator] using accumulator
+      have tested := filter_evaluate n first heap bound key rfl boundKey keyFound
+      have nextFound : (heap ++ digitObjects (first ^ 3))[key]? = some (.list (numbers (sortedDigits (n ^ 3)))) :=
+        ProjectEulerSolutions.HeapCollection.prefix_found heap _ key _ keyFound
+      cases yes : accepts n first with
+      | false =>
+          obtain ⟨extra, rest⟩ := ih (first + 1) total (by omega) (heap ++ digitObjects (first ^ 3))
+            bound boundKey nextFound saved
+          refine ⟨digitObjects (first ^ 3) ++ extra, ?_⟩
+          apply BlockReturns.range_step (by simp [Calls.rangeContinues]; omega)
+          apply BlockReturns.branch (flag := false) (by simpa only [yes] using tested) rfl
+          simpa [selected, List.range'_succ, yes, Calls.loopContinuation, Calls.loopControl,
+            Calls.loopControlStmt, comprehensionFilters, sumBody, body, List.append_assoc] using rest
+      | true =>
+          let updated := setLocal bound sumAccumulator (number (total + 1))
+          obtain ⟨extra, rest⟩ := ih (first + 1) (total + 1) (by omega) (heap ++ digitObjects (first ^ 3))
+            updated (by simpa [updated, setLocal, sumAccumulator] using boundKey) nextFound rfl
+          refine ⟨digitObjects (first ^ 3) ++ extra, ?_⟩
+          apply BlockReturns.range_step (by simp [Calls.rangeContinues]; omega)
+          apply BlockReturns.branch (flag := true) (by simpa only [yes] using tested) rfl
+          apply BlockReturns.assign (value := number (total + 1 : Nat)) (middle := heap ++ digitObjects (first ^ 3))
+          · exact Evaluates.binary (av := number total) (bv := number 1)
+              (Evaluates.lookup saved) Evaluates.constant (by simp [Mutable.binary, scalarBinary, number])
+          · simpa [selected, List.range'_succ, yes, Calls.loopContinuation, Calls.loopControl,
+              Calls.loopControlStmt, comprehensionFilters, sumBody, body, List.append_assoc,
+              updated, bound, Int.add_assoc, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using rest
+
+/-- Every finite signed limit is supported, including empty ranges; the queried cube is nonnegative. -/
+theorem result (limit : Int) (n : Nat) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "cube_perm_count" [number limit, number n] heap
+      (number (answer limit n)) (heap ++ extra) := by
+  let entry := functionEnv ((findFunctionIn program.body "cube_perm_count").getD ([], [])).1
+    ((findFunctionIn program.body "cube_perm_count").getD ([], [])).2 [number limit, number n] []
+  let keyed := setLocal entry "key" (.ref (heap.length + 1))
+  let middle := heap ++ digitObjects (n ^ 3)
+  let generators : List (String × Expr × List Expr) :=
+    [("i", .call (.name "range") [.constant (.int 1), .binOp (.name "limit") .add (.constant (.int 1))], [filterExpression])]
+  let ready := setLocal (comprehensionEnv keyed generators) sumAccumulator (number 0)
+  have getKey : ready "key" = some (.ref (heap.length + 1)) := by
+    simp [ready, keyed, comprehensionEnv, generators, setLocal, sumAccumulator]
+  have found : middle[heap.length + 1]? = some (.list (numbers (sortedDigits (n ^ 3)))) := by
+    simp [middle, digitObjects]
+  have sumResult : ∃ extra, Evaluates program keyed
+      (.sumRange "i" (.constant (.int 1)) [.constant (.int 1), .binOp (.name "limit") .add (.constant (.int 1))] [filterExpression])
+      middle (number (answer limit n)) (middle ++ extra) := by
+    by_cases positive : 0 < limit + 1
+    · obtain ⟨extra, executed⟩ := loop n 1 limit.toNat 0 (limit.toNat + 1) (by omega)
+        middle ready (heap.length + 1) getKey found rfl
+      have castStop : ((limit.toNat + 1 : Nat) : Int) = limit + 1 := by omega
+      rw [castStop] at executed
+      refine ⟨extra, ?_⟩
+      apply Evaluates.sum_range
+      apply Evaluates.sum_generator_range (values := [number 1, number (limit + 1)])
+        (.cons Evaluates.constant (.cons (Evaluates.binary
+          (Evaluates.lookup (by simp [keyed, entry, setLocal]; rfl)) Evaluates.constant rfl) .nil))
+        rfl Evaluates.constant rfl
+      simpa only [ready, generators, answer, body, Int.natCast_zero, Int.zero_add] using executed
+    · refine ⟨[], ?_⟩
+      have empty : limit.toNat = 0 := by omega
+      simp only [List.append_nil, answer, empty, selected, List.range'_zero, List.filter_nil, List.length_nil]
+      apply Evaluates.sum_range
+      apply Evaluates.sum_generator_range (values := [number 1, number (limit + 1)])
+        (.cons Evaluates.constant (.cons (Evaluates.binary
+          (Evaluates.lookup (by simp [keyed, entry, setLocal]; rfl)) Evaluates.constant rfl) .nil))
+        rfl Evaluates.constant rfl
+      apply BlockReturns.range_done (by simp [Calls.rangeContinues]; omega)
+      exact BlockReturns.return_value (Evaluates.lookup rfl)
+  obtain ⟨extra, summed⟩ := sumResult
+  refine ⟨digitObjects (n ^ 3) ++ extra, ?_⟩
+  rw [← List.append_assoc]
+  apply BlockReturns.function rfl rfl
+  apply BlockReturns.assign (value := .ref (heap.length + 1)) (middle := middle)
+  · exact Evaluates.call (.cons (cube_evaluate n "n" heap entry rfl) .nil) (digits_key.result (n ^ 3) heap)
+  · exact BlockReturns.return_value summed
+
+private def inputEnv (n : Int) : ScalarEnv :=
+  fun name => if name = "n" then some (.int n) else none
+
+theorem «Returns» (limit n : Int)
+    (condition : Calls.Condition program (inputEnv n) P62Ast.requires_cube_perm_count_0) :
+    (HeapCalls.scalarFunction program "cube_perm_count" [.int limit, .int n]).Returns := by
+  have nonnegative : 0 ≤ n := by
+    simpa [evalCmpOp] using Calls.Evaluates.condition_int_compare condition rfl
+  lift n to Nat using nonnegative
+  obtain ⟨extra, returned⟩ := result limit n []
+  exact returned.scalar_returns
+
+theorem «Supported» (limit n : Int)
+    (condition : Calls.Condition program (inputEnv n) P62Ast.requires_cube_perm_count_0) :
+    (HeapCalls.scalarFunction program "cube_perm_count" [.int limit, .int n]).Supported :=
+  («Returns» limit n condition).supported
+end cube_perm_count
+
+namespace naive
+def search (limit target : Int) : Nat → Nat → Int
+  | _, 0 => 0
+  | first, count + 1 =>
+      if (cube_perm_count.answer limit first : Int) = target then (first ^ 3 : Nat)
+      else search limit target (first + 1) count
+def answer (limit target : Int) : Int := search limit target 1 limit.toNat
+def test : Expr := .compare (.call (.name "cube_perm_count") [.name "limit", .name "n"]) [(.eq, .name "target")]
+def body : List Stmt := [.ifThen test [.return (cube_perm_count.cubeExpression "n")] []]
+
+theorem test_evaluate (limit target : Int) (n : Nat) (heap : Mutable.Heap) (env : HeapCalls.Env)
+    (getLimit : env "limit" = some (number limit)) (getTarget : env "target" = some (number target))
+    (getN : env "n" = some (number n)) :
+    ∃ extra, Evaluates program env test heap
+      (flag (decide ((cube_perm_count.answer limit n : Int) = target))) (heap ++ extra) := by
+  obtain ⟨extra, returned⟩ := cube_perm_count.result limit n heap
+  refine ⟨extra, ?_⟩
+  apply Evaluates.compare (middle := heap ++ extra) (afterRight := heap ++ extra)
+    (av := number (cube_perm_count.answer limit n)) (bv := number target)
+  · exact Evaluates.call (.cons (Evaluates.lookup getLimit) (.cons (Evaluates.lookup getN) .nil)) returned
+  · exact Evaluates.lookup getTarget
+  · simp [HeapCalls.compare, scalarCompare, evalCmpOp]
+
+theorem loop (limit target : Int) (first count stop : Nat) (length : first + count = stop)
+    (heap : Mutable.Heap) (env : HeapCalls.Env)
+    (getLimit : env "limit" = some (number limit)) (getTarget : env "target" = some (number target)) :
+    ∃ extra, BlockReturns program env [.rangeStepLoop "n" first stop 1 body [], .return (.constant (.int 0))]
+      heap (number (search limit target first count)) (heap ++ extra) := by
+  induction count generalizing first heap env with
+  | zero =>
+      refine ⟨[], ?_⟩
+      simp only [search, List.append_nil]
+      apply BlockReturns.range_done (by simp [Calls.rangeContinues]; omega)
+      exact BlockReturns.return_value Evaluates.constant
+  | succ count ih =>
+      let bound := setLocal env "n" (number first)
+      have boundLimit : bound "limit" = some (number limit) := by simpa [bound, setLocal] using getLimit
+      have boundTarget : bound "target" = some (number target) := by simpa [bound, setLocal] using getTarget
+      obtain ⟨firstExtra, tested⟩ := test_evaluate limit target first heap bound boundLimit boundTarget rfl
+      by_cases selected : (cube_perm_count.answer limit first : Int) = target
+      · refine ⟨firstExtra, ?_⟩
+        simp only [search, if_pos selected]
+        apply BlockReturns.range_step (by simp [Calls.rangeContinues]; omega)
+        apply BlockReturns.branch (flag := true) (by simpa only [selected, decide_true] using tested) rfl
+        exact BlockReturns.return_value (cube_perm_count.cube_evaluate first "n" (heap ++ firstExtra) bound rfl)
+      · obtain ⟨extra, rest⟩ := ih (first + 1) (by omega) (heap ++ firstExtra) bound boundLimit boundTarget
+        refine ⟨firstExtra ++ extra, ?_⟩
+        simp only [search, if_neg selected]
+        apply BlockReturns.range_step (by simp [Calls.rangeContinues]; omega)
+        apply BlockReturns.branch (flag := false) (by simpa only [selected, decide_false] using tested) rfl
+        simpa only [body, Calls.loopContinuation, Calls.loopControl, Calls.loopControlStmt,
+          Bool.false_or, Bool.false_eq_true, if_false, List.nil_append, List.append_assoc,
+          Int.natCast_add, Int.natCast_one] using rest
+
+/-- The entire finite reference returns its first matching cube for every signed limit and target. -/
+theorem result (limit target : Int) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "naive" [number limit, number target] heap
+      (number (answer limit target)) (heap ++ extra) := by
+  let entry := functionEnv ((findFunctionIn program.body "naive").getD ([], [])).1
+    ((findFunctionIn program.body "naive").getD ([], [])).2 [number limit, number target] []
+  by_cases positive : 0 < limit + 1
+  · obtain ⟨extra, executed⟩ := loop limit target 1 limit.toNat (limit.toNat + 1) (by omega) heap entry rfl rfl
+    have castStop : ((limit.toNat + 1 : Nat) : Int) = limit + 1 := by omega
+    rw [castStop] at executed
+    refine ⟨extra, ?_⟩
+    apply BlockReturns.function rfl rfl
+    apply BlockReturns.for_range (values := [number 1, number (limit + 1)])
+      (.cons Evaluates.constant (.cons (Evaluates.binary (Evaluates.lookup rfl) Evaluates.constant rfl) .nil)) rfl
+    exact executed
+  · refine ⟨[], ?_⟩
+    have empty : limit.toNat = 0 := by omega
+    simp only [answer, empty, search, List.append_nil]
+    apply BlockReturns.function rfl rfl
+    apply BlockReturns.for_range (values := [number 1, number (limit + 1)])
+      (.cons Evaluates.constant (.cons (Evaluates.binary (Evaluates.lookup rfl) Evaluates.constant rfl) .nil)) rfl
+    apply BlockReturns.range_done (by simp [Calls.rangeContinues]; omega)
+    exact BlockReturns.return_value Evaluates.constant
+
+theorem «Returns» (limit target : Int) :
+    (HeapCalls.scalarFunction program "naive" [.int limit, .int target]).Returns := by
+  obtain ⟨extra, returned⟩ := result limit target []
+  exact returned.scalar_returns
+
+theorem «Supported» (limit target : Int) :
+    (HeapCalls.scalarFunction program "naive" [.int limit, .int target]).Supported := («Returns» limit target).supported
+end naive
+
+theorem cube_perm_count_source_result (limit : Int) (n : Nat) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "cube_perm_count" [number limit, number n] heap
+      (number (cube_perm_count.answer limit n)) (heap ++ extra) := cube_perm_count.result limit n heap
+
+theorem naive_source_result (limit target : Int) (heap : Mutable.Heap) :
+    ∃ extra, ReturnsValue program "naive" [number limit, number target] heap
+      (number (naive.answer limit target)) (heap ++ extra) := naive.result limit target heap
+
+end data.«project-euler-statements».data.py.project_euler_statements.p62
