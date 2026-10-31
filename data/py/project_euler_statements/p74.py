@@ -3,10 +3,18 @@ from .common import digits_le
 
 
 def next_term(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     return sum(factorial(d) for d in (digits_le(n) if n else [0]))
 
 
 def chain_len(n: int) -> int:
+    """
+    @formalsw: Requires(n >= 0)
+    @formalsw: Returns
+    """
     x, seen = n, []
     while x not in seen:
         seen.append(x)
@@ -15,6 +23,9 @@ def chain_len(n: int) -> int:
 
 
 def naive(limit: int, target: int) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(1 for n in range(1, limit) if chain_len(n) == target)
 
 
