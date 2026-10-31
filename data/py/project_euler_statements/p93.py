@@ -1,3 +1,11 @@
+"""
+@formalsw: theorem eval_ops_source (a b : ProjectEulerSolutions.RationalPair.Pair)
+  (left right : Nat) (heap : FormalSW.PyAst.Mutable.Heap) (globals : FormalSW.PyAst.Mutable.Globals) :
+  heap[left]? = some (ProjectEulerSolutions.RationalPair.Heap.object a) →
+    heap[right]? = some (ProjectEulerSolutions.RationalPair.Heap.object b) →
+      data.«project-euler-statements».data.py.project_euler_statements.p93.eval_ops.Verified a b left right heap globals
+"""
+
 from itertools import combinations, permutations
 
 
