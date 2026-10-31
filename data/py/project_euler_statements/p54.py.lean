@@ -1281,7 +1281,7 @@ theorem negative_sort_eq (pairs : List (Int × Int)) :
 private theorem keyed_insert_of_compare (heap : Heap) (compareLess :
     (Mutable.Value × Mutable.Value) → (Mutable.Value × Mutable.Value) → Bool)
     (value : Mutable.Value × Mutable.Value) (keys : List (Mutable.Value × Mutable.Value))
-    (compared : ∀ key ∈ keys, HeapSort.compare (heap.length+1) heap false key.2 value.2 =
+    (compared : ∀ key ∈ keys, HeapSort.compare (HeapSort.comparisonFuel heap) heap false key.2 value.2 =
       some (.ok (compareLess key value))) :
     HeapSort.keyedInsert heap value keys = some (.ok (HeapSort.insertBy compareLess value keys)) := by
   induction keys with
@@ -1296,7 +1296,7 @@ private theorem keyed_sort_of_compare (heap : Heap) (compareLess :
     (Mutable.Value × Mutable.Value) → (Mutable.Value × Mutable.Value) → Bool)
     (keys : List (Mutable.Value × Mutable.Value))
     (compared : ∀ left ∈ keys, ∀ right ∈ keys,
-      HeapSort.compare (heap.length+1) heap false left.2 right.2 = some (.ok (compareLess left right))) :
+      HeapSort.compare (HeapSort.comparisonFuel heap) heap false left.2 right.2 = some (.ok (compareLess left right))) :
     HeapSort.keyedSort heap keys = some (.ok (HeapSort.sortBy compareLess keys)) := by
   induction keys with
   | nil => rfl
@@ -1312,7 +1312,7 @@ private theorem keyed_sort_of_compare (heap : Heap) (compareLess :
 private theorem keys_compared (heap : Heap) (entries : List Entry) (known : Found heap entries)
     (left : Mutable.Value × Mutable.Value) (leftMember : left ∈ cached heap.length entries)
     (right : Mutable.Value × Mutable.Value) (rightMember : right ∈ cached heap.length entries) :
-    HeapSort.compare ((heap ++ scratch entries).length+1) (heap ++ scratch entries) false left.2 right.2 =
+    HeapSort.compare (HeapSort.comparisonFuel (heap ++ scratch entries)) (heap ++ scratch entries) false left.2 right.2 =
       some (.ok (less (heap ++ scratch entries) left right)) := by
   obtain ⟨a, aMember, aOriginal, aKey, aReference, aFound⟩ := cached_member heap entries left leftMember
   obtain ⟨b, bMember, bOriginal, bKey, bReference, bFound⟩ := cached_member heap entries right rightMember
@@ -1321,9 +1321,11 @@ private theorem keys_compared (heap : Heap) (entries : List Entry) (known : Foun
   have positive : 0 < (heap ++ scratch entries).length := by
     have inside := (List.getElem?_eq_some_iff.mp aFound).1
     omega
-  have depth : (heap ++ scratch entries).length-1+2 = (heap ++ scratch entries).length+1 := by omega
+  have allowance := HeapSort.comparisonFuel_ge_linear (heap ++ scratch entries)
+  have depth : HeapSort.comparisonFuel (heap ++ scratch entries) - 2 + 2 =
+      HeapSort.comparisonFuel (heap ++ scratch entries) := by omega
   have compared := HeapSort.compare_int_tuples (heap ++ scratch entries) aKey bKey
-    ((heap ++ scratch entries).length-1) [-a.count, -a.rank] [-b.count, -b.rank] aFound bFound
+    (HeapSort.comparisonFuel (heap ++ scratch entries) - 2) [-a.count, -a.rank] [-b.count, -b.rank] aFound bFound
   simpa only [depth, aReference, bReference, less, aOriginal, bOriginal, aRead, bRead,
     negativeLess, negative, Entry.pair, PokerGroupOrder.pairLess, PokerGroupOrder.row] using compared
 
