@@ -569,6 +569,12 @@
   return:
     type: int
     desc: The number of positive perimeters at most limit that admit exactly one right triangle with positive integer side lengths, ignoring the order of the two legs; zero for negative bounds.
+76:
+  args:
+    n: int
+  return:
+    type: int
+    desc: The number of unordered partitions of n into positive parts strictly smaller than n; one for zero, counting the empty partition, and zero for negative n.
 77:
   args:
     target: int
