@@ -23,6 +23,9 @@ def count_prime_sums(n: int) -> int:
 
 
 def naive(target: int) -> int:
+    """
+    @formalsw: Returns
+    """
     n = 2
     while True:
         if count_prime_sums(n) > target:
