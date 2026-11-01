@@ -667,6 +667,16 @@
     type: int
     desc: The sum of each input string's length minus the length of the standard minimal Roman representation of its value, parsing adjacent increasing symbols as subtractive pairs and all other symbols additively.
   comment: Valid Roman numerals are included in the broader domain of nonempty Roman-symbol strings. Outside the valid Roman grammar, the character difference can be negative. Values and string lengths are unbounded.
+90:
+  args:
+    face_count: int
+    required_pairs: list[tuple[int, int]]
+  constraints:
+    - all(0 <= x <= 9 and 0 <= y <= 9 for x, y in required_pairs)
+  return:
+    type: int
+    desc: The number of unordered pairs of dice, each labeled with face_count distinct decimal digits, that can display every required pair in either orientation, with 6 and 9 interchangeable when displaying a digit. Identical dice are allowed; dice with different printed label sets remain distinct. Return zero for face counts outside zero through ten. With no requirements, every pair of dice is counted.
+  comment: The decimal alphabet and the 6/9 rotation rule are fixed; both could be generalized to supplied symbols and equivalence classes.
 92:
   args:
     limit_exclusive: int
