@@ -8,6 +8,16 @@
   (heap : FormalSW.PyAst.Mutable.Heap) (globals : FormalSW.PyAst.Mutable.Globals) :
   heap[address]? = some (.tuple (xs.map ProjectEulerSolutions.RationalPair.Heap.number)) →
     data.«project-euler-statements».data.py.project_euler_statements.p93.all_results.Computed xs address heap globals
+@formalsw: theorem consecutive_for_digits_source (xs : List Int) (address : Nat)
+  (heap : FormalSW.PyAst.Mutable.Heap) (globals : FormalSW.PyAst.Mutable.Globals) :
+  heap[address]? = some (.tuple (xs.map ProjectEulerSolutions.RationalPair.Heap.number)) →
+    ∃ extra, FormalSW.PyAst.HeapCalls.ReturnsValue P93Ast.module "consecutive_for_digits" [.ref address] heap
+      (ProjectEulerSolutions.RationalPair.Heap.number
+        (data.«project-euler-statements».data.py.project_euler_statements.p93.consecutive_for_digits.runLength xs))
+      (heap ++ extra) globals
+@formalsw: theorem naive_source (bound : Int)
+  (heap : FormalSW.PyAst.Mutable.Heap) (globals : FormalSW.PyAst.Mutable.Globals) :
+  data.«project-euler-statements».data.py.project_euler_statements.p93.naive.Verified bound heap globals
 """
 
 from itertools import combinations, permutations
@@ -65,6 +75,9 @@ def consecutive_for_digits(digits: tuple[int, ...]) -> int:
 
 
 def naive(max_digit: int = 9) -> tuple[int, ...]:
+    """
+    @formalsw: Returns
+    """
     best_length = -1
     best_digits = ()
     for digits in combinations(range(max_digit + 1), 4):
