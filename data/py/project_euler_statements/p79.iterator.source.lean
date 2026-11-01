@@ -1,6 +1,6 @@
 import data.«project-euler-statements».data.py.project_euler_statements.«p79.validation.source»
 import lang.py.FormalSW.IteratorRules
-import lang.py.FormalSW.RuntimeEffects
+import lang.py.FormalSW.ConstructionIsolation
 import lang.py.FormalSW.IteratorOperationRelocation
 
 /-! Reference validation consumes actual iterator methods and preserves their shared effects. -/
@@ -195,6 +195,29 @@ theorem iterator_accepted_attempt_execution (context : Module) (extension : Exte
     length digits isObject bound executed found getChecked logical rename layout.runtime separate
     following stack resumes
   exact ⟨finalUsed, run, layout.preserves related interned, interned⟩
+
+/-- Validation updates the protected list and retains separation for the next caller method. -/
+theorem iterator_accepted_attempt_private (context : Module) (extension : Extends context program)
+    (choices : ChoiceSchedule) (anchors used : Nat) (before yielded logical : Mutable.Heap)
+    (rename : Nat → Nat) (iterator : Mutable.Value) (operation : Operation)
+    (address : Nat) (checked : List String) (env : HeapCalls.Env) (s : String)
+    (length : s.length = 3) (digits : Strings.isDigit s = true)
+    (isObject : IteratorCalls.isInstance before iterator = true)
+    (bound : ProtocolCalls.nextMethod context iterator before = some (.ok (some operation), before))
+    (executed : IteratorCalls.OperationCompletes context choices used operation before (.ok (text s)) yielded)
+    (protectedLayout : Mutable.Relocation.PrivateLayout logical yielded rename address (.list (checked.map text)))
+    (getChecked : env "checked" = some (.ref address))
+    (following : List Stmt) (stack : List HeapCalls.Frame) (resumes : List IteratorCalls.Resume) :
+    ∃ finalUsed, IteratorCalls.Reaches context anchors choices []
+      (.running ⟨⟨.block (validationLoop (sequenceSource iterator) 0 :: following) env, stack, before⟩, used⟩ resumes)
+      (.running ⟨⟨.block (validationLoop (sequenceSource iterator) 0 :: following)
+        (setLocal env "attempt" (text s)), stack,
+        yielded.set address (.list ((checked ++ [s]).map text))⟩, finalUsed⟩ resumes) ∧
+      Mutable.Relocation.PrivateLayout logical
+        (yielded.set address (.list ((checked ++ [s]).map text))) rename address (.list ((checked ++ [s]).map text)) := by
+  obtain ⟨finalUsed, run⟩ := iterator_accepted_attempt context extension choices anchors used before yielded
+    iterator operation address checked env s length digits isObject bound executed protectedLayout.saved getChecked following stack resumes
+  exact ⟨finalUsed, run, protectedLayout.update_private _ (by simp) (by simp)⟩
 
 theorem iterator_rejected_attempt (context : Module) (extension : Extends context program)
     (choices : ChoiceSchedule) (anchors used : Nat) (before yielded : Mutable.Heap)
