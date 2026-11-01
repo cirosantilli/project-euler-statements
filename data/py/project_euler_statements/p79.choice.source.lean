@@ -9,10 +9,10 @@ set_option Elab.async false
 abbrev setValidationEnv (value : Mutable.Value) : HeapCalls.Env :=
   functionEnv naiveArgs naiveBody [value] []
 
-theorem naive_set_failure (heap : Mutable.Heap) (address index : Nat) (items : List Constant)
+theorem naive_set_failure_mod (heap : Mutable.Heap) (address index : Nat) (items : List Constant)
     (s : String) (choices : ChoiceSchedule)
     (found : heap[address]? = some (.set items)) (selected : items[index]? = some (.string s))
-    (invalid : s.length ≠ 3 ∨ Strings.isDigit s = false) (choice : choices 0 = index) :
+    (invalid : s.length ≠ 3 ∨ Strings.isDigit s = false) (choice : choices 0 % items.length = index) :
     ((SetCalls.call program "naive" [.ref address] heap).run choices).Finishes
       ⟨.error (invalidException s), [], heap ++ [.list []], heap.length⟩ := by
   let env := setValidationEnv (.ref address)
@@ -33,9 +33,18 @@ theorem naive_set_failure (heap : Mutable.Heap) (address index : Nat) (items : L
   apply (SetCalls.Reaches.of_heap (allocated _ heap.length []) choices 0).finishes
   apply (SetCalls.for_set_name program choices heap.length 0 address after items bound "attempt" "attempts"
     validationBody [] [.return checkedExpression] [] (by rfl) saved).finishes
-  apply Finishes.next (SetCalls.select_item program choices heap.length 0 address index after items items (.string s)
+  apply Finishes.next (SetCalls.select_item_mod program choices heap.length 0 address index after items items (.string s)
     bound "attempt" validationBody [] [.return checkedExpression] [] saved selected choice)
   exact SetCalls.finishes_of_heap (rejected_attempt (setLocal bound "attempt" (.scalar (.string s))) after s
     (by simp [setLocal, text]) invalid _ heap.length []) choices 1
+
+theorem naive_set_failure (heap : Mutable.Heap) (address index : Nat) (items : List Constant)
+    (s : String) (choices : ChoiceSchedule)
+    (found : heap[address]? = some (.set items)) (selected : items[index]? = some (.string s))
+    (invalid : s.length ≠ 3 ∨ Strings.isDigit s = false) (choice : choices 0 = index) :
+    ((SetCalls.call program "naive" [.ref address] heap).run choices).Finishes
+      ⟨.error (invalidException s), [], heap ++ [.list []], heap.length⟩ := by
+  exact naive_set_failure_mod heap address index items s choices found selected invalid
+    (by rw [choice]; exact Nat.mod_eq_of_lt (List.getElem?_eq_some_iff.mp selected).1)
 
 end data.«project-euler-statements».data.py.project_euler_statements.p79
