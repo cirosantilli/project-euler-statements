@@ -1,4 +1,5 @@
 import ProjectEulerStatements.Lib.PartitionRecurrence
+import ProjectEulerStatements.Lib.PartitionPentagonalTerms
 import Mathlib.Data.Int.ModEq
 import Mathlib.Algebra.BigOperators.ModEq
 
@@ -7,41 +8,6 @@ namespace ProjectEulerStatements.PartitionPentagonalLoop
 open PartitionRecurrence
 open scoped BigOperators
 set_option Elab.async false
-
-def first (k : Nat) : Nat := pentagonal (k : Int)
-def second (k : Nat) : Nat := pentagonal (-(k : Int))
-def sign (k : Int) : Int := if k % 2 = 1 then 1 else -1
-
-def piece (values : Nat → Int) (n k : Nat) : Int :=
-  sign k * (if first k ≤ n then values (n-first k) else 0) +
-    sign k * (if second k ≤ n then values (n-second k) else 0)
-
-theorem first_cast (k : Nat) : (first k : Int) = (k : Int)*(3*k-1)/2 :=
-  natCast_pentagonal k
-
-theorem second_cast (k : Nat) : (second k : Int) = (k : Int)*(3*k+1)/2 := by
-  rw [second, natCast_pentagonal]
-  congr 1
-  ring
-
-theorem first_positive (k : Nat) (positive : 0 < k) : 0 < first k := by
-  have lower := (PartitionPentagonal.index_bounds (k : Int)).2
-  change (k : Int) ≤ (first k : Int) at lower
-  omega
-
-theorem second_gt (k : Nat) (positive : 0 < k) : first k < second k :=
-  pentagonal_lt_pentagonal_neg (by omega)
-
-theorem first_ge_index (k : Nat) : k ≤ first k := by
-  have lower := (PartitionPentagonal.index_bounds (k : Int)).2
-  change (k : Int) ≤ (first k : Int) at lower
-  omega
-
-theorem first_monotone {j k : Nat} (ordered : j ≤ k) : first j ≤ first k := by
-  by_cases same : j = k
-  · subst k
-    rfl
-  · exact le_of_lt (pentagonal_strictMonoOn (by simp) (by simp) (by omega))
 
 theorem piece_eq_terms (n k : Nat) :
     piece count n k = -(term n k + term n (-(k : Int))) := by
@@ -62,11 +28,6 @@ theorem recurrence (n : Nat) (positive : 0 < n) :
   intro j member
   exact (piece_eq_terms n (j+1)).symm
 
-theorem piece_outside (values : Nat → Int) (n k : Nat) (positive : 0 < k)
-    (outside : n < first k) : piece values n k = 0 := by
-  have later := second_gt k positive
-  simp [piece, show ¬ first k ≤ n by omega, show ¬ second k ≤ n by omega]
-
 /-- Replacing table entries by any congruent representatives preserves each paired contribution. -/
 theorem piece_mod (values : Nat → Int) (n k : Nat) (modulus : Int)
     (same : ∀ j < n, values j % modulus = count j % modulus) (positive : 0 < k) :
@@ -84,22 +45,6 @@ theorem piece_mod (values : Nat → Int) (n k : Nat) (modulus : Int)
     · exact same _ (by omega)
     · rfl
   exact (Int.ModEq.mul_left (sign k) one).add (Int.ModEq.mul_left (sign k) two)
-
-def tail (values : Nat → Int) (n k : Nat) : Int :=
-  ∑ j ∈ Finset.Ico k (n+1), piece values n j
-
-theorem tail_step (values : Nat → Int) (n k : Nat) (inside : k ≤ n) :
-    tail values n k = piece values n k + tail values n (k+1) :=
-  Finset.sum_eq_sum_Ico_succ_bot (by omega) _
-
-/-- The actual pentagonal break condition makes every remaining summand vanish. -/
-theorem tail_done (values : Nat → Int) (n k : Nat) (positive : 0 < k)
-    (outside : n < first k) : tail values n k = 0 := by
-  apply Finset.sum_eq_zero
-  intro j member
-  have ordered : k ≤ j := (Finset.mem_Ico.mp member).1
-  have larger := first_monotone ordered
-  exact piece_outside values n j (by omega) (by omega)
 
 theorem tail_start (n : Nat) (positive : 0 < n) : tail count n 1 = count n := by
   rw [recurrence n positive, tail, Finset.sum_Ico_eq_sum_range]
