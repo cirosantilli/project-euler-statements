@@ -1,4 +1,4 @@
-import ProjectEulerStatements.Lib.TopologicalOrder
+import ProjectEulerStatements.Lib.Indegree
 
 /-! Binary heap order implies least-element selection for arbitrary finite lists. -/
 namespace ProjectEulerStatements.MinHeap
@@ -47,5 +47,24 @@ theorem head_eq_choose (nodes : List α) (edges : List (α × α)) (head : α) (
   apply List.min?_eq_some_iff.mpr
   exact ⟨contents.mem_iff.mp (by simp),
     fun value member => head_le_mem head rest ordered value (contents.mem_iff.mpr member)⟩
+
+/-- An ordered heap after the decrement-and-enqueue step selects the next greedy vertex.
+Its ordering and insertion permutation remain obligations of the concrete heap operations. -/
+theorem head_eq_choose_after_discharge (source : α) (nodes : List α) (edges : List (α × α))
+    (queued neighbors : List α) (head : α) (rest : List α)
+    (nodesUnique : nodes.Nodup) (edgesUnique : edges.Nodup)
+    (endpoints : ∀ edge ∈ edges, edge.1 ∈ nodes ∧ edge.2 ∈ nodes)
+    (queueContents : (source :: queued).Perm (TopologicalOrder.eligible nodes edges))
+    (adjacency : neighbors.Perm (TopologicalOrder.successors source edges))
+    (insertions : (head :: rest).Perm (queued ++
+      (TopologicalOrder.discharge
+        (fun vertex => (TopologicalOrder.indegree vertex edges : Int)) neighbors).2))
+    (ordered : Ordered (head :: rest)) :
+    TopologicalOrder.choose (nodes.erase source) (TopologicalOrder.removeNode source edges) =
+      some head := by
+  have updated := TopologicalOrder.discharge_queue source nodes edges
+    queued neighbors (head :: rest) nodesUnique edgesUnique endpoints
+    queueContents adjacency insertions
+  exact head_eq_choose _ _ head rest updated.2 ordered
 
 end ProjectEulerStatements.MinHeap
