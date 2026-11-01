@@ -1,12 +1,12 @@
-def get_col(m, c):
-    return [row[c] if c < len(row) else 0 for row in m]
+def get_col(matrix: list[list[int]], c: int) -> list[int]:
+    return [row[c] if c < len(row) else 0 for row in matrix]
 
 
-def add_lists(a, b):
+def add_lists(a: list[int], b: list[int]) -> list[int]:
     return [x + y for x, y in zip(a, b)] if len(a) == len(b) else []
 
 
-def relax_down(cost, col):
+def relax_down(cost: list[int], col: list[int]) -> list[int]:
     if len(cost) != len(col) or not cost:
         return []
     out = [cost[0]]
@@ -18,17 +18,14 @@ def relax_down(cost, col):
     return out
 
 
-def relax_up(cost, col):
+def relax_up(cost: list[int], col: list[int]) -> list[int]:
     return list(reversed(relax_down(list(reversed(cost)), list(reversed(col)))))
 
 
-small_matrix = [[131,673,234,103,18],[201,96,342,965,150],[630,803,746,422,111],[537,699,497,121,956],[805,732,524,37,331]]
-
-
-def min_path(m):
-    if not m:
+def min_path(matrix: list[list[int]]) -> int:
+    if not matrix:
         return 0
-    cols = [get_col(m, c) for c in range(len(m[0]))]
+    cols = [get_col(matrix, c) for c in range(len(matrix[0]))]
     if not cols:
         return 0
     final = cols[0]
@@ -38,10 +35,40 @@ def min_path(m):
     return min(final) if final else 0
 
 
-def naive(m):
-    return min_path(m)
+def is_rectangular(matrix: list[list[int]]) -> bool:
+    if not matrix:
+        return True
+    width = len(matrix[0])
+    for row in matrix:
+        if len(row) != width:
+            return False
+    return True
+
+
+def has_nonnegative_entries(matrix: list[list[int]]) -> bool:
+    for row in matrix:
+        for value in row:
+            if value < 0:
+                return False
+    return True
+
+
+def naive(matrix: list[list[int]]) -> int:
+    """
+    @formalsw: Requires(is_rectangular(matrix))
+    @formalsw: Requires(has_nonnegative_entries(matrix))
+    @formalsw: Returns
+    """
+    return min_path(matrix)
 
 
 if __name__ == '__main__':
-    assert min_path(small_matrix) == 994
+    sample = [
+        [131, 673, 234, 103, 18],
+        [201, 96, 342, 965, 150],
+        [630, 803, 746, 422, 111],
+        [537, 699, 497, 121, 956],
+        [805, 732, 524, 37, 331],
+    ]
+    assert min_path(sample) == 994
 
