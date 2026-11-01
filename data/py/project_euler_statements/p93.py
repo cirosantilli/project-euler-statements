@@ -4,6 +4,10 @@
   heap[left]? = some (ProjectEulerSolutions.RationalPair.Heap.object a) →
     heap[right]? = some (ProjectEulerSolutions.RationalPair.Heap.object b) →
       data.«project-euler-statements».data.py.project_euler_statements.p93.eval_ops.Verified a b left right heap globals
+@formalsw: theorem all_results_source (xs : List Int) (address : Nat)
+  (heap : FormalSW.PyAst.Mutable.Heap) (globals : FormalSW.PyAst.Mutable.Globals) :
+  heap[address]? = some (.tuple (xs.map ProjectEulerSolutions.RationalPair.Heap.number)) →
+    data.«project-euler-statements».data.py.project_euler_statements.p93.all_results.Computed xs address heap globals
 """
 
 from itertools import combinations, permutations
@@ -41,6 +45,10 @@ def all_results(nums: tuple[int, ...]) -> list[tuple[int, int]]:
 
 
 def consecutive_count(xs: list[int]) -> int:
+    """
+    @formalsw: Returns
+    @formalsw: ReturnType
+    """
     n = 1
     while n in xs:
         n += 1
