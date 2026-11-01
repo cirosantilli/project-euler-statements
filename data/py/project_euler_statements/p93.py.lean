@@ -1,4 +1,5 @@
-import data.«project-euler-statements».data.py.project_euler_statements.«p93.py.lean.d».Operations
+import data.«project-euler-statements».data.py.project_euler_statements.«p93.py.lean.d».Base
+import data.«project-euler-statements».data.py.project_euler_statements.«p93.py.lean.d».Outer
 
 namespace data.«project-euler-statements».data.py.project_euler_statements.p93
 open FormalSW.PyAst ProjectEulerSolutions.RationalPair
