@@ -19,8 +19,6 @@ def count_ways_bound(amt: int, cs: list[int]) -> int:
 
 def naive(amt: int) -> int:
     """
-    Count combinations for the current positive-denomination global coin list.
-
     @formalsw: Requires(amt >= 0 and all(c > 0 for c in coins))
     @formalsw: Returns
     """

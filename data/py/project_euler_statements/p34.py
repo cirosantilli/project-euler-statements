@@ -8,8 +8,6 @@ def digit_fact_sum(n: int, base: int = 10) -> int:
 
 def naive(base: int = 10) -> int:
     """
-    Sum fixed points with at least two digits using a complete input-derived bound.
-
     @formalsw: Requires(base >= 2)
     @formalsw: Returns
     """

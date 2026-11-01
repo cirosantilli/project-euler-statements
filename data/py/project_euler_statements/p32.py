@@ -5,8 +5,6 @@ from .common import of_digits_be
 
 def naive(width: int = 9) -> int:
     """
-    Split every permutation of the target digits into two positive factors and their product.
-
     @formalsw: Returns
     """
     if width < 3:

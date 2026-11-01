@@ -64,9 +64,6 @@ def four_digit(sides: int) -> list[int]:
 
 def naive(max_sides: int = 8) -> int:
     """
-    Enumerate every type order, scanning whole families for each next value.
-    Fix the first type to triangular; every cycle has that rotation.
-
     @formalsw: Returns
     """
     if max_sides < 3:

@@ -16,8 +16,6 @@ def is_truncatable_prime(n: int, base: int = 10) -> bool:
 
 def naive(base: int = 10) -> int:
     """
-    Exhaust the right-truncatable-prime tree, retaining primes truncatable from both ends.
-
     @formalsw: Requires(base >= 2)
     @formalsw: theorem supported : (this_function base).Supported
     """

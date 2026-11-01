@@ -19,8 +19,6 @@ def count_ways(n: int, max_: int) -> int:
 
 def naive(n: int) -> int:
     """
-    Count partitions using positive parts strictly smaller than n.
-
     @formalsw: Returns
     """
     return count_ways(n, n - 1)

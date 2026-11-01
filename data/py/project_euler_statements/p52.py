@@ -26,9 +26,6 @@ def has_permuted_multiples(n: int, x: int) -> bool:
 
 
 def naive(n: int) -> int:
-    """
-    Search positive candidates until their first n multiples have the same digits.
-    """
     x = 1
     while True:
         if has_permuted_multiples(n, x):

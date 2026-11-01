@@ -26,8 +26,6 @@ def is_hex(x: int) -> bool:
 
 def naive(after: int = 40755) -> int:
     """
-    Merge the three increasing polygonal sequences until the next common value.
-
     @formalsw: Returns
     """
     i = 1

@@ -42,12 +42,6 @@ def cube_perm_count(n: int) -> int:
 
 
 def naive(target: int) -> int:
-    """
-    Search complete digit widths without an externally supplied search bound.
-
-    Every candidate in a completed width has its full permutation count.
-    If no class has the requested size, this search does not return.
-    """
     digits = 1
     stop = 1
     while True:

@@ -7,8 +7,6 @@ def num_digits(n: int, base: int = 10) -> int:
 
 def naive(base: int = 10) -> int:
     """
-    Count qualifying powers by testing every positive seed in each possible digit width.
-
     @formalsw: Requires(base >= 2)
     @formalsw: Returns
     """

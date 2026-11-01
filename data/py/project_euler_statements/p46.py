@@ -18,9 +18,6 @@ def can_be_written(n: int) -> bool:
 
 
 def naive(after: int = 0) -> int:
-    """
-    Search odd composites above after until the representation first fails.
-    """
     n = 9
     while True:
         if n > after and is_odd_composite(n) and not can_be_written(n):

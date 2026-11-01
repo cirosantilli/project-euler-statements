@@ -43,9 +43,6 @@ def has_prime_family(k: int, n: int) -> bool:
 
 
 def naive(k: int) -> int:
-    """
-    Search ascending integers until a prime replacement family of size at least k exists.
-    """
     n = 0
     while True:
         if has_prime_family(k, n):

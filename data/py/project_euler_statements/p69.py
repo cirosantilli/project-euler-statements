@@ -14,8 +14,6 @@ def better(a: int, b: int) -> bool:
 
 def naive(limit: int) -> int:
     """
-    Keep the first strict ratio improvement, returning one for bounds below one.
-
     @formalsw: Returns
     """
     best = 1

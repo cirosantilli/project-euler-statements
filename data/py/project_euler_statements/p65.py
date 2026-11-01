@@ -22,8 +22,6 @@ def digit_sum(n: int) -> int:
 
 def naive(n: int = 100) -> int:
     """
-    Sum numerator digits after constructing the first n coefficients of e.
-
     @formalsw: Requires(n >= 1)
     @formalsw: Returns
     """

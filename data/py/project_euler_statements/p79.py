@@ -43,9 +43,6 @@ def topo(ns: list[str], es: list[tuple[str, str]]) -> list[str]:
 
 
 def naive(attempts: Iterable[str]) -> str:
-    """
-    Find the least ordering of distinct digits by repeatedly scanning all remaining constraints.
-    """
     checked: list[str] = []
     for attempt in attempts:
         if len(attempt) != 3 or not attempt.isdigit():
