@@ -1,4 +1,5 @@
 import ProjectEulerStatements.Lib.MinHeap
+import ProjectEulerStatements.Lib.HeapqPop
 import lang.py.FormalSW.HeapqTotal
 
 /-! Relate a concrete successful heap pop to the greedy topological-order choice.
@@ -44,5 +45,21 @@ theorem heappop_greedy_succeeds (encode : α → Mutable.Value)
   have selected := heappop_selects_choose encode nodes edges head rest heap after address
     (encode head) contents ordered found finished
   exact ⟨after, finished, selected.1, selected.2.2⟩
+
+/-- Order-respecting comparisons also preserve the queue invariant for the next iteration. -/
+theorem heappop_greedy_ordered (encode : α → Mutable.Value) (comparison : EncodesOrder encode)
+    (nodes : List α) (edges : List (α × α)) (head : α) (rest : List α)
+    (heap : Mutable.Heap) (address : Nat)
+    (contents : (head :: rest).Perm (TopologicalOrder.eligible nodes edges))
+    (ordered : Ordered (head :: rest))
+    (found : heap[address]? = some (.list ((head :: rest).map encode))) :
+    ∃ changed, Heapq.heappop [.ref address] heap =
+        some (.ok (encode head), heap.set address (.list (changed.map encode))) ∧
+      TopologicalOrder.choose nodes edges = some head ∧
+      changed.Perm rest ∧ Ordered changed := by
+  obtain ⟨changed, finished, permutation, resultOrdered⟩ :=
+    heappop_ordered encode comparison heap address head rest ordered found
+  exact ⟨changed, finished, head_eq_choose nodes edges head rest contents ordered,
+    permutation, resultOrdered⟩
 
 end ProjectEulerStatements.MinHeap
