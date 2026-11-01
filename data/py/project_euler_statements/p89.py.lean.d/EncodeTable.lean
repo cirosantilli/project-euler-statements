@@ -3,6 +3,7 @@ import data.«project-euler-statements».data.py.project_euler_statements.«p89.
 namespace data.«project-euler-statements».data.py.project_euler_statements.p89.int_to_roman_aux
 open FormalSW.PyAst HeapCalls ProjectEulerSolutions RomanNumerals
 set_option Elab.async false
+variable {globals : Mutable.Globals}
 
 structure Entry where
   denomination : Nat
@@ -26,7 +27,7 @@ theorem table_loop (base : Mutable.Heap) (tableAddress : Nat) (entries remaining
     (env : HeapCalls.Env) (getN : env "n" = some (.scalar (.int n)))
     (getOut : env "out" = some (.ref base.length)) :
     ∃ finalEnv,
-      BlockContinues program env [.unpackStepLoop ["v", "cs"] (.ref tableAddress) position loopCode []]
+      BlockContinues (globals := globals) program env [.unpackStepLoop ["v", "cs"] (.ref tableAddress) position loopCode []]
         (HeapCollection.working base output []) finalEnv
         (HeapCollection.working base (output ++ encode (remaining.map Entry.model) n.toNat) []) ∧
       finalEnv "out" = some (.ref base.length) := by
@@ -50,7 +51,7 @@ theorem table_loop (base : Mutable.Heap) (tableAddress : Nat) (entries remaining
         simpa [List.drop_drop, Nat.add_comm] using dropped
       let bound := assignNames env ["v", "cs"] [number entry.denomination, .ref entry.tokenAddress]
       obtain ⟨afterLoop, remainder, iterated, nextN, nextNat, nextOut, _⟩ :=
-        repeat_signed entry.denomination current.positive entry.token entry.tokenAddress base current.token n output bound
+        repeat_signed (globals := globals) entry.denomination current.positive entry.token entry.tokenAddress base current.token n output bound
           (by simpa [bound, assignNames, setLocal] using getN)
           (by simp [bound, assignNames, setLocal]) (by simp [bound, assignNames, setLocal])
           (by simpa [bound, assignNames, setLocal] using getOut)
@@ -76,10 +77,10 @@ theorem table_result (base : Mutable.Heap) (tableAddress : Nat) (entries : List 
     (env : HeapCalls.Env) (getN : env "n" = some (.scalar (.int n)))
     (getOut : env "out" = some (.ref base.length)) (getTable : env "table" = some (.ref tableAddress)) :
     ∃ finalEnv,
-      BlockContinues program env [code[2]'(by decide)] (HeapCollection.working base output []) finalEnv
+      BlockContinues (globals := globals) program env [code[2]'(by decide)] (HeapCollection.working base output []) finalEnv
         (HeapCollection.working base (output ++ encode (entries.map Entry.model) n.toNat) []) ∧
       finalEnv "out" = some (.ref base.length) := by
-  obtain ⟨finalEnv, ran, finalOut⟩ := table_loop base tableAddress entries entries found valid 0 rfl n output env getN getOut
+  obtain ⟨finalEnv, ran, finalOut⟩ := table_loop (globals := globals) base tableAddress entries entries found valid 0 rfl n output env getN getOut
   refine ⟨finalEnv, ?_, finalOut⟩
   apply BlockContinues.for_unpack (items := entries.map Entry.reference)
     (middle := HeapCollection.working base output []) (by intros; simp) rfl (Evaluates.lookup getTable)

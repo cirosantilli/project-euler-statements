@@ -3,15 +3,16 @@ import data.«project-euler-statements».data.py.project_euler_statements.«p89.
 namespace data.«project-euler-statements».data.py.project_euler_statements.p89.roman_to_int
 open FormalSW.PyAst HeapCalls ProjectEulerSolutions
 set_option Elab.async false
+variable {globals : Mutable.Globals}
 
 /-- Recursive parsing follows the shrinking input list and preserves all pre-existing objects. -/
 theorem result (input : List String) (heap : Mutable.Heap) (address : Nat)
     (found : heap[address]? = some (.list (encode input))) :
-    ∃ extra, ReturnsValue program "roman_to_int" [.ref address] heap (number (RomanNumerals.parse input))
+    ∃ extra, ReturnsValue (globals := globals) program "roman_to_int" [.ref address] heap (number (RomanNumerals.parse input))
       (heap ++ extra) := by
   let entry := functionEnv ((findFunctionIn program.body "roman_to_int").getD ([], [])).1
-    ((findFunctionIn program.body "roman_to_int").getD ([], [])).2 [.ref address] []
-  have getInput : entry "chars" = some (.ref address) := rfl
+    ((findFunctionIn program.body "roman_to_int").getD ([], [])).2 [.ref address] globals
+  have getInput : entry "chars" = some (.ref address) := by cases globals <;> rfl
   cases input with
   | nil =>
       refine ⟨[], ?_⟩
@@ -20,7 +21,7 @@ theorem result (input : List String) (heap : Mutable.Heap) (address : Nat)
       apply BlockReturns.branch (flag := true) (empty_test [] heap address found entry getInput) rfl
       exact BlockReturns.return_value Evaluates.constant
   | cons first rest =>
-      have nonempty : BlockContinues program entry [code[0]'(by decide)] heap entry heap :=
+      have nonempty : BlockContinues (globals := globals) program entry [code[0]'(by decide)] heap entry heap :=
         BlockContinues.branch (flag := false) (empty_test (first :: rest) heap address found entry getInput) rfl .nil
       cases rest with
       | nil =>
@@ -38,11 +39,11 @@ theorem result (input : List String) (heap : Mutable.Heap) (address : Nat)
             simpa [paired, pairEnv, assignNames, setLocal] using getInput
           have pairedFirst : paired "a" = some (string first) := by simp [paired, pairEnv, assignNames, setLocal]
           have pairedSecond : paired "b" = some (string second) := by simp [paired, pairEnv, assignNames, setLocal]
-          have notSingle : BlockContinues program entry [code[1]'(by decide)] heap entry heap :=
+          have notSingle : BlockContinues (globals := globals) program entry [code[1]'(by decide)] heap entry heap :=
             BlockContinues.branch (flag := false) (length_test (first :: second :: rest) heap address found entry getInput)
               (by simp [Mutable.truth, scalarTruth]) .nil
-          have unpacked := unpack_pair first second rest heap address found entry getInput
-          have tested := comparison first second pairHeap paired pairedFirst pairedSecond
+          have unpacked := unpack_pair (globals := globals) first second rest heap address found entry getInput
+          have tested := comparison (globals := globals) first second pairHeap paired pairedFirst pairedSecond
           by_cases subtract : RomanNumerals.value first < RomanNumerals.value second
           · let leftHeap := compared ++ [.dict valueEntries, .dict valueEntries]
             let slicedHeap := leftHeap ++ [.list (encode rest)]

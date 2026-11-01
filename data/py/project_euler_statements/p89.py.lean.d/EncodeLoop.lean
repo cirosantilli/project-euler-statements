@@ -4,6 +4,7 @@ import ProjectEulerSolutions.Lib.HeapCollection
 namespace data.«project-euler-statements».data.py.project_euler_statements.p89.int_to_roman_aux
 open FormalSW.PyAst HeapCalls ProjectEulerSolutions RomanNumerals
 set_option Elab.async false
+variable {globals : Mutable.Globals}
 
 abbrev code : List Stmt := executableBody ((findFunctionIn program.body "int_to_roman_aux").getD ([], [])).2
 abbrev loopCode : List Stmt := match code[2]'(by decide) with
@@ -22,26 +23,26 @@ theorem repeat_token (denomination : Nat) (positive : 0 < denomination)
     (found : base[tokenAddress]? = some (.list token)) (n : Nat) (output : List Mutable.Value)
     (env : HeapCalls.Env) (ready : Locals env n denomination tokenAddress base.length) :
     ∃ finalEnv,
-      BlockContinues program env loopCode (HeapCollection.working base output []) finalEnv
+      BlockContinues (globals := globals) program env loopCode (HeapCollection.working base output []) finalEnv
         (HeapCollection.working base (output ++ copies token (n / denomination)) []) ∧
       Locals finalEnv (n % denomination) denomination tokenAddress base.length ∧
       ∀ name, name ≠ "n" → name ≠ "out" → finalEnv name = env name := by
   let heap := HeapCollection.working base output []
-  have tested : Evaluates program env (.compare (.name "n") [(.gtE, .name "v")]) heap
+  have tested : Evaluates (globals := globals) program env (.compare (.name "n") [(.gtE, .name "v")]) heap
       (.scalar (.bool (decide (denomination ≤ n)))) heap := by
     apply Evaluates.compare (Evaluates.lookup ready.remaining) (Evaluates.lookup ready.denomination)
     simp [HeapCalls.compare, scalarCompare, evalCmpOp]
   by_cases active : denomination ≤ n
   · let appended := setLocal env "out" (.ref base.length)
     let advanced := setLocal appended "n" (number (n - denomination))
-    have extended : BlockContinues program env [.augAssign (.name "out") .add (.name "cs")]
+    have extended : BlockContinues (globals := globals) program env [.augAssign (.name "out") .add (.name "cs")]
         heap appended (HeapCollection.working base (output ++ token) []) := by
       apply BlockContinues.augAssign ready.output (Evaluates.lookup ready.token)
       have readToken : heap[tokenAddress]? = some (.list token) :=
         HeapCollection.prefix_found base _ tokenAddress _ found
       simpa only [heap, HeapCollection.store] using
         inplace_add_lists heap base.length tokenAddress output token (HeapCollection.found base output []) readToken
-    have decreased : BlockContinues program appended [.augAssign (.name "n") .sub (.name "v")]
+    have decreased : BlockContinues (globals := globals) program appended [.augAssign (.name "n") .sub (.name "v")]
         (HeapCollection.working base (output ++ token) []) advanced
         (HeapCollection.working base (output ++ token) []) := by
       apply BlockContinues.augAssign (left := number n) (right := number denomination)

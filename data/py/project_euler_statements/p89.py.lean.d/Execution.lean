@@ -4,6 +4,7 @@ import lang.py.FormalSW.SumCalls
 namespace data.«project-euler-statements».data.py.project_euler_statements.p89.naive
 open FormalSW.PyAst HeapCalls ProjectEulerSolutions RomanNumerals
 set_option Elab.async false
+variable {globals : Mutable.Globals}
 
 abbrev element : Expr := .call (.name "saved_chars") [.name "s"]
 
@@ -11,7 +12,7 @@ abbrev element : Expr := .call (.name "saved_chars") [.name "s"]
 theorem sum_loop (lines remaining : List String) (position : Nat) (suffix : lines.drop position = remaining)
     (heap : Mutable.Heap) (address : Nat) (found : heap[address]? = some (.list (lines.map string)))
     (env : HeapCalls.Env) (initial : Int) (getTotal : env sumAccumulator = some (.scalar (.int initial))) :
-    ∃ extra, BlockReturns program env
+    ∃ extra, BlockReturns (globals := globals) program env
       [.sequenceStepLoop "s" (.ref address) position (sumBody element []) [], .return (.name sumAccumulator)]
       heap (.scalar (.int (initial + (remaining.map saved).sum))) (heap ++ extra) := by
   induction remaining generalizing position heap env initial with
@@ -31,7 +32,7 @@ theorem sum_loop (lines remaining : List String) (position : Nat) (suffix : line
         have dropped := congrArg (List.drop 1) suffix
         simpa [List.drop_drop, Nat.add_comm] using dropped
       let bound := setLocal env "s" (string head)
-      obtain ⟨extra, counted⟩ := saved_chars.result head heap
+      obtain ⟨extra, counted⟩ := saved_chars.result (globals := globals) head heap
       let advanced := setLocal bound sumAccumulator (.scalar (.int (initial + saved head)))
       have retained : (heap ++ extra)[address]? = some (.list (lines.map string)) :=
         HeapCollection.prefix_found heap extra address _ found
@@ -54,16 +55,17 @@ theorem sum_loop (lines remaining : List String) (position : Nat) (suffix : line
 /-- The complete reference returns the signed character difference for every list of strings. -/
 theorem result (lines : List String) (heap : Mutable.Heap) (address : Nat)
     (found : heap[address]? = some (.list (lines.map string))) :
-    ∃ extra, ReturnsValue program "naive" [.ref address] heap (.scalar (.int (savings lines))) (heap ++ extra) := by
+    ∃ extra, ReturnsValue (globals := globals) program "naive" [.ref address] heap (.scalar (.int (savings lines))) (heap ++ extra) := by
   let entry := functionEnv ((findFunctionIn program.body "naive").getD ([], [])).1
-    ((findFunctionIn program.body "naive").getD ([], [])).2 [.ref address] []
+    ((findFunctionIn program.body "naive").getD ([], [])).2 [.ref address] globals
+  have argument : entry "lines" = some (.ref address) := by cases globals <;> rfl
   let generator := setLocal (comprehensionEnv entry [("s", .name "lines", [])]) sumAccumulator (.scalar (.int 0))
-  obtain ⟨extra, summed⟩ := sum_loop lines lines 0 rfl heap address found generator 0 (by simp [generator, setLocal])
+  obtain ⟨extra, summed⟩ := sum_loop (globals := globals) lines lines 0 rfl heap address found generator 0 (by simp [generator, setLocal])
   refine ⟨extra, ?_⟩
   apply BlockReturns.function rfl rfl
   apply BlockReturns.return_value
   apply Evaluates.sum_generator_sequence (items := lines.map string) (middle := heap) (afterStart := heap)
-    (by intros; simp) (Evaluates.lookup rfl)
+    (by intros; simp) (Evaluates.lookup argument)
   · simp [Mutable.sequence, found]
   · exact Evaluates.constant
   · rfl

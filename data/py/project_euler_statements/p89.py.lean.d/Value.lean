@@ -5,6 +5,7 @@ import ProjectEulerSolutions.Lib.RomanNumerals
 namespace data.«project-euler-statements».data.py.project_euler_statements.p89
 open FormalSW.PyAst HeapCalls ProjectEulerSolutions
 set_option Elab.async false
+variable {globals : Mutable.Globals}
 
 abbrev program := P89Ast.module
 abbrev number (n : Nat) : Mutable.Value := .scalar (.int n)
@@ -39,14 +40,17 @@ theorem value_default (text : String) :
 
 /-- The reference's local dictionary uses Python string equality and defaults to zero. -/
 theorem value.result (text : String) (heap : Mutable.Heap) :
-    ReturnsValue program "value" [string text] heap (number (RomanNumerals.value text)) (heap ++ [.dict valueEntries]) := by
+    ReturnsValue (globals := globals) program "value" [string text] heap (number (RomanNumerals.value text)) (heap ++ [.dict valueEntries]) := by
   have found : (heap ++ [.dict valueEntries])[heap.length]? = some (.dict valueEntries) := by simp
+  have argument : functionEnv ((findFunctionIn program.body "value").getD ([], [])).1
+      ((findFunctionIn program.body "value").getD ([], [])).2 [string text] globals "c" = some (string text) := by
+    cases globals <;> rfl
   apply BlockReturns.function rfl rfl
   apply BlockReturns.return_value
   apply Evaluates.dictionary_get (entries := valueEntries)
     (by intro name same; cases same) (Evaluates.dictionary_constants valueTable)
   · exact found
-  · exact .cons (Evaluates.lookup rfl) (.cons Evaluates.constant .nil)
+  · exact .cons (Evaluates.lookup argument) (.cons Evaluates.constant .nil)
   · change Mutable.dictionaryGet heap.length (string text) (number 0) (heap ++ [.dict valueEntries]) = _
     rw [Mutable.dictionaryGet_scalar _ _ valueEntries found, value_default]
 
