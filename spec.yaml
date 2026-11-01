@@ -677,6 +677,13 @@
     type: int
     desc: The number of unordered pairs of dice, each labeled with face_count distinct decimal digits, that can display every required pair in either orientation, with 6 and 9 interchangeable when displaying a digit. Identical dice are allowed; dice with different printed label sets remain distinct. Return zero for face counts outside zero through ten. With no requirements, every pair of dice is counted.
   comment: The decimal alphabet and the 6/9 rotation rule are fixed; both could be generalized to supplied symbols and equivalence classes.
+91:
+  args:
+    n: int
+  return:
+    type: int
+    desc: The number of unordered pairs of distinct nonzero integer points P and Q in the square [0,n] x [0,n] for which the triangle with vertices (0,0), P, and Q has a right angle. Return zero for nonpositive n.
+  comment: The grid is square and the distinguished vertex is the origin; a rectangular grid or a supplied distinguished vertex would give broader variants.
 92:
   args:
     limit_exclusive: int
