@@ -589,6 +589,15 @@
   return:
     type: int
     desc: The least positive integer n whose number of integer partitions is divisible by mod, if such an n exists.
+79:
+  args:
+    attempts: list[str]
+  constraints:
+    - all(len(attempt) == 3 and attempt.isdigit() for attempt in attempts)
+  return:
+    type: str
+    desc: The lexicographically least ordering of the distinct digits appearing in the attempts, using each digit once and containing every attempt as a subsequence; raise ValueError if the ordering constraints contain a cycle.
+  comment: Allowing repeated digits in the passcode gives a shortest-common-supersequence problem.
 85:
   args:
     target: int
