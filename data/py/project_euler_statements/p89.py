@@ -28,6 +28,9 @@ def roman_to_int(chars: list[str]) -> int:
 
 
 def int_to_roman_aux(n: int) -> list[str]:
+    """
+    @formalsw: Returns
+    """
     table = [
         (1000, ["M"]),
         (900, ["C", "M"]),
@@ -52,14 +55,23 @@ def int_to_roman_aux(n: int) -> list[str]:
 
 
 def minimal_roman(s: str) -> str:
+    """
+    @formalsw: Returns
+    """
     return ''.join(int_to_roman_aux(roman_to_int(list(s))))
 
 
 def saved_chars(s: str) -> int:
+    """
+    @formalsw: Returns
+    """
     return len(s) - len(minimal_roman(s))
 
 
 def naive(lines: list[str]) -> int:
+    """
+    @formalsw: Returns
+    """
     return sum(saved_chars(s) for s in lines)
 
 
