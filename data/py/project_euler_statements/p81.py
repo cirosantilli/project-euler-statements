@@ -1,6 +1,4 @@
 def row_step(prev: list[int], row: list[int]) -> list[int]:
-    if not prev and not row:
-        return []
     if not prev or not row:
         return []
     first = row[0] + prev[0]
@@ -13,25 +11,43 @@ def row_step(prev: list[int], row: list[int]) -> list[int]:
     return out
 
 
-small_matrix = [[131,673,234,103,18],[201,96,342,965,150],[630,803,746,422,111],[537,699,497,121,956],[805,732,524,37,331]]
+def is_rectangular(matrix: list[list[int]]) -> bool:
+    if not matrix:
+        return True
+    width = len(matrix[0])
+    for row in matrix:
+        if len(row) != width:
+            return False
+    return True
 
 
-def min_path(m: list[list[int]]) -> int:
-    if not m:
+def min_path(matrix: list[list[int]]) -> int:
+    if not matrix:
         return 0
     init = []
-    for x in m[0]:
+    for x in matrix[0]:
         init.append(x + (init[-1] if init else 0))
     final = init
-    for row in m[1:]:
+    for row in matrix[1:]:
         final = row_step(final, row)
     return final[-1] if final else 0
 
 
-def naive(m: list[list[int]]) -> int:
-    return min_path(m)
+def naive(matrix: list[list[int]]) -> int:
+    """
+    @formalsw: Requires(is_rectangular(matrix))
+    @formalsw: Returns
+    """
+    return min_path(matrix)
 
 
 if __name__ == '__main__':
-    assert min_path(small_matrix) == 2427
+    sample = [
+        [131, 673, 234, 103, 18],
+        [201, 96, 342, 965, 150],
+        [630, 803, 746, 422, 111],
+        [537, 699, 497, 121, 956],
+        [805, 732, 524, 37, 331],
+    ]
+    assert min_path(sample) == 2427
 

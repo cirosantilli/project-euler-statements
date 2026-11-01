@@ -608,6 +608,14 @@
   return:
     type: int
     desc: The total digit sum obtained by taking the first `digits` decimal digits of sqrt(n) for each nonsquare integer n from one through limit, including digits before the decimal point.
+81:
+  args:
+    matrix: list[list[int]]
+  constraints:
+    - not matrix or all(len(row) == len(matrix[0]) for row in matrix)
+  return:
+    type: int
+    desc: The least sum of cell values along a path from the top-left to the bottom-right cell using only right and down steps, including both endpoints; return zero if the matrix has no cells.
 85:
   args:
     target: int
