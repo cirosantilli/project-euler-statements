@@ -14,10 +14,21 @@ def is_square(n: int) -> bool:
 def sqrt_digits_sum(n: int, digits: int) -> int:
     if is_square(n):
         return 0
-    return digit_sum(isqrt(n * 10 ** (2 * (digits - 1))))
+    root = isqrt(n)
+    width = len(str(root))
+    if digits < width:
+        prefix = root // 10 ** (width - digits)
+    else:
+        prefix = isqrt(n * 10 ** (2 * (digits - width)))
+    return digit_sum(prefix)
 
 
 def naive(limit: int, digits: int) -> int:
+    """
+    @formalsw: Requires(limit >= 0)
+    @formalsw: Requires(digits >= 1)
+    @formalsw: Returns
+    """
     return sum(sqrt_digits_sum(n, digits) for n in range(limit + 1))
 
 

@@ -598,6 +598,16 @@
     type: str
     desc: The lexicographically least ordering of the distinct digits appearing in the attempts, using each digit once and containing every attempt as a subsequence; raise ValueError if the ordering constraints contain a cycle.
   comment: Allowing repeated digits in the passcode gives a shortest-common-supersequence problem.
+80:
+  args:
+    limit: int
+    digits: int
+  constraints:
+    - limit >= 0
+    - digits >= 1
+  return:
+    type: int
+    desc: The total digit sum obtained by taking the first `digits` decimal digits of sqrt(n) for each nonsquare integer n from one through limit, including digits before the decimal point.
 85:
   args:
     target: int
