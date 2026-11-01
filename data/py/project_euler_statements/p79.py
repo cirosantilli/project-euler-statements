@@ -1,6 +1,3 @@
-from collections.abc import Iterable
-
-
 def edges_from(s: str) -> list[tuple[str, str]]:
     return [(s[0], s[1]), (s[1], s[2]), (s[0], s[2])] if len(s) >= 3 else []
 
@@ -42,7 +39,7 @@ def topo(ns: list[str], es: list[tuple[str, str]]) -> list[str]:
     return out
 
 
-def naive(attempts: Iterable[str]) -> str:
+def naive(attempts: list[str]) -> str:
     checked: list[str] = []
     for attempt in attempts:
         if len(attempt) != 3 or not attempt.isdigit():
