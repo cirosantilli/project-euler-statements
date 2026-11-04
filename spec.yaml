@@ -625,6 +625,15 @@
   return:
     type: int
     desc: The least sum of cell values along a path from any left-column cell to any right-column cell using only up, down, and right steps, including both endpoints; return zero if the matrix has no cells.
+83:
+  args:
+    matrix: list[list[int]]
+  constraints:
+    - not matrix or all(len(row) == len(matrix[0]) for row in matrix)
+    - all(value >= 0 for row in matrix for value in row)
+  return:
+    type: int
+    desc: The least sum of cell values along a path from the top-left to the bottom-right cell using only up, down, left, and right steps, including both endpoints; return zero if the matrix has no cells.
 85:
   args:
     target: int
