@@ -11,6 +11,9 @@ def is_right(a: int, b: int, c: int, d: int) -> bool:
 
 
 def naive(n: int) -> int:
+    """
+    @formalsw: Returns
+    """
     acc = 0
     for x1 in range(n + 1):
         for y1 in range(n + 1):
